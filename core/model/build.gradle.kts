@@ -4,9 +4,10 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+// One toolchain drives both compileJava and compileKotlin to JVM 17, so their
+// targets can never drift (the "Inconsistent JVM-target" error).
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
