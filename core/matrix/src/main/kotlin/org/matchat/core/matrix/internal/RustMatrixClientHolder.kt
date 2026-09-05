@@ -6,6 +6,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.matchat.core.matrix.MatrixDevConfig
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
@@ -58,27 +59,29 @@ internal class RustMatrixClientHolder @Inject constructor(
      *  discovery resolves it). [resetStore] wipes the SDK store first, which a
      *  fresh login needs so a new device does not clash with a stored crypto
      *  account (restore, once enabled, will pass false). */
-    suspend fun buildClient(homeserver: String, resetStore: Boolean = true): Client {
-        val path = if (resetStore) store.resetSdkStore() else store.sdkStorePath
-        // FFI: sessionPaths(dataPath, cachePath) is deprecated but present in
-        // 26.09.x; if removed, switch to sqliteStore(SqliteStoreBuilder(path)).
-        var builder = ClientBuilder()
-            .sessionPaths(dataPath = path, cachePath = path)
-            .serverNameOrHomeserverUrl(homeserver)
-            // Discover native sliding sync (MSC4186). Flat uniffi enums generate
-            // UPPER_SNAKE_CASE Kotlin entries, hence DISCOVER_NATIVE. Without a
-            // version builder the room list fails with VersionIsMissing.
-            .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DISCOVER_NATIVE)
-        if (devConfig.allowInsecureTls) {
-            // Debug builds only (see MatrixDevConfig): lets on-device testing work
-            // behind an SSL-inspecting proxy and sidesteps the rustls-platform-
-            // verifier init requirement. Never enabled in release.
-            builder = builder.disableSslVerification()
+    suspend fun buildClient(homeserver: String, resetStore: Boolean = true): Client =
+        // All SDK + file work is on IO, never the main thread (ARCHITECTURE.md).
+        withContext(Dispatchers.IO) {
+            val path = if (resetStore) store.resetSdkStore() else store.sdkStorePath
+            // FFI: sessionPaths(dataPath, cachePath) is deprecated but present in
+            // 26.09.x; if removed, switch to sqliteStore(SqliteStoreBuilder(path)).
+            var builder = ClientBuilder()
+                .sessionPaths(dataPath = path, cachePath = path)
+                .serverNameOrHomeserverUrl(homeserver)
+                // Discover native sliding sync (MSC4186). Flat uniffi enums generate
+                // UPPER_SNAKE_CASE Kotlin entries, hence DISCOVER_NATIVE. Without a
+                // version builder the room list fails with VersionIsMissing.
+                .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DISCOVER_NATIVE)
+            if (devConfig.allowInsecureTls) {
+                // Debug builds only (see MatrixDevConfig): lets on-device testing
+                // work behind an SSL-inspecting proxy and sidesteps the rustls-
+                // platform-verifier init requirement. Never enabled in release.
+                builder = builder.disableSslVerification()
+            }
+            val built = builder.build()
+            client = built
+            built
         }
-        val built = builder.build()
-        client = built
-        return built
-    }
 
     /** Persist the session (encrypted) after a successful login so the next cold
      *  start can restore it and reuse the same device/crypto store. */
@@ -104,8 +107,8 @@ internal class RustMatrixClientHolder @Inject constructor(
     }
 
     /** Start the sync loop and begin observing the room list. */
-    suspend fun startSync() {
-        if (syncService != null) return
+    suspend fun startSync() = withContext(Dispatchers.IO) {
+        if (syncService != null) return@withContext
         syncState.value = SyncState.SYNCING
         val svc = requireClient().syncService().finish()
         svc.start()
@@ -130,11 +133,11 @@ internal class RustMatrixClientHolder @Inject constructor(
         runCatching { roomList?.room(roomId.value) }.getOrNull()
 
     /** Restore keys from a recovery key so encrypted history can be decrypted. */
-    suspend fun recover(recoveryKey: String) {
+    suspend fun recover(recoveryKey: String) = withContext(Dispatchers.IO) {
         requireClient().encryption().recover(recoveryKey)
     }
 
-    suspend fun logout() {
+    suspend fun logout() = withContext(Dispatchers.IO) {
         runCatching { syncService?.stop() }
         runCatching { requireClient().logout() }
         client = null
