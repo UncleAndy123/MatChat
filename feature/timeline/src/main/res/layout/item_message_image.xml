@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An inline image message (S9). Focusable row; the bitmap is downloaded and
+     decoded (downsampled to the QVGA screen) on bind. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/focus_selector"
+    android:focusable="true"
+    android:focusableInTouchMode="false"
+    android:minHeight="@dimen/row_min_height_compact"
+    android:paddingStart="@dimen/content_pad"
+    android:paddingEnd="@dimen/content_pad"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
+
+    <TextView
+        android:id="@+id/image_sender"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:duplicateParentState="true"
+        android:textSize="@dimen/text_sender"
+        android:textColor="@color/encrypted"
+        android:visibility="gone"
+        tools:text="Wayne"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/message_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="200dp"
+        android:maxHeight="200dp"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/timeline_image"
+        android:scaleType="fitStart" />
+
+    <TextView
+        android:id="@+id/image_caption"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:duplicateParentState="true"
+        android:textSize="@dimen/text_body"
+        android:textColor="@color/text_on_focus"
+        android:visibility="gone"
+        tools:text="At the north gate" />
+
+    <TextView
+        android:id="@+id/image_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:duplicateParentState="true"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_meta_on_focus"
+        tools:text="3:42 PM ✓✓" />
+</LinearLayout>

@@ -60,6 +60,10 @@ class FakeMatrixSession(
         return recoverResult
     }
 
+    var mediaBytes: ByteArray? = null
+
+    override suspend fun loadMedia(eventId: EventId): ByteArray? = mediaBytes
+
     override suspend fun logout() = Unit
 }
 

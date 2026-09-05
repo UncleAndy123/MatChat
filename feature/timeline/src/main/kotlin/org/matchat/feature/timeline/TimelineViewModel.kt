@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.matchat.core.matrix.MatrixSession
 import org.matchat.core.model.EventId
+import org.matchat.core.model.MediaKind
 import org.matchat.core.model.MillisClock
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.TimelineItem
@@ -115,6 +116,11 @@ class TimelineViewModel @Inject constructor(
                         },
                     )
                 }
+                is TimelineItem.Media -> {
+                    val showName = item.senderName != lastSender
+                    lastSender = item.senderName
+                    mediaRow(item, if (showName) item.senderName else null)
+                }
                 is TimelineItem.DaySeparator -> {
                     lastSender = null
                     TimelineRow.DaySeparator(item.label)
@@ -129,6 +135,66 @@ class TimelineViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** Download a media message's bytes for the UI to render/open/play. */
+    suspend fun loadMedia(eventId: EventId): ByteArray? = session.loadMedia(eventId)
+
+    private fun mediaRow(item: TimelineItem.Media, senderName: String?): TimelineRow {
+        val glyph = when {
+            item.isOwn && item.isRead -> READ_GLYPH
+            item.isOwn -> TimelineState.glyph(item.sendState)
+            else -> ""
+        }
+        val time = RelativeTime.clockTime(item.timestampEpochMs)
+        if (item.kind == MediaKind.IMAGE) {
+            return TimelineRow.Image(
+                eventId = item.eventId,
+                senderName = senderName,
+                caption = item.caption,
+                time = time,
+                isOwn = item.isOwn,
+                sendGlyph = glyph,
+            )
+        }
+        return TimelineRow.Attachment(
+            eventId = item.eventId,
+            senderName = senderName,
+            glyph = glyphFor(item.kind),
+            label = labelFor(item),
+            sub = subFor(item),
+            time = time,
+            isOwn = item.isOwn,
+            mimeType = item.mimeType,
+            play = item.kind == MediaKind.AUDIO || item.kind == MediaKind.VOICE,
+        )
+    }
+
+    private fun glyphFor(kind: MediaKind): String = when (kind) {
+        MediaKind.VOICE -> "🎤"
+        MediaKind.AUDIO -> "🎧"
+        MediaKind.VIDEO -> "🎬"
+        else -> "📎"
+    }
+
+    private fun labelFor(item: TimelineItem.Media): String = when (item.kind) {
+        MediaKind.VOICE -> "Voice message"
+        else -> item.filename
+    }
+
+    private fun subFor(item: TimelineItem.Media): String? {
+        item.durationMs?.let { return formatDuration(it) }
+        return item.sizeBytes?.let { formatSize(it) }
+    }
+
+    private fun formatDuration(ms: Long): String {
+        val totalSec = ms / 1000
+        return "%d:%02d".format(totalSec / 60, totalSec % 60)
+    }
+
+    private fun formatSize(bytes: Long): String {
+        val kb = bytes / 1024.0
+        return if (kb < 1024) "%.0f KB".format(kb) else "%.1f MB".format(kb / 1024)
     }
 
     private companion object {

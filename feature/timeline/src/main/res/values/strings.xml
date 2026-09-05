@@ -16,4 +16,9 @@
     <string name="timeline_msg_reply">Reply</string>
     <string name="timeline_msg_copy">Copy text</string>
     <string name="timeline_msg_info">Message info</string>
+
+    <!-- Media. -->
+    <string name="timeline_image">Image</string>
+    <string name="timeline_media_failed">Could not download this attachment.</string>
+    <string name="timeline_media_no_app">No app on this phone can open this file.</string>
 </resources>

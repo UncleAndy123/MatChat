@@ -41,6 +41,17 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Hands downloaded attachments to the system viewer via content:// URIs. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
+
         <!-- Managed configuration schema (docs/MDM.md §3). Only :core:policy reads it. -->
         <meta-data
             android:name="android.content.APP_RESTRICTIONS"

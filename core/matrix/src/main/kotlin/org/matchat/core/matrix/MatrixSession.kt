@@ -41,6 +41,10 @@ interface MatrixSession {
      */
     suspend fun recoverEncryption(recoveryKey: String): Result<Unit>
 
+    /** Download a media message's bytes by event id (image/video/audio/voice/file),
+     *  decrypting if needed. Returns null when the source is unknown or fails. */
+    suspend fun loadMedia(eventId: EventId): ByteArray?
+
     suspend fun logout()
 }
 

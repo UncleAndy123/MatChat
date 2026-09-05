@@ -3,12 +3,14 @@ package org.matchat.core.matrix.internal
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import org.matchat.core.matrix.MatrixSession
 import org.matchat.core.matrix.RoomTimeline
 import org.matchat.core.model.DeviceTrust
+import org.matchat.core.model.EventId
 import org.matchat.core.model.InviteSummary
 import org.matchat.core.model.Profile
 import org.matchat.core.model.RoomId
@@ -66,6 +68,11 @@ internal class RustMatrixSession @Inject constructor(
 
     override suspend fun recoverEncryption(recoveryKey: String): Result<Unit> =
         runCatching { holder.recover(recoveryKey.trim()) }
+
+    override suspend fun loadMedia(eventId: EventId): ByteArray? = withContext(Dispatchers.IO) {
+        val source = MediaRegistry.get(eventId.value) ?: return@withContext null
+        runCatching { holder.requireClient().getMediaContent(source) }.getOrNull()
+    }
 
     override suspend fun logout() = holder.logout()
 }

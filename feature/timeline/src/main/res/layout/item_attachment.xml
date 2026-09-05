@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A file / audio / voice / video attachment (S9). CENTER downloads and opens it
+     in the system player/viewer. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/focus_selector"
+    android:focusable="true"
+    android:focusableInTouchMode="false"
+    android:minHeight="@dimen/row_min_height"
+    android:paddingStart="@dimen/content_pad"
+    android:paddingEnd="@dimen/content_pad"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/attachment_glyph"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:textSize="20sp"
+        tools:text="📎" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/attachment_sender"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            android:textSize="@dimen/text_sender"
+            android:textColor="@color/encrypted"
+            android:visibility="gone"
+            tools:text="Wayne"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/attachment_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            android:maxLines="1"
+            android:ellipsize="middle"
+            android:textSize="@dimen/text_body"
+            android:textColor="@color/text_on_focus"
+            tools:text="Voice message" />
+
+        <TextView
+            android:id="@+id/attachment_sub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            android:textSize="@dimen/text_meta"
+            android:textColor="@color/text_meta_on_focus"
+            tools:text="0:12" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/attachment_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:duplicateParentState="true"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_meta_on_focus"
+        tools:text="3:42 PM" />
+</LinearLayout>

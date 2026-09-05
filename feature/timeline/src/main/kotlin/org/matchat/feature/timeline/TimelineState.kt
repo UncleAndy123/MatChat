@@ -20,6 +20,33 @@ sealed interface TimelineRow {
         override val stableId: String get() = eventId.value
     }
 
+    /** An inline image (downloaded by eventId on bind). */
+    data class Image(
+        val eventId: EventId,
+        val senderName: String?,
+        val caption: String?,
+        val time: String,
+        val isOwn: Boolean,
+        val sendGlyph: String,
+    ) : TimelineRow {
+        override val stableId: String get() = "img:${eventId.value}"
+    }
+
+    /** A file / video / audio / voice attachment; CENTER downloads and opens/plays. */
+    data class Attachment(
+        val eventId: EventId,
+        val senderName: String?,
+        val glyph: String,
+        val label: String,
+        val sub: String?,
+        val time: String,
+        val isOwn: Boolean,
+        val mimeType: String?,
+        val play: Boolean, // true = audio/voice (play in-app), false = open externally
+    ) : TimelineRow {
+        override val stableId: String get() = "att:${eventId.value}"
+    }
+
     data class DaySeparator(val label: String) : TimelineRow {
         override val stableId: String get() = "day:$label"
     }

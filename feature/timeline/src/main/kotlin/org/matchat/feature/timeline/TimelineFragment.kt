@@ -1,6 +1,7 @@
 package org.matchat.feature.timeline
 
 import android.view.View
+import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.viewModels
@@ -46,6 +47,8 @@ class TimelineFragment : SoftkeyFragment() {
         onMessageFocused = { viewModel.onAction(TimelineAction.MessageFocused(it)) },
         onFixEncryption = { viewModel.onAction(TimelineAction.FixEncryption(it)) },
         onMessageActivated = { openMessageMenu(it) },
+        onImageBind = { eventId, image -> loadImageInto(eventId, image) },
+        onAttachmentActivated = { openAttachment(it) },
     )
 
     override fun onContentViewCreated(content: View) {
@@ -138,6 +141,33 @@ class TimelineFragment : SoftkeyFragment() {
         MenuSheet.show(requireContext(), items) { /* actions land in M3 */ }
     }
 
+    private fun loadImageInto(eventId: org.matchat.core.model.EventId, image: android.widget.ImageView) {
+        image.tag = eventId
+        viewLifecycleOwner.lifecycleScope.launch {
+            val bytes = viewModel.loadMedia(eventId) ?: return@launch
+            val bitmap = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                MediaFiles.decodeSampled(bytes, MAX_IMAGE_PX)
+            }
+            if (bitmap != null && image.tag == eventId) image.setImageBitmap(bitmap)
+        }
+    }
+
+    private fun openAttachment(row: TimelineRow.Attachment) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val bytes = viewModel.loadMedia(row.eventId)
+            if (bytes == null) {
+                Toast.makeText(requireContext(), R.string.timeline_media_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                MediaFiles.writeToCache(requireContext(), row.label, bytes)
+            }
+            MediaFiles.open(requireContext(), file, row.mimeType) {
+                Toast.makeText(requireContext(), R.string.timeline_media_no_app, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     override fun onDestroyView() {
         binding?.timelineList?.adapter = null
         binding = null
@@ -152,5 +182,6 @@ class TimelineFragment : SoftkeyFragment() {
         const val MSG_REPLY = "reply"
         const val MSG_COPY = "copy"
         const val MSG_INFO = "msg_info"
+        const val MAX_IMAGE_PX = 480 // ~2x the 240 px screen; Coil-free downsample
     }
 }
