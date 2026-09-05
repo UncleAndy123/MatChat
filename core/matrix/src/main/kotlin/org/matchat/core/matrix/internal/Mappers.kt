@@ -14,8 +14,7 @@ import org.matrix.rustcomponents.sdk.TimelineItem as RustTimelineItem
 
 /**
  * SDK types -> :core:model types. The only mapping layer; if the SDK changes
- * shape on upgrade, this file (and SessionCodec) are what break, by design
- * (ARCHITECTURE.md). FFI-sensitive accessors are marked.
+ * shape on upgrade, this file is what breaks, by design (ARCHITECTURE.md).
  */
 internal object Mappers {
 

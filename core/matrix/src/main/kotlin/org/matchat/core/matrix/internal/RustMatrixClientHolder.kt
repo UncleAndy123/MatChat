@@ -64,24 +64,19 @@ internal class RustMatrixClientHolder @Inject constructor(
         return built
     }
 
-    /** Persist the current session after a successful login. */
-    suspend fun persistSession() {
-        val session = requireClient().session()
-        store.persist(SessionCodec.encode(session))
-    }
+    /**
+     * Persist the session after a successful login.
+     *
+     * Deferred to the next M1 step: serializing the SDK [Session] record needs its
+     * exact field/enum shape pinned against the AAR. Until then the client stays
+     * live for the process and the user signs in each cold start. The SDK's own
+     * SQLite store already persists account state under the session path.
+     */
+    suspend fun persistSession() = Unit
 
-    /** Rebuild + restore a persisted session on cold start. Returns false when
-     *  there is nothing to restore or restoration fails. */
-    suspend fun restore(): Boolean {
-        val blob = store.load() ?: return false
-        return runCatching {
-            val session = SessionCodec.decode(blob)
-            val built = buildClient(session.homeserverUrl)
-            built.restoreSession(session)
-            startSync()
-            true
-        }.getOrDefault(false)
-    }
+    /** Cold-start restore. Disabled until session serialization lands (see above);
+     *  returns false so the app routes to Welcome. */
+    suspend fun restore(): Boolean = false
 
     /** Start the sync loop and begin observing the room list. */
     suspend fun startSync() {
@@ -101,9 +96,8 @@ internal class RustMatrixClientHolder @Inject constructor(
             }
         }
         val result = list.entriesWithDynamicAdapters(pageSize = PAGE_SIZE, listener = listener)
-        // FFI: filter kind enum name — .All shows every joined room; confirm the
-        // variant against the AAR (may be AllNonLeft/NonLeftOrInvited).
-        result.controller().setFilter(RoomListEntriesDynamicFilterKind.All)
+        // Joined = the user's joined rooms (no args); All takes a filter list.
+        result.controller().setFilter(RoomListEntriesDynamicFilterKind.Joined)
         entriesResult = result // keep alive so the stream is not dropped
     }
 
