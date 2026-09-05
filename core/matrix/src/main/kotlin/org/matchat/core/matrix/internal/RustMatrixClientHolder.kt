@@ -63,9 +63,10 @@ internal class RustMatrixClientHolder @Inject constructor(
         var builder = ClientBuilder()
             .sessionPaths(dataPath = path, cachePath = path)
             .serverNameOrHomeserverUrl(homeserver)
-            // Use native sliding sync (MSC4186). Without a version builder the
-            // room list fails with VersionIsMissing.
-            .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.Native)
+            // Discover native sliding sync (MSC4186). Flat uniffi enums generate
+            // UPPER_SNAKE_CASE Kotlin entries, hence DISCOVER_NATIVE. Without a
+            // version builder the room list fails with VersionIsMissing.
+            .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DISCOVER_NATIVE)
         if (devConfig.allowInsecureTls) {
             // Debug builds only (see MatrixDevConfig): lets on-device testing work
             // behind an SSL-inspecting proxy and sidesteps the rustls-platform-
