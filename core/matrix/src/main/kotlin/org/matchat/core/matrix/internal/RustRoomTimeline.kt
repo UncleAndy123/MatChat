@@ -46,6 +46,10 @@ internal class RustRoomTimeline(
                     recompute()
                 }
             })
+            // Prime the live timeline so history appears on open. Without this the
+            // timeline stays empty until some event (e.g. the user's own send)
+            // triggers a diff.
+            runCatching { tl.paginateBackwards(INITIAL_PAGE_COUNT.toUShort()) }
         }
     }
 
@@ -86,5 +90,9 @@ internal class RustRoomTimeline(
     private fun recompute() {
         val snapshot = synchronized(buffer) { buffer.toList() }
         itemsFlow.value = snapshot.mapNotNull { Mappers.toTimelineItem(it) }
+    }
+
+    private companion object {
+        const val INITIAL_PAGE_COUNT = 20
     }
 }
