@@ -6,6 +6,7 @@ import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SendState
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
+import org.matrix.rustcomponents.sdk.EncryptionState
 import org.matrix.rustcomponents.sdk.EventOrTransactionId
 import org.matrix.rustcomponents.sdk.MsgLikeKind
 import org.matrix.rustcomponents.sdk.Room
@@ -19,15 +20,19 @@ import org.matrix.rustcomponents.sdk.TimelineItem as RustTimelineItem
 internal object Mappers {
 
     suspend fun toRoomSummary(room: Room): RoomSummary {
-        val encrypted = runCatching { room.isEncrypted() }.getOrDefault(true)
+        val info = runCatching { room.roomInfo() }.getOrNull()
+        val encrypted = when (info?.encryptionState) {
+            EncryptionState.ENCRYPTED -> true
+            EncryptionState.NOT_ENCRYPTED -> false
+            else -> runCatching { room.isEncrypted() }.getOrDefault(true)
+        }
         return RoomSummary(
             id = RoomId(room.id()),
-            name = room.displayName() ?: room.id(),
-            // FFI follow-up: last message + unread come from room.latestEvent()
-            // and room.roomInfo(); left minimal so the room list lands first.
+            name = info?.displayName ?: room.displayName() ?: room.id(),
+            // Last-message preview needs the latest-event API — a follow-up.
             lastMessage = null,
             lastActivityEpochMs = null,
-            unreadCount = 0,
+            unreadCount = (info?.numUnreadMessages ?: 0uL).toInt(),
             isEncrypted = encrypted,
         )
     }

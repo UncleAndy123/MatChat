@@ -84,6 +84,10 @@ class TimelineFragment : SoftkeyFragment() {
         b.emptyView.isVisible = state.isEmpty
         b.timelineList.isVisible = !state.isEmpty
         adapter.submitList(state.rows)
+
+        // Viewing the room clears its unread count (a read receipt on the latest
+        // message). The SDK dedupes, so re-sending on each update is cheap.
+        if (!state.isEmpty) viewModel.onAction(TimelineAction.MarkRead)
     }
 
     private fun navigate(nav: TimelineNav) {

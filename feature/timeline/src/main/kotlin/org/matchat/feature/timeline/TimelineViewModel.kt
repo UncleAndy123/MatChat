@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.matchat.core.matrix.MatrixSession
+import org.matchat.core.model.EventId
 import org.matchat.core.model.MillisClock
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.TimelineItem
@@ -61,7 +62,14 @@ class TimelineViewModel @Inject constructor(
             is TimelineAction.ComposeFocusChanged -> composeFocused.value = action.focused
             is TimelineAction.FixEncryption -> emit(TimelineNav.Verification)
             is TimelineAction.MessageFocused -> Unit // focus tracking only
+            TimelineAction.MarkRead -> markRead()
         }
+    }
+
+    private fun markRead() {
+        // The eventId is ignored by the SDK-backed timeline, which marks the
+        // latest event read; the SDK dedupes repeated identical receipts.
+        viewModelScope.launch { runCatching { timeline.markRead(EventId("")) } }
     }
 
     private fun send(body: String) {
