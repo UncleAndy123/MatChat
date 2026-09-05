@@ -6,7 +6,10 @@ import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SendState
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
+import org.matrix.rustcomponents.sdk.EventOrTransactionId
+import org.matrix.rustcomponents.sdk.MsgLikeKind
 import org.matrix.rustcomponents.sdk.Room
+import org.matrix.rustcomponents.sdk.TimelineItemContent
 import org.matrix.rustcomponents.sdk.TimelineItem as RustTimelineItem
 
 /**
@@ -32,23 +35,29 @@ internal object Mappers {
 
     /**
      * Maps one SDK timeline item to a domain [TimelineItem], or null for items we
-     * do not render (virtual day dividers are surfaced separately by the SDK).
+     * do not render (state changes, virtual dividers). Only text messages are
+     * mapped in this step.
      *
-     * FFI: asEvent()/content accessors are version-sensitive. As of 26.09.x an
-     * event item exposes sender/timestamp/isOwn and content.asMessage()?.body().
+     * EventTimelineItem is a uniffi Record, so its fields are properties. The body
+     * path is content -> MsgLike.content.kind -> Message.content.body.
      */
     fun toTimelineItem(item: RustTimelineItem): TimelineItem? {
         val event = item.asEvent() ?: return null
-        val body = runCatching { event.content().asMessage()?.body() }.getOrNull() ?: return null
+        val msgLike = event.content as? TimelineItemContent.MsgLike ?: return null
+        val messageKind = msgLike.content.kind as? MsgLikeKind.Message ?: return null
+        val body = messageKind.content.body
         return TimelineItem.Message(
-            eventId = EventId(event.eventId() ?: ""),
-            sender = UserId(event.sender()),
+            eventId = EventId(eventIdOf(event.eventOrTransactionId)),
+            sender = UserId(event.sender),
             // Sender display name resolution is a follow-up; the id is always safe.
-            senderName = event.sender(),
+            senderName = event.sender,
             body = body,
-            timestampEpochMs = event.timestamp().toLong(),
-            isOwn = event.isOwn(),
+            timestampEpochMs = event.timestamp.toLong(),
+            isOwn = event.isOwn,
             sendState = SendState.SENT,
         )
     }
+
+    private fun eventIdOf(id: EventOrTransactionId): String =
+        (id as? EventOrTransactionId.EventId)?.eventId.orEmpty()
 }
