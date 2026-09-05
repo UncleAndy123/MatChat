@@ -12,9 +12,11 @@ class FakeMatrixAuth(
     var qrSteps: List<QrLoginStep> = listOf(QrLoginStep.WaitingForScan, QrLoginStep.Done),
 ) : MatrixAuth {
     var lastUser: String? = null
+    var lastHomeserver: String? = null
 
-    override suspend fun signIn(user: String, password: String): Result<Unit> {
+    override suspend fun signIn(user: String, password: String, homeserver: String): Result<Unit> {
         lastUser = user
+        lastHomeserver = homeserver
         return signInResult
     }
 

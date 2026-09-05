@@ -8,7 +8,9 @@ import org.matchat.core.model.QrLoginStep
  * :core:policy (pinnedHomeserver) or typed on S3; MatrixAuth never discovers one.
  */
 interface MatrixAuth {
-    suspend fun signIn(user: String, password: String): Result<Unit>
+    /** [homeserver] may be a server name (example.org) or a full URL; well-known
+     *  discovery resolves it. Ignored when policy pins the homeserver. */
+    suspend fun signIn(user: String, password: String, homeserver: String): Result<Unit>
 
     /** QR sign-in (MSC4108); shipped behind policy.qrLoginEnabled. */
     fun signInWithQr(): Flow<QrLoginStep>

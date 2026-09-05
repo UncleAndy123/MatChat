@@ -51,14 +51,15 @@ internal class RustMatrixClientHolder @Inject constructor(
 
     fun isActive(): Boolean = client != null
 
-    /** Builds a client rooted at [homeserverUrl] using the on-disk SDK store. */
-    suspend fun buildClient(homeserverUrl: String): Client {
+    /** Builds a client for [homeserver] (a server name or a full URL — well-known
+     *  discovery resolves it) using the on-disk SDK store. */
+    suspend fun buildClient(homeserver: String): Client {
         val path = store.sdkStorePath
         // FFI: sessionPaths(dataPath, cachePath) is deprecated but present in
         // 26.09.x; if removed, switch to sqliteStore(SqliteStoreBuilder(path)).
         val built = ClientBuilder()
             .sessionPaths(dataPath = path, cachePath = path)
-            .homeserverUrl(homeserverUrl)
+            .serverNameOrHomeserverUrl(homeserver)
             .build()
         client = built
         return built

@@ -9,13 +9,24 @@
     android:padding="@dimen/content_pad">
 
     <TextView
-        android:id="@+id/homeserver_row"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/signin_homeserver_label"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_secondary" />
+
+    <EditText
+        android:id="@+id/homeserver_field"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:drawablePadding="4dp"
-        android:textSize="@dimen/text_meta"
-        android:textColor="@color/text_secondary"
-        tools:text="🔒 chats.carpathianserver.org" />
+        android:background="@drawable/focus_selector"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:inputType="textUri"
+        android:importantForAutofill="no"
+        android:textSize="@dimen/text_body"
+        android:textColor="@color/text_primary"
+        tools:text="chats.carpathianserver.org" />
 
     <TextView
         android:layout_width="wrap_content"

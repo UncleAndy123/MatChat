@@ -36,16 +36,18 @@ class SignInViewModelTest {
     fun `empty credentials produce an error, no network call`() {
         val auth = FakeMatrixAuth()
         val vm = SignInViewModel(auth, FakePolicyProvider())
-        vm.onAction(SignInAction.Submit("", ""))
+        vm.onAction(SignInAction.Submit("", "", "srv.example"))
         assertNotNull(vm.state.value.error)
     }
 
     @Test
-    fun `successful sign in emits Success`() = runTest {
-        val vm = SignInViewModel(FakeMatrixAuth(signInResult = Result.success(Unit)), FakePolicyProvider())
+    fun `successful sign in emits Success and passes the homeserver`() = runTest {
+        val auth = FakeMatrixAuth(signInResult = Result.success(Unit))
+        val vm = SignInViewModel(auth, FakePolicyProvider())
         vm.navEvents.test {
-            vm.onAction(SignInAction.Submit("wayne", "hunter2"))
+            vm.onAction(SignInAction.Submit("wayne", "hunter2", "srv.example"))
             assertEquals(SignInNav.Success, awaitItem())
+            assertEquals("srv.example", auth.lastHomeserver)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -54,7 +56,7 @@ class SignInViewModelTest {
     fun `network failure maps to a retryable network error`() = runTest {
         val auth = FakeMatrixAuth(signInResult = Result.failure(java.io.IOException("down")))
         val vm = SignInViewModel(auth, FakePolicyProvider())
-        vm.onAction(SignInAction.Submit("wayne", "hunter2"))
+        vm.onAction(SignInAction.Submit("wayne", "hunter2", "srv.example"))
         // Let the launched coroutine run.
         testScheduler.advanceUntilIdle()
         assertEquals(ErrorText.Key.NETWORK, vm.state.value.error?.key)

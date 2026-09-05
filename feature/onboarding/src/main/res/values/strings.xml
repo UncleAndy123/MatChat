@@ -10,12 +10,13 @@
 
     <!-- S3 Sign in. -->
     <string name="signin_title">Sign in</string>
-    <!-- %1$s is the homeserver, optionally prefixed with a lock glyph when pinned. -->
-    <string name="signin_homeserver">Home server: %1$s</string>
+    <string name="signin_homeserver_label">Home server</string>
     <string name="signin_username">Username</string>
     <string name="signin_password">Password</string>
     <string name="signin_submit">Sign in</string>
     <!-- Errors: what happened, then what to do (UX-SPEC §4). -->
     <string name="signin_error_credentials">That username or password did not work.</string>
     <string name="signin_error_network">No network. Check signal and try again.</string>
+    <!-- %1$s is the underlying failure message (bad server, certificate, etc.). -->
+    <string name="signin_error_generic">Could not sign in: %1$s</string>
 </resources>

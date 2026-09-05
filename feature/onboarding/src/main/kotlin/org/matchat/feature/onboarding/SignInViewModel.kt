@@ -37,19 +37,21 @@ class SignInViewModel @Inject constructor(
 
     fun onAction(action: SignInAction) {
         when (action) {
-            is SignInAction.Submit -> submit(action.username.trim(), action.password)
+            is SignInAction.Submit ->
+                submit(action.username.trim(), action.password, action.homeserver.trim())
             SignInAction.DismissError -> _state.update { it.copy(error = null) }
         }
     }
 
-    private fun submit(username: String, password: String) {
-        if (username.isEmpty() || password.isEmpty()) {
+    private fun submit(username: String, password: String, homeserver: String) {
+        val server = if (state.value.homeserverPinned) state.value.homeserver else homeserver
+        if (username.isEmpty() || password.isEmpty() || server.isEmpty()) {
             _state.update { it.copy(error = ErrorText(ErrorText.Key.BAD_CREDENTIALS)) }
             return
         }
         _state.update { it.copy(isSubmitting = true, error = null) }
         viewModelScope.launch {
-            val result = auth.signIn(username, password)
+            val result = auth.signIn(username, password, server)
             result.fold(
                 onSuccess = {
                     _state.update { it.copy(isSubmitting = false) }
@@ -64,14 +66,23 @@ class SignInViewModel @Inject constructor(
         }
     }
 
-    private fun mapError(cause: Throwable): ErrorText =
-        when (cause) {
-            is java.io.IOException -> ErrorText(ErrorText.Key.NETWORK, retryable = true)
-            else -> ErrorText(ErrorText.Key.BAD_CREDENTIALS)
+    private fun mapError(cause: Throwable): ErrorText {
+        val message = cause.message.orEmpty()
+        return when {
+            cause is java.io.IOException -> ErrorText(ErrorText.Key.NETWORK, retryable = true)
+            // Clear auth rejections read as a wrong username/password.
+            listOf("forbidden", "unauthorized", "password", "m_forbidden", "invalid")
+                .any { message.contains(it, ignoreCase = true) } ->
+                ErrorText(ErrorText.Key.BAD_CREDENTIALS)
+            // Anything else (bad server, TLS/cert, unreachable) is shown verbatim
+            // so the real cause is visible (AGENTS.md — no silent failure states).
+            else -> ErrorText(ErrorText.Key.SIGN_IN_FAILED, args = listOf(message.take(MAX_MSG)))
         }
+    }
 
     private companion object {
         // Homeserver assumed from the sign-in mockup (PLAN.md §12 open question 1).
         const val DEFAULT_HOMESERVER = "chats.carpathianserver.org"
+        const val MAX_MSG = 200
     }
 }

@@ -44,14 +44,22 @@ class SignInFragment : SoftkeyFragment() {
     private fun submit() {
         val b = binding ?: return
         viewModel.onAction(
-            SignInAction.Submit(b.username.text.toString(), b.password.text.toString()),
+            SignInAction.Submit(
+                username = b.username.text.toString(),
+                password = b.password.text.toString(),
+                homeserver = b.homeserverField.text.toString(),
+            ),
         )
     }
 
     private fun render(state: SignInState) {
         val b = binding ?: return
-        val lock = if (state.homeserverPinned) "🔒 " else ""
-        b.homeserverRow.text = getString(R.string.signin_homeserver, lock + state.homeserver)
+        // Pre-fill the homeserver once; when pinned it is read-only (grey, locked).
+        if (b.homeserverField.text.isNullOrEmpty()) {
+            b.homeserverField.setText(state.homeserver)
+        }
+        b.homeserverField.isEnabled = !state.homeserverPinned
+        b.homeserverField.isFocusable = !state.homeserverPinned
         b.signInButton.isEnabled = !state.isSubmitting
         b.error.isVisible = state.error != null
         state.error?.let { b.error.text = messageFor(it) }
@@ -59,7 +67,8 @@ class SignInFragment : SoftkeyFragment() {
 
     private fun messageFor(error: ErrorText): CharSequence = when (error.key) {
         ErrorText.Key.NETWORK -> getString(R.string.signin_error_network)
-        else -> getString(R.string.signin_error_credentials)
+        ErrorText.Key.BAD_CREDENTIALS -> getString(R.string.signin_error_credentials)
+        else -> getString(R.string.signin_error_generic, error.args.firstOrNull().orEmpty())
     }
 
     override fun onDestroyView() {

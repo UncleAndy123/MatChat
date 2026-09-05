@@ -15,6 +15,7 @@ data class ErrorText(
         NETWORK,
         SERVER_UNREACHABLE,
         BAD_CREDENTIALS,
+        SIGN_IN_FAILED,
         MALFORMED_ADDRESS,
         ADDRESS_NOT_FOUND,
         DOMAIN_NOT_ALLOWED,
