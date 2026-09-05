@@ -12,8 +12,10 @@
         <item name="android:windowIsTranslucent">false</item>
     </style>
 
-    <!-- A focusable row: full-width inverse focus block, no touch feedback. -->
-    <style name="Widget.MatChat.Row">
+    <!-- A focusable row: full-width inverse focus block, no touch feedback.
+         parent="" so the dotted name is not read as inheriting from a
+         non-existent "Widget.MatChat" (AAPT implicit-parent rule). -->
+    <style name="Widget.MatChat.Row" parent="">
         <item name="android:background">@drawable/focus_selector</item>
         <item name="android:focusable">true</item>
         <item name="android:focusableInTouchMode">false</item>
@@ -23,17 +25,18 @@
         <item name="android:gravity">center_vertical</item>
     </style>
 
-    <style name="Text.Body">
+    <!-- Text.* use parent="" for the same implicit-parent reason as above. -->
+    <style name="Text.Body" parent="">
         <item name="android:textSize">@dimen/text_body</item>
         <item name="android:textColor">@color/text_on_focus</item>
     </style>
 
-    <style name="Text.Label">
+    <style name="Text.Label" parent="">
         <item name="android:textSize">@dimen/text_label</item>
         <item name="android:textColor">@color/text_on_focus</item>
     </style>
 
-    <style name="Text.Meta">
+    <style name="Text.Meta" parent="">
         <item name="android:textSize">@dimen/text_meta</item>
         <item name="android:textColor">@color/text_meta_on_focus</item>
     </style>
