@@ -18,6 +18,7 @@ import org.matrix.rustcomponents.sdk.RoomListEntriesDynamicFilterKind
 import org.matrix.rustcomponents.sdk.RoomListEntriesListener
 import org.matrix.rustcomponents.sdk.RoomListEntriesUpdate
 import org.matrix.rustcomponents.sdk.RoomListEntriesWithDynamicAdaptersResult
+import org.matrix.rustcomponents.sdk.SlidingSyncVersionBuilder
 import org.matrix.rustcomponents.sdk.SyncService
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -62,6 +63,9 @@ internal class RustMatrixClientHolder @Inject constructor(
         var builder = ClientBuilder()
             .sessionPaths(dataPath = path, cachePath = path)
             .serverNameOrHomeserverUrl(homeserver)
+            // Probe the homeserver for native sliding sync (MSC4186). Without a
+            // version builder the room list fails with VersionIsMissing.
+            .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DiscoverNative)
         if (devConfig.allowInsecureTls) {
             // Debug builds only (see MatrixDevConfig): lets on-device testing work
             // behind an SSL-inspecting proxy and sidesteps the rustls-platform-
