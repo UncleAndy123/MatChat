@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Primary text that flips to the inverse colour when its row is focused, so it
-     stays legible on the dark focus block. Pair with @drawable/focus_selector. -->
+<!-- Primary text. The focus highlight is now a LIGHT fill (surface_focused), so
+     text stays dark in every state and is always legible. Kept as a state list
+     so callers/roles are unchanged. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_focused="true" android:color="@color/text_on_inverse" />
-    <item android:state_selected="true" android:color="@color/text_on_inverse" />
     <item android:color="@color/text_primary" />
 </selector>

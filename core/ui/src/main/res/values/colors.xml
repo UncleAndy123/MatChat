@@ -19,7 +19,10 @@
     <color name="surface">@color/palette_paper</color>
     <color name="surface_bright">@color/palette_paper_bright</color>
     <color name="surface_inverse">@color/palette_ink</color>
-    <color name="surface_focused">@color/palette_ink</color>
+    <!-- Focus highlight fill is LIGHT with a 2 dp ink border, so text stays dark
+         and always legible (no color-flip dependency). High contrast for sunlight
+         (PLAN.md G5). Title bar / softkey bar keep surface_inverse (dark). -->
+    <color name="surface_focused">@color/palette_green_light</color>
 
     <color name="text_primary">@color/palette_ink</color>
     <color name="text_secondary">@color/palette_stone</color>
