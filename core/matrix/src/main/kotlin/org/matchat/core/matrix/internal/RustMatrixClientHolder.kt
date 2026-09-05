@@ -55,9 +55,11 @@ internal class RustMatrixClientHolder @Inject constructor(
     fun isActive(): Boolean = client != null
 
     /** Builds a client for [homeserver] (a server name or a full URL — well-known
-     *  discovery resolves it) using the on-disk SDK store. */
-    suspend fun buildClient(homeserver: String): Client {
-        val path = store.sdkStorePath
+     *  discovery resolves it). [resetStore] wipes the SDK store first, which a
+     *  fresh login needs so a new device does not clash with a stored crypto
+     *  account (restore, once enabled, will pass false). */
+    suspend fun buildClient(homeserver: String, resetStore: Boolean = true): Client {
+        val path = if (resetStore) store.resetSdkStore() else store.sdkStorePath
         // FFI: sessionPaths(dataPath, cachePath) is deprecated but present in
         // 26.09.x; if removed, switch to sqliteStore(SqliteStoreBuilder(path)).
         var builder = ClientBuilder()

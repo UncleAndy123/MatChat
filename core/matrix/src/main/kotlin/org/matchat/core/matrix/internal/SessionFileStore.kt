@@ -21,9 +21,22 @@ internal class SessionFileStore @Inject constructor(
 
     private val file: File get() = File(context.filesDir, "session.bin")
 
+    private val sdkStoreDir: File get() = File(context.filesDir, "matrix-sdk")
+
     /** The single-user SDK store directory; must exist before building a Client. */
     val sdkStorePath: String
-        get() = File(context.filesDir, "matrix-sdk").apply { mkdirs() }.absolutePath
+        get() = sdkStoreDir.apply { mkdirs() }.absolutePath
+
+    /**
+     * Wipe and recreate the SDK store, returning the fresh path. Used before a
+     * fresh login so a new device's crypto account never clashes with a previous
+     * one left in the store (MismatchedAccount). Not for the restore path, which
+     * must keep the store — restore is disabled until session persistence lands.
+     */
+    fun resetSdkStore(): String {
+        sdkStoreDir.deleteRecursively()
+        return sdkStorePath
+    }
 
     override fun hasSession(): Boolean = file.exists()
 
