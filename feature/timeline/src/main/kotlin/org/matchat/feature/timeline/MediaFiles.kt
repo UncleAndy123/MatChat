@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import java.io.File
 
@@ -47,6 +48,14 @@ internal object MediaFiles {
         return uri.lastPathSegment?.substringAfterLast('/') ?: "attachment"
     }
 
+    /** Appends an extension derived from [mimeType] when [name] has none. A system
+     *  viewer keyed on extension (common on locked-down builds) needs one. */
+    fun ensureExtension(name: String, mimeType: String?): String {
+        if (name.substringAfterLast('/').contains('.')) return name
+        val ext = mimeType?.let { MimeTypeMap.getSingleton().getExtensionFromMimeType(it) }
+        return if (ext.isNullOrBlank()) name else "$name.$ext"
+    }
+
     /** Write bytes to the app cache under media/, returning the file. */
     fun writeToCache(context: Context, filename: String, bytes: ByteArray): File {
         val dir = File(context.cacheDir, "media").apply { mkdirs() }
@@ -54,18 +63,34 @@ internal object MediaFiles {
         return File(dir, safe).apply { writeBytes(bytes) }
     }
 
-    /** Open [file] in the system viewer/player; [onNoApp] runs if nothing handles it. */
+    /** Open [file] in the system viewer via a chooser; [onNoApp] runs if nothing
+     *  handles it. Falls back from the specific MIME to a generic one, since some
+     *  locked-down builds register a handler only for wildcard types. */
     fun open(context: Context, file: File, mimeType: String?, onNoApp: () -> Unit) {
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, mimeType ?: "*/*")
+        if (startView(context, uri, mimeType ?: "*/*")) return
+        if (mimeType != null && startView(context, uri, "*/*")) return
+        android.util.Log.w("MediaFiles", "no app to open ${mimeType ?: "file"}")
+        onNoApp()
+    }
+
+    private fun startView(context: Context, uri: Uri, type: String): Boolean {
+        val view = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, type)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        try {
-            context.startActivity(intent)
+        // resolveActivity returns null when nothing on the device handles the type;
+        // a chooser would otherwise pop an empty "no apps" sheet without throwing.
+        if (view.resolveActivity(context.packageManager) == null) return false
+        val chooser = Intent.createChooser(view, null).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        return try {
+            context.startActivity(chooser)
+            true
         } catch (e: ActivityNotFoundException) {
-            android.util.Log.w("MediaFiles", "no app to open ${mimeType ?: "file"}: ${e.message}")
-            onNoApp()
+            android.util.Log.w("MediaFiles", "no handler for $type: ${e.message}")
+            false
         }
     }
 }

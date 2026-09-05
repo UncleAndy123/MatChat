@@ -23,6 +23,7 @@
     <string name="timeline_image">Image</string>
     <string name="timeline_media_failed">Could not download this attachment.</string>
     <string name="timeline_media_no_app">No app on this phone can open this file.</string>
+    <string name="timeline_audio_failed">Can\'t play this audio on this phone.</string>
     <string name="timeline_sending">Sending…</string>
 
     <!-- Image viewer (S9). -->

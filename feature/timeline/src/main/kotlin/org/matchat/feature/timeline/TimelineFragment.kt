@@ -41,6 +41,7 @@ class TimelineFragment : SoftkeyFragment() {
     private val viewModel: TimelineViewModel by viewModels()
     private var binding: FragmentTimelineBinding? = null
     private var lastMarkedStableId: String? = null
+    private val audio = AudioPlayback()
     private val navigator: Navigator get() = requireActivity() as Navigator
 
     private val adapter = TimelineAdapter(
@@ -201,21 +202,45 @@ class TimelineFragment : SoftkeyFragment() {
 
     private fun openAttachment(row: TimelineRow.Attachment) {
         viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = requireContext()
             val bytes = viewModel.loadMedia(row.eventId)
             if (bytes == null) {
-                Toast.makeText(requireContext(), R.string.timeline_media_failed, Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, R.string.timeline_media_failed, Toast.LENGTH_SHORT).show()
                 return@launch
             }
             val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                MediaFiles.writeToCache(requireContext(), row.label, bytes)
+                MediaFiles.writeToCache(ctx, MediaFiles.ensureExtension(row.label, row.mimeType), bytes)
             }
-            MediaFiles.open(requireContext(), file, row.mimeType) {
-                Toast.makeText(requireContext(), R.string.timeline_media_no_app, Toast.LENGTH_SHORT).show()
+            if (row.play) playAudio(file) else openExternally(file, row.mimeType)
+        }
+    }
+
+    /** Voice/audio: play in-app (the phone has no media-player app). CENTER on a
+     *  track that is already playing stops it. */
+    private fun playAudio(file: java.io.File) {
+        val ctx = requireContext()
+        if (audio.isPlaying(file.absolutePath)) {
+            audio.stop()
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { audio.prepare(file) }
+            if (!ok) {
+                Toast.makeText(ctx, R.string.timeline_audio_failed, Toast.LENGTH_SHORT).show()
+                return@launch
             }
+            audio.start { /* completion: nothing to update yet */ }
+        }
+    }
+
+    private fun openExternally(file: java.io.File, mimeType: String?) {
+        MediaFiles.open(requireContext(), file, mimeType) {
+            Toast.makeText(requireContext(), R.string.timeline_media_no_app, Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onDestroyView() {
+        audio.stop()
         binding?.timelineList?.adapter = null
         binding = null
         super.onDestroyView()
