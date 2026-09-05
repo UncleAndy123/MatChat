@@ -15,6 +15,7 @@ import org.matrix.rustcomponents.sdk.FileInfo
 import org.matrix.rustcomponents.sdk.ImageInfo
 import org.matrix.rustcomponents.sdk.Room
 import org.matrix.rustcomponents.sdk.UploadParameters
+import org.matrix.rustcomponents.sdk.UploadSource
 import org.matrix.rustcomponents.sdk.VideoInfo
 import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.Timeline
@@ -77,51 +78,43 @@ internal class RustRoomTimeline(
     ) = withContext(Dispatchers.IO) {
         val tl = timeline ?: return@withContext
         val size = runCatching { java.io.File(path).length().toULong() }.getOrNull()
-        // FFI: media-send is one of the more version-sensitive corners of the SDK.
-        // The upload takes a local file path (UploadParameters.filename), a per-type
-        // *Info record (all fields nullable), an optional thumbnail path and progress
-        // watcher, and returns a join handle that must be awaited. If a signature
-        // differs on the AAR, it is these four calls and the *Info constructors that
-        // move — keep the whole media-send surface here, in one place.
+        // The SDK uploads from an UploadSource.File(path); each type takes its own
+        // *Info record (all fields nullable) and returns a join handle to await.
+        // sendImage/sendVideo take an optional thumbnail UploadSource (null here);
+        // sendAudio/sendFile take none. Voice is stage 3 (sendVoiceMessage).
         val params = UploadParameters(
-            filename = path,
+            source = UploadSource.File(path),
             caption = caption,
             formattedCaption = null,
             mentions = null,
-            replyParams = null,
+            inReplyTo = null,
+            extraContentJson = null,
         )
         runCatching {
             val handle = when (kind) {
                 MediaKind.IMAGE -> tl.sendImage(
-                    params = params,
-                    thumbnailPath = null,
-                    imageInfo = ImageInfo(
+                    params,
+                    null,
+                    ImageInfo(
                         height = null, width = null, mimetype = mimeType, size = size,
                         thumbnailInfo = null, thumbnailSource = null, blurhash = null, isAnimated = null,
                     ),
-                    progressWatcher = null,
                 )
                 MediaKind.VIDEO -> tl.sendVideo(
-                    params = params,
-                    thumbnailPath = null,
-                    videoInfo = VideoInfo(
+                    params,
+                    null,
+                    VideoInfo(
                         duration = null, height = null, width = null, mimetype = mimeType, size = size,
                         thumbnailInfo = null, thumbnailSource = null, blurhash = null,
                     ),
-                    progressWatcher = null,
                 )
                 MediaKind.AUDIO, MediaKind.VOICE -> tl.sendAudio(
-                    params = params,
-                    audioInfo = AudioInfo(duration = null, size = size, mimetype = mimeType),
-                    progressWatcher = null,
+                    params,
+                    AudioInfo(duration = null, size = size, mimetype = mimeType),
                 )
                 MediaKind.FILE -> tl.sendFile(
-                    params = params,
-                    fileInfo = FileInfo(
-                        mimetype = mimeType, size = size, thumbnailInfo = null,
-                        thumbnailSource = null,
-                    ),
-                    progressWatcher = null,
+                    params,
+                    FileInfo(mimetype = mimeType, size = size, thumbnailInfo = null, thumbnailSource = null),
                 )
             }
             handle.join()
