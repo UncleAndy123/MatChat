@@ -39,6 +39,7 @@ class TimelineFragment : SoftkeyFragment() {
 
     private val viewModel: TimelineViewModel by viewModels()
     private var binding: FragmentTimelineBinding? = null
+    private var lastMarkedStableId: String? = null
     private val navigator: Navigator get() = requireActivity() as Navigator
 
     private val adapter = TimelineAdapter(
@@ -86,8 +87,12 @@ class TimelineFragment : SoftkeyFragment() {
         adapter.submitList(state.rows)
 
         // Viewing the room clears its unread count (a read receipt on the latest
-        // message). The SDK dedupes, so re-sending on each update is cheap.
-        if (!state.isEmpty) viewModel.onAction(TimelineAction.MarkRead)
+        // message). Only send when the newest row changes, not on every render.
+        val newest = state.rows.lastOrNull()?.stableId
+        if (newest != null && newest != lastMarkedStableId) {
+            lastMarkedStableId = newest
+            viewModel.onAction(TimelineAction.MarkRead)
+        }
     }
 
     private fun navigate(nav: TimelineNav) {

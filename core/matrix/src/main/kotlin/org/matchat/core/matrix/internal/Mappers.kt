@@ -45,6 +45,11 @@ internal object Mappers {
         val msgLike = event.content as? TimelineItemContent.MsgLike ?: return null
         val messageKind = msgLike.content.kind as? MsgLikeKind.Message ?: return null
         val body = messageKind.content.body
+        // Read by others when a receipt on this event belongs to someone other
+        // than the sender (for our own messages, that means a member has read it).
+        val readByOther = runCatching {
+            event.readReceipts.keys.any { it != event.sender }
+        }.getOrDefault(false)
         return TimelineItem.Message(
             eventId = EventId(eventIdOf(event.eventOrTransactionId)),
             sender = UserId(event.sender),
@@ -54,6 +59,7 @@ internal object Mappers {
             timestampEpochMs = event.timestamp.toLong(),
             isOwn = event.isOwn,
             sendState = SendState.SENT,
+            isRead = readByOther,
         )
     }
 

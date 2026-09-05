@@ -13,6 +13,8 @@ sealed interface TimelineItem {
         val timestampEpochMs: Long,
         val isOwn: Boolean,
         val sendState: SendState,
+        /** True when another member has a read receipt on this (own) message. */
+        val isRead: Boolean = false,
     ) : TimelineItem
 
     data class DaySeparator(val label: String) : TimelineItem

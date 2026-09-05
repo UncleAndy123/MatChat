@@ -108,7 +108,11 @@ class TimelineViewModel @Inject constructor(
                         body = item.body,
                         time = RelativeTime.clockTime(item.timestampEpochMs),
                         isOwn = item.isOwn,
-                        sendGlyph = if (item.isOwn) TimelineState.glyph(item.sendState) else "",
+                        sendGlyph = when {
+                            !item.isOwn -> ""
+                            item.isRead -> READ_GLYPH
+                            else -> TimelineState.glyph(item.sendState)
+                        },
                     )
                 }
                 is TimelineItem.DaySeparator -> {
@@ -130,5 +134,6 @@ class TimelineViewModel @Inject constructor(
     private companion object {
         const val PAGE = 20
         const val STOP_TIMEOUT_MS = 5_000L
+        const val READ_GLYPH = "✓✓" // own message read by another member
     }
 }
