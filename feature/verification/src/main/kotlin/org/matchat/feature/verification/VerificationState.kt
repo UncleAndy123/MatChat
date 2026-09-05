@@ -1,17 +1,25 @@
 package org.matchat.feature.verification
 
 import org.matchat.core.model.ErrorText
+import org.matchat.core.model.SasEmoji
 
-/** S7 recovery-key entry. loading/error/done are fields, not separate paths. */
+/** The phase the verification screen is showing (S5/S6/S7). */
+enum class Phase { CHOOSE, WAITING_FOR_DEVICE, COMPARING, RECOVERY_KEY }
+
 data class VerificationState(
-    val isSubmitting: Boolean = false,
+    val phase: Phase = Phase.CHOOSE,
+    val emojis: List<SasEmoji> = emptyList(),
+    val busy: Boolean = false,
     val error: ErrorText? = null,
 )
 
 sealed interface VerificationAction {
-    /** Field value passed at submit time — render never reads it back. */
-    data class Submit(val recoveryKey: String) : VerificationAction
-    data object DismissError : VerificationAction
+    data object StartSas : VerificationAction
+    data object ApproveSas : VerificationAction
+    data object DeclineSas : VerificationAction
+    data object ChooseRecovery : VerificationAction
+    data class SubmitRecovery(val recoveryKey: String) : VerificationAction
+    data object Cancel : VerificationAction
 }
 
 sealed interface VerificationNav {

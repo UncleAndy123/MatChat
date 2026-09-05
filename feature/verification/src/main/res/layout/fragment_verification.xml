@@ -1,57 +1,144 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- S7 Recovery-key entry. Enter the admin-issued recovery key to restore keys
-     so encrypted history can be read. Focus order: field → Verify. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- S5/S6/S7. One screen, phases toggled by state: choose method → waiting for
+     the other device → compare emojis → (or) recovery-key entry. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="@dimen/content_pad">
+    android:layout_height="match_parent">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/verify_heading"
-        android:textStyle="bold"
-        android:textSize="@dimen/text_heading"
-        android:textColor="@color/text_primary" />
+        android:orientation="vertical"
+        android:padding="@dimen/content_pad">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:text="@string/verify_recovery_explanation"
-        android:textSize="@dimen/text_meta"
-        android:textColor="@color/text_secondary" />
+        <TextView
+            android:id="@+id/verify_heading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/verify_heading"
+            android:textStyle="bold"
+            android:textSize="@dimen/text_heading"
+            android:textColor="@color/text_primary" />
 
-    <EditText
-        android:id="@+id/recovery_key"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/focus_selector"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:inputType="textVisiblePassword"
-        android:importantForAutofill="no"
-        android:hint="@string/verify_recovery_hint"
-        android:textSize="@dimen/text_body"
-        android:textColor="@color/text_primary" />
+        <TextView
+            android:id="@+id/verify_subtext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textSize="@dimen/text_meta"
+            android:textColor="@color/text_secondary"
+            tools:text="Check that the same picture words appear on your other device." />
 
-    <TextView
-        android:id="@+id/verify_error"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="@dimen/text_meta"
-        android:textColor="@color/error"
-        android:visibility="gone"
-        android:text="@string/verify_error" />
+        <TextView
+            android:id="@+id/verify_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/text_meta"
+            android:textColor="@color/error"
+            android:visibility="gone"
+            android:text="@string/verify_error" />
 
-    <TextView
-        android:id="@+id/verify_button"
-        style="@style/Widget.MatChat.Row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/verify_continue"
-        android:textSize="@dimen/text_label"
-        android:textColor="@color/text_on_focus" />
-</LinearLayout>
+        <!-- CHOOSE -->
+        <LinearLayout
+            android:id="@+id/group_choose"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/choose_device"
+                style="@style/Widget.MatChat.Row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/verify_with_device"
+                android:textSize="@dimen/text_label"
+                android:textColor="@color/text_on_focus" />
+
+            <TextView
+                android:id="@+id/choose_recovery"
+                style="@style/Widget.MatChat.Row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/verify_use_recovery"
+                android:textSize="@dimen/text_label"
+                android:textColor="@color/text_on_focus" />
+        </LinearLayout>
+
+        <!-- WAITING -->
+        <TextView
+            android:id="@+id/group_waiting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/verify_waiting"
+            android:textSize="@dimen/text_body"
+            android:textColor="@color/text_primary"
+            android:visibility="gone" />
+
+        <!-- COMPARING: emoji cells added at runtime, then the two buttons. -->
+        <LinearLayout
+            android:id="@+id/group_compare"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/emoji_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/sas_match"
+                style="@style/Widget.MatChat.Row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/verify_match"
+                android:textSize="@dimen/text_label"
+                android:textColor="@color/text_on_focus" />
+
+            <TextView
+                android:id="@+id/sas_no_match"
+                style="@style/Widget.MatChat.Row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/verify_no_match"
+                android:textSize="@dimen/text_label"
+                android:textColor="@color/text_on_focus" />
+        </LinearLayout>
+
+        <!-- RECOVERY KEY -->
+        <LinearLayout
+            android:id="@+id/group_recovery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/recovery_key"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/focus_selector"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:inputType="textVisiblePassword"
+                android:importantForAutofill="no"
+                android:hint="@string/verify_recovery_hint"
+                android:textSize="@dimen/text_body"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/recovery_submit"
+                style="@style/Widget.MatChat.Row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/verify_continue"
+                android:textSize="@dimen/text_label"
+                android:textColor="@color/text_on_focus" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

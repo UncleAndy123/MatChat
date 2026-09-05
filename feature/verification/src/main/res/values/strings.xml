@@ -2,9 +2,16 @@
 <resources>
     <string name="verify_title">Verify</string>
     <string name="verify_heading">Protect your messages</string>
+    <string name="verify_choose_explanation">Verify this phone so it can read encrypted messages.</string>
+    <string name="verify_with_device">Verify with another device</string>
+    <string name="verify_use_recovery">Enter recovery key</string>
+    <string name="verify_waiting">Accept the request on your other device to see the picture words.</string>
+    <string name="verify_compare_explanation">Do these appear on your other device?</string>
+    <string name="verify_match">They match</string>
+    <string name="verify_no_match">They do not match</string>
     <string name="verify_recovery_explanation">Enter your recovery key to read encrypted messages on this phone.</string>
     <string name="verify_recovery_hint">Recovery key</string>
     <string name="verify_continue">Verify</string>
-    <string name="verify_error">That recovery key did not work. Check it and try again.</string>
+    <string name="verify_error">That did not work. Check and try again.</string>
     <string name="verify_done">This phone can now read encrypted messages.</string>
 </resources>

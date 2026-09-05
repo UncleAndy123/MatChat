@@ -6,6 +6,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import org.matchat.core.matrix.internal.RustMatrixAuth
 import org.matchat.core.matrix.internal.RustMatrixSession
+import org.matchat.core.matrix.internal.RustSessionVerification
 import org.matchat.core.matrix.internal.SessionFileStore
 
 /**
@@ -24,4 +25,7 @@ internal abstract class MatrixModule {
 
     @Binds
     abstract fun bindStore(impl: SessionFileStore): MatrixSessionStore
+
+    @Binds
+    abstract fun bindVerification(impl: RustSessionVerification): SessionVerification
 }
