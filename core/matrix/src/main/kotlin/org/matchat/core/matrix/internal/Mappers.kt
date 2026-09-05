@@ -6,7 +6,6 @@ import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SendState
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
-import org.matrix.rustcomponents.sdk.EncryptionState
 import org.matrix.rustcomponents.sdk.EventOrTransactionId
 import org.matrix.rustcomponents.sdk.MsgLikeKind
 import org.matrix.rustcomponents.sdk.Room
@@ -21,11 +20,7 @@ internal object Mappers {
 
     suspend fun toRoomSummary(room: Room): RoomSummary {
         val info = runCatching { room.roomInfo() }.getOrNull()
-        val encrypted = when (info?.encryptionState) {
-            EncryptionState.ENCRYPTED -> true
-            EncryptionState.NOT_ENCRYPTED -> false
-            else -> runCatching { room.isEncrypted() }.getOrDefault(true)
-        }
+        val encrypted = runCatching { room.isEncrypted() }.getOrDefault(true)
         return RoomSummary(
             id = RoomId(room.id()),
             name = info?.displayName ?: room.displayName() ?: room.id(),
