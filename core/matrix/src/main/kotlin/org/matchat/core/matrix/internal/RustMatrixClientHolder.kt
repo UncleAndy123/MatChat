@@ -80,19 +80,28 @@ internal class RustMatrixClientHolder @Inject constructor(
         return built
     }
 
-    /**
-     * Persist the session after a successful login.
-     *
-     * Deferred to the next M1 step: serializing the SDK [Session] record needs its
-     * exact field/enum shape pinned against the AAR. Until then the client stays
-     * live for the process and the user signs in each cold start. The SDK's own
-     * SQLite store already persists account state under the session path.
-     */
-    suspend fun persistSession() = Unit
+    /** Persist the session (encrypted) after a successful login so the next cold
+     *  start can restore it and reuse the same device/crypto store. */
+    suspend fun persistSession() {
+        store.persist(SessionCodec.encode(requireClient().session()))
+    }
 
-    /** Cold-start restore. Disabled until session serialization lands (see above);
-     *  returns false so the app routes to Welcome. */
-    suspend fun restore(): Boolean = false
+    /**
+     * Cold-start restore: rebuild the client against the EXISTING store (no reset,
+     * so the persisted device's crypto account matches) and restore the session.
+     * Returns false — routing the app to Welcome — when there is nothing to
+     * restore or restoration fails (self-healing: the next login resets the store).
+     */
+    suspend fun restore(): Boolean {
+        val blob = store.load() ?: return false
+        return runCatching {
+            val session = SessionCodec.decode(blob)
+            buildClient(session.homeserverUrl, resetStore = false)
+            requireClient().restoreSession(session)
+            startSync()
+            true
+        }.getOrDefault(false)
+    }
 
     /** Start the sync loop and begin observing the room list. */
     suspend fun startSync() {

@@ -41,9 +41,12 @@
         <item name="android:textColor">@color/text_meta_on_focus</item>
     </style>
 
-    <!-- The MenuSheet dialog: bottom-anchored, no dim animation, BACK dismisses. -->
-    <style name="Theme.MatChat.Menu" parent="Theme.AppCompat.Light.Dialog">
+    <!-- The MenuSheet dialog: bottom-anchored, non-floating, BACK dismisses. Uses
+         a plain (non-AppCompat) dialog theme so a non-floating window is allowed. -->
+    <style name="Theme.MatChat.Menu" parent="@android:style/Theme.DeviceDefault.Light.Dialog">
         <item name="android:windowIsFloating">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowAnimationStyle">@null</item>
         <item name="android:backgroundDimEnabled">true</item>

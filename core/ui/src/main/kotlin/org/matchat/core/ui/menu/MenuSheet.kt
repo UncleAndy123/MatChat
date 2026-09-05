@@ -6,7 +6,6 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatDialog
 import androidx.core.content.ContextCompat
 import org.matchat.core.ui.R
 
@@ -35,7 +34,10 @@ object MenuSheet {
             setBackgroundColor(ContextCompat.getColor(context, R.color.surface_bright))
         }
 
-        val dialog = AppCompatDialog(context, R.style.Theme_MatChat_Menu)
+        // A plain Dialog (not AppCompatDialog): the bottom-anchored, non-floating
+        // menu theme is incompatible with AppCompat's decor requirements, and the
+        // rows are plain views that need no AppCompat theming.
+        val dialog = Dialog(context, R.style.Theme_MatChat_Menu)
         items.forEach { item ->
             list.addView(rowFor(context, item) {
                 onSelect(item)
