@@ -62,7 +62,15 @@ class SyncForegroundService : LifecycleService() {
         private const val NOTIFICATION_ID = 1
 
         fun start(context: Context) {
-            context.startForegroundService(Intent(context, SyncForegroundService::class.java))
+            val intent = Intent(context, SyncForegroundService::class.java)
+            // startForegroundService exists only on API 26+ (minSdk is 24); on
+            // older AOSP flips, startService + startForeground works without the
+            // 5-second promotion window.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
         }
     }
 }
