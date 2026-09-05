@@ -6,6 +6,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.matchat.core.matrix.MatrixDevConfig
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SyncState
@@ -33,6 +34,7 @@ import javax.inject.Singleton
 @Singleton
 internal class RustMatrixClientHolder @Inject constructor(
     private val store: SessionFileStore,
+    private val devConfig: MatrixDevConfig,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -57,10 +59,16 @@ internal class RustMatrixClientHolder @Inject constructor(
         val path = store.sdkStorePath
         // FFI: sessionPaths(dataPath, cachePath) is deprecated but present in
         // 26.09.x; if removed, switch to sqliteStore(SqliteStoreBuilder(path)).
-        val built = ClientBuilder()
+        var builder = ClientBuilder()
             .sessionPaths(dataPath = path, cachePath = path)
             .serverNameOrHomeserverUrl(homeserver)
-            .build()
+        if (devConfig.allowInsecureTls) {
+            // Debug builds only (see MatrixDevConfig): lets on-device testing work
+            // behind an SSL-inspecting proxy and sidesteps the rustls-platform-
+            // verifier init requirement. Never enabled in release.
+            builder = builder.disableSslVerification()
+        }
+        val built = builder.build()
         client = built
         return built
     }
