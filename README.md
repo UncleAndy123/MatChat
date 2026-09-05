@@ -20,11 +20,14 @@ dumbphones used as filtered / "kosher" phones.
 
 ## Status
 
-**M0 — skeleton.** The module graph, build, and CI are in place; every screen in
-the UX spec is stubbed and reachable with the D-pad + softkeys only. Matrix is not
-wired yet: `:core:matrix` ships the full contract plus an in-memory stub that
-returns empty flows, so the app runs and renders its empty states. M1 swaps the
-stub for the SDK-backed session without touching a single caller.
+**M0 skeleton + M1 in progress.** The module graph, build, and CI are in place;
+every screen in the UX spec is reachable with the D-pad + softkeys only. `:core:matrix`
+is now wired to the Matrix Rust SDK (`org.matrix.rustcomponents:sdk-android`):
+password sign-in, Keystore-encrypted session persistence and restore, the sync
+foreground service, and the joined **room list** and **timelines** via sliding
+sync. Invitations, DM creation, and device verification are the remaining M1/M4
+follow-ups (marked `FFI follow-up` in `:core:matrix`). This is an FFI bring-up —
+the version-sensitive calls are commented `FFI:` for the first on-device compile.
 
 What's real in M0:
 

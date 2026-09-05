@@ -30,9 +30,11 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.core.ktx)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
-    // M1: implementation(libs.matrix.rustsdk)
+    // M1: the Matrix Rust SDK. This is the ONLY module that depends on it.
+    implementation(libs.matrix.rustsdk)
 
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)

@@ -4,20 +4,24 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import org.matchat.core.matrix.internal.StubMatrixAuth
-import org.matchat.core.matrix.internal.StubMatrixSession
+import org.matchat.core.matrix.internal.RustMatrixAuth
+import org.matchat.core.matrix.internal.RustMatrixSession
+import org.matchat.core.matrix.internal.SessionFileStore
 
 /**
- * Binds the Matrix contract. In M0 the bindings point at the in-memory stubs;
- * M1 swaps them for the SDK-backed implementations without touching any caller,
- * because only the binding changes — the interfaces are stable.
+ * Binds the Matrix contract to the SDK-backed implementations (M1). Only the
+ * bindings changed from M0 — every caller is unaffected, because the interfaces
+ * in [MatrixSession]/[MatrixAuth]/[MatrixSessionStore] are unchanged.
  */
 @Module
 @InstallIn(SingletonComponent::class)
 internal abstract class MatrixModule {
     @Binds
-    abstract fun bindSession(impl: StubMatrixSession): MatrixSession
+    abstract fun bindSession(impl: RustMatrixSession): MatrixSession
 
     @Binds
-    abstract fun bindAuth(impl: StubMatrixAuth): MatrixAuth
+    abstract fun bindAuth(impl: RustMatrixAuth): MatrixAuth
+
+    @Binds
+    abstract fun bindStore(impl: SessionFileStore): MatrixSessionStore
 }

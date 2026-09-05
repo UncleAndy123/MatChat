@@ -30,7 +30,7 @@ coil = "2.7.0"
 # --- Matrix protocol + crypto (added at M1; the ONLY dependency :core:matrix
 #     wires to the SDK). Calendar-versioned, matches Element X's binding.
 #     Kept here so M1 is a one-line module dependency, not a version hunt. ---
-matrix-rustsdk = "25.9.10"
+matrix-rustsdk = "26.09.3"
 
 # --- Test ---
 junit4 = "4.13.2"

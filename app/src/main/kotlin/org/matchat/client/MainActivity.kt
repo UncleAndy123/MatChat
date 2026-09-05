@@ -4,14 +4,20 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.os.bundleOf
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import org.matchat.client.sync.SyncForegroundService
+import org.matchat.core.matrix.MatrixAuth
+import org.matchat.core.matrix.MatrixSessionStore
 import org.matchat.core.model.RoomId
 import org.matchat.core.ui.key.KeyMap
 import org.matchat.core.ui.key.LogicalKey
 import org.matchat.core.ui.nav.Navigator
 import org.matchat.core.ui.softkey.LogicalKeyReceiver
+import javax.inject.Inject
 
 /**
  * The single Activity (ARCHITECTURE.md). It owns the nav host, the one global key
@@ -24,11 +30,27 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     private lateinit var navController: NavController
 
+    @Inject lateinit var auth: MatrixAuth
+    @Inject lateinit var sessionStore: MatrixSessionStore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val host = supportFragmentManager.findFragmentById(R.id.nav_host) as NavHostFragment
         navController = host.navController
+        restoreSessionIfPresent()
+    }
+
+    /** Cold start with a saved session: restore it, start sync, jump to the room
+     *  list (S1 → S8). Otherwise stay on Welcome (S2). */
+    private fun restoreSessionIfPresent() {
+        if (!sessionStore.hasSession()) return
+        lifecycleScope.launch {
+            if (auth.restoreSession().isSuccess) {
+                SyncForegroundService.start(this@MainActivity)
+                toRoomListRoot()
+            }
+        }
     }
 
     // --- Global key dispatch ------------------------------------------------
@@ -61,6 +83,8 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun toSignIn() = navController.navigate(R.id.signInFragment)
 
     override fun toRoomListRoot() {
+        // A successful sign-in means a live session; own sync from here on.
+        SyncForegroundService.start(this)
         val options = androidx.navigation.navOptions {
             popUpTo(R.id.welcomeFragment) { inclusive = true }
         }

@@ -26,6 +26,7 @@ class ArchitectureTest {
         Konsist.scopeFromProject()
             .files
             .filter { !it.path.contains("/core/matrix/") }
+            .filterNot { it.path.contains("/arch/") } // these rule files name the token
             .assertFalse { it.text.contains("org.matrix.rustcomponents") }
     }
 
