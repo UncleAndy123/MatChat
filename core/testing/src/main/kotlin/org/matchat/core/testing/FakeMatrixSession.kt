@@ -52,6 +52,14 @@ class FakeMatrixSession(
     override suspend fun startDirectChat(address: UserId): Result<RoomId> =
         startDirectChatResult(address)
 
+    var recoverResult: Result<Unit> = Result.success(Unit)
+    var lastRecoveryKey: String? = null
+
+    override suspend fun recoverEncryption(recoveryKey: String): Result<Unit> {
+        lastRecoveryKey = recoveryKey
+        return recoverResult
+    }
+
     override suspend fun logout() = Unit
 }
 

@@ -64,5 +64,8 @@ internal class RustMatrixSession @Inject constructor(
     override suspend fun startDirectChat(address: UserId): Result<RoomId> =
         Result.failure(NotImplementedError("DM creation lands in the next M1 step"))
 
+    override suspend fun recoverEncryption(recoveryKey: String): Result<Unit> =
+        runCatching { holder.recover(recoveryKey.trim()) }
+
     override suspend fun logout() = holder.logout()
 }

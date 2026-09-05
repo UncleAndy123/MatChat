@@ -129,6 +129,11 @@ internal class RustMatrixClientHolder @Inject constructor(
     fun roomFor(roomId: RoomId): Room? =
         runCatching { roomList?.room(roomId.value) }.getOrNull()
 
+    /** Restore keys from a recovery key so encrypted history can be decrypted. */
+    suspend fun recover(recoveryKey: String) {
+        requireClient().encryption().recover(recoveryKey)
+    }
+
     suspend fun logout() {
         runCatching { syncService?.stop() }
         runCatching { requireClient().logout() }

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- S6 Emoji verification (SAS) shell. The 7-emoji grid and match/no-match wiring
-     attach to the SDK verification API at M4; M0 renders the frame so the screen
-     is reachable and traversable. -->
+<!-- S7 Recovery-key entry. Enter the admin-issued recovery key to restore keys
+     so encrypted history can be read. Focus order: field → Verify. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -20,25 +19,39 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:text="@string/verify_explanation"
+        android:text="@string/verify_recovery_explanation"
         android:textSize="@dimen/text_meta"
         android:textColor="@color/text_secondary" />
 
-    <TextView
-        android:id="@+id/verify_match"
-        style="@style/Widget.MatChat.Row"
+    <EditText
+        android:id="@+id/recovery_key"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/verify_match"
-        android:textSize="@dimen/text_label"
-        android:textColor="@color/text_on_focus" />
+        android:background="@drawable/focus_selector"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:inputType="textVisiblePassword"
+        android:importantForAutofill="no"
+        android:hint="@string/verify_recovery_hint"
+        android:textSize="@dimen/text_body"
+        android:textColor="@color/text_primary" />
 
     <TextView
-        android:id="@+id/verify_no_match"
+        android:id="@+id/verify_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/error"
+        android:visibility="gone"
+        android:text="@string/verify_error" />
+
+    <TextView
+        android:id="@+id/verify_button"
         style="@style/Widget.MatChat.Row"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/verify_no_match"
+        android:layout_marginTop="8dp"
+        android:text="@string/verify_continue"
         android:textSize="@dimen/text_label"
         android:textColor="@color/text_on_focus" />
 </LinearLayout>

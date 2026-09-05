@@ -19,6 +19,7 @@
         android:id="@+id/message_sender"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:duplicateParentState="true"
         android:textSize="@dimen/text_sender"
         android:textColor="@color/encrypted"
         android:visibility="gone"
@@ -29,6 +30,7 @@
         android:id="@+id/message_body"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:duplicateParentState="true"
         android:textSize="@dimen/text_body"
         android:textColor="@color/text_on_focus"
         tools:text="See you at six by the north gate." />
@@ -38,6 +40,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end"
+        android:duplicateParentState="true"
         android:textSize="@dimen/text_meta"
         android:textColor="@color/text_meta_on_focus"
         tools:text="3:42 PM ✓" />

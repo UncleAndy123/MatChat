@@ -101,6 +101,7 @@ class NewChatFragment : SoftkeyFragment() {
             TextView(requireContext()).apply {
                 text = primary
                 textSize = BODY_SP
+                isDuplicateParentStateEnabled = true // inherit row focus → text flips
                 setTextColor(ContextCompat.getColor(requireContext(), UiR.color.text_on_focus))
             },
         )
@@ -109,6 +110,7 @@ class NewChatFragment : SoftkeyFragment() {
                 TextView(requireContext()).apply {
                     text = secondary
                     textSize = META_SP
+                    isDuplicateParentStateEnabled = true
                     setTextColor(ContextCompat.getColor(requireContext(), UiR.color.text_meta_on_focus))
                 },
             )

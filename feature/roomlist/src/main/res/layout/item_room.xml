@@ -16,6 +16,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
+        android:duplicateParentState="true"
         android:textSize="@dimen/text_meta"
         android:textColor="@color/text_meta_on_focus"
         tools:text="3:42 PM" />
@@ -44,6 +45,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_toStartOf="@id/room_time"
+        android:duplicateParentState="true"
         android:maxLines="1"
         android:ellipsize="end"
         android:textStyle="bold"
@@ -57,6 +59,7 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/room_name"
         android:layout_toStartOf="@id/room_unread"
+        android:duplicateParentState="true"
         android:maxLines="1"
         android:ellipsize="end"
         android:textSize="13sp"

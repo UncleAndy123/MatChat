@@ -34,6 +34,13 @@ interface MatrixSession {
     /** Create-room with is_direct + trusted-private-chat preset + encryption on. */
     suspend fun startDirectChat(address: UserId): Result<RoomId>
 
+    /**
+     * Restore encryption keys from an admin-issued recovery key (S7). On success
+     * the device gains the key backup + cross-signing, so previously
+     * unable-to-decrypt history becomes readable (PLAN.md §6.2).
+     */
+    suspend fun recoverEncryption(recoveryKey: String): Result<Unit>
+
     suspend fun logout()
 }
 

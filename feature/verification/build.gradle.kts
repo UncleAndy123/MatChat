@@ -1,6 +1,6 @@
-// :feature:verification — Emoji SAS (S6) + recovery key (S7).
-// M0 renders the screen shell; the SAS/recovery flows attach to the SDK
-// verification API at M4 (the :core:matrix surface grows then, not now).
+// :feature:verification — recovery-key verification (S7) and emoji SAS (S6).
+// M1 wires the recovery-key path (keypad-friendly, unlocks encrypted history);
+// emoji SAS against another device is a later step.
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -24,9 +24,20 @@ android {
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:ui"))
+    implementation(project(":core:matrix"))
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(project(":core:testing"))
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 }
+
+tasks.withType<Test> { useJUnitPlatform() }
