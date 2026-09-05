@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder launcher mark (a chat bubble on the brand ink). Replaced with the
+     final asset before M7 (signed APK). Vector so no density PNGs are needed. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#14130E"
+        android:pathData="M0,0h48v48h-48z" />
+    <path
+        android:fillColor="#9ED2BF"
+        android:pathData="M12,12h24a4,4 0,0 1,4 4v12a4,4 0,0 1,-4 4h-12l-8,6v-6h-0a4,4 0,0 1,-4 -4v-12a4,4 0,0 1,4 -4z" />
+</vector>

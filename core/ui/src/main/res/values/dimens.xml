@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Type floor (PLAN.md G5, UX-SPEC §2): body 16 sp · interactive labels 14 sp ·
+     secondary metadata 11 sp. Nothing a user reads goes below 11 sp. -->
+<resources>
+    <!-- Text sizes -->
+    <dimen name="text_body">16sp</dimen>
+    <dimen name="text_label">14sp</dimen>
+    <dimen name="text_meta">11sp</dimen>
+    <dimen name="text_room_name">16sp</dimen>
+    <dimen name="text_sender">12sp</dimen>
+    <dimen name="text_heading">17sp</dimen>
+
+    <!-- Chrome bands (UX-SPEC §1) -->
+    <dimen name="title_bar_height">18dp</dimen>
+    <dimen name="softkey_bar_height">20dp</dimen>
+
+    <!-- Rows use minHeight, never a fixed height (UX-SPEC S16). -->
+    <dimen name="row_min_height">44dp</dimen>
+    <dimen name="row_min_height_compact">36dp</dimen>
+
+    <!-- Focus highlight: 2 dp border, no rounded corners (UX-SPEC §2). -->
+    <dimen name="focus_border_width">2dp</dimen>
+
+    <dimen name="content_pad">8dp</dimen>
+</resources>

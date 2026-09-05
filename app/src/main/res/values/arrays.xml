@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- invitePolicy choice (docs/MDM.md §3). -->
+    <string-array name="policy_invite_entries">
+        <item>Ask on every invitation</item>
+        <item>Auto-join allowed domains</item>
+    </string-array>
+    <string-array name="policy_invite_values" translatable="false">
+        <item>ask</item>
+        <item>autoAllowed</item>
+    </string-array>
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="timeline_unencrypted">This group is not encrypted.</string>
+    <string name="timeline_empty">No messages yet. Say hello.</string>
+    <string name="timeline_compose_hint">Message</string>
+    <string name="timeline_utd">This message can\'t be read on this phone yet.</string>
+    <string name="timeline_fix_encryption">Fix encryption</string>
+
+    <!-- Options (S9). -->
+    <string name="timeline_opt_room_info">Room info</string>
+    <string name="timeline_opt_mark_read">Mark as read</string>
+    <string name="timeline_opt_mute">Mute this group</string>
+    <string name="timeline_opt_help">Help</string>
+
+    <!-- Message menu (S11). -->
+    <string name="timeline_msg_reply">Reply</string>
+    <string name="timeline_msg_copy">Copy text</string>
+    <string name="timeline_msg_info">Message info</string>
+</resources>

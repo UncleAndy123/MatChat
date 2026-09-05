@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="invites_title">Invitations</string>
+    <string name="invites_not_allowed">Not allowed</string>
+
+    <string name="invite_detail_title">Invitation</string>
+    <!-- %1$s is the inviter's display name or address. -->
+    <string name="invite_invited_by">Invited by %1$s</string>
+    <string name="invite_encrypted">Encrypted — only members can read this</string>
+    <string name="invite_unencrypted">Not encrypted</string>
+    <string name="invite_accept">Accept</string>
+    <string name="invite_decline">Decline</string>
+    <string name="invite_decline_ignore">Decline and ignore this person</string>
+    <!-- %1$s is the blocked domain, e.g. example.org. -->
+    <string name="invite_blocked">Your organization does not allow messages from %1$s.</string>
+    <string name="invite_error_gone">Could not accept — the invitation may be gone. Try again.</string>
+</resources>

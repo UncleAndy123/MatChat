@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The three fixed bands every screen shares (UX-SPEC §1): title bar (18 dp),
+     content (fills), softkey bar (20 dp). Feature layouts inflate into
+     @id/chrome_content; they never redraw the chrome. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/surface">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/title_bar_height"
+        android:orientation="horizontal"
+        android:background="@color/surface_inverse"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/chrome_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:paddingStart="@dimen/content_pad"
+            android:paddingEnd="4dp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/text_on_inverse"
+            android:textSize="@dimen/text_label" />
+
+        <!-- Sync/offline glyph only (UX-SPEC §1): ⟳ syncing, ! offline. -->
+        <TextView
+            android:id="@+id/chrome_sync"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="4dp"
+            android:paddingEnd="@dimen/content_pad"
+            android:textColor="@color/text_on_inverse"
+            android:textSize="@dimen/text_meta" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/chrome_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <org.matchat.core.ui.softkey.SoftkeyBarView
+        android:id="@+id/chrome_softkeys"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/softkey_bar_height" />
+</LinearLayout>

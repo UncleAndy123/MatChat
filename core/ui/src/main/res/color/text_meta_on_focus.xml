@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Secondary/metadata text that flips to inverse on focus. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="@color/text_on_inverse" />
+    <item android:state_selected="true" android:color="@color/text_on_inverse" />
+    <item android:color="@color/text_secondary" />
+</selector>

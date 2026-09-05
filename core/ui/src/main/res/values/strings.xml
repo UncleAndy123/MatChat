@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Softkey labels shared across screens. -->
+    <string name="softkey_options">Options</string>
+    <string name="softkey_back">Back</string>
+    <string name="softkey_exit">Exit</string>
+    <string name="softkey_select">Select</string>
+    <string name="softkey_open">Open</string>
+    <string name="softkey_send">Send</string>
+    <string name="softkey_cancel">Cancel</string>
+    <!-- Empty softkey cell; explicit so a blank LEFT is intentional, not missing. -->
+    <string name="softkey_blank" translatable="false"></string>
+
+    <!-- Title-bar sync glyphs (UX-SPEC §1). -->
+    <string name="glyph_syncing" translatable="false">⟳</string>
+    <string name="glyph_offline" translatable="false">!</string>
+</resources>

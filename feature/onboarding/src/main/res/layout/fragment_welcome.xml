@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S2 Welcome content band. Focus order = XML order: QR → password → Help. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="@dimen/content_pad">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/app_name"
+        android:textSize="@dimen/text_heading"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:text="@string/welcome_purpose"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:id="@+id/welcome_qr"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/welcome_qr"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_on_focus"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/welcome_password"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/welcome_password"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_on_focus" />
+
+    <TextView
+        android:id="@+id/welcome_help"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/welcome_help"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_on_focus" />
+</LinearLayout>

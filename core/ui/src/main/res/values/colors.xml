@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Palette from the design canvas (design/*.dc.html). Layouts use the named
+     roles below, never a raw hex (AGENTS.md §5). Contrast: body/controls ≥ 7:1,
+     metadata ≥ 4.5:1 (PLAN.md G5), verified against surface #F6F4EE. -->
+<resources>
+    <!-- Raw palette (do not reference from layouts; use the roles below). -->
+    <color name="palette_ink">#14130E</color>
+    <color name="palette_paper">#F6F4EE</color>
+    <color name="palette_paper_bright">#FFFDF7</color>
+    <color name="palette_stone">#55524A</color>
+    <color name="palette_line">#C9C4B8</color>
+    <color name="palette_line_soft">#CFCBBF</color>
+    <color name="palette_green">#1F5C4A</color>
+    <color name="palette_amber">#A15C00</color>
+    <color name="palette_red">#8A1E15</color>
+    <color name="palette_green_light">#9ED2BF</color>
+
+    <!-- Semantic roles -->
+    <color name="surface">@color/palette_paper</color>
+    <color name="surface_bright">@color/palette_paper_bright</color>
+    <color name="surface_inverse">@color/palette_ink</color>
+    <color name="surface_focused">@color/palette_ink</color>
+
+    <color name="text_primary">@color/palette_ink</color>
+    <color name="text_secondary">@color/palette_stone</color>
+    <color name="text_on_inverse">@color/palette_paper_bright</color>
+    <color name="text_link">@color/palette_amber</color>
+
+    <color name="divider">@color/palette_line</color>
+    <color name="focus_border">@color/palette_ink</color>
+
+    <color name="encrypted">@color/palette_green</color>
+    <color name="warning">@color/palette_red</color>
+    <color name="error">@color/palette_red</color>
+</resources>

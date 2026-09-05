@@ -1,0 +1,14 @@
+# ktlint / Spotless formatting rules for MatChat.
+# Applied via the root `spotless` block; this file documents the intent and is
+# the place to pin rule overrides so formatting never becomes a review comment.
+root = true
+
+[*.{kt,kts}]
+charset = utf-8
+indent_style = space
+indent_size = 4
+max_line_length = 120
+insert_final_newline = true
+ktlint_standard_no-wildcard-imports = enabled
+ktlint_standard_filename = disabled
+ktlint_code_style = android_studio

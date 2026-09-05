@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Managed-configuration schema (docs/MDM.md §3). An EMM pushes these keys;
+     :core:policy reads them and re-emits on change. Absent bundle ⇒ unmanaged ⇒
+     every domain allowed (fail-open, docs/adr/0005). -->
+<restrictions xmlns:android="http://schemas.android.com/apk/res/android">
+    <restriction
+        android:key="pinnedHomeserver"
+        android:title="@string/policy_homeserver_title"
+        android:description="@string/policy_homeserver_desc"
+        android:restrictionType="string"
+        android:defaultValue="" />
+    <restriction
+        android:key="allowedDomains"
+        android:title="@string/policy_domains_title"
+        android:description="@string/policy_domains_desc"
+        android:restrictionType="string"
+        android:defaultValue="" />
+    <restriction
+        android:key="allowDirectChat"
+        android:title="@string/policy_dm_title"
+        android:description="@string/policy_dm_desc"
+        android:restrictionType="bool"
+        android:defaultValue="true" />
+    <restriction
+        android:key="invitePolicy"
+        android:title="@string/policy_invites_title"
+        android:description="@string/policy_invites_desc"
+        android:restrictionType="choice"
+        android:entries="@array/policy_invite_entries"
+        android:entryValues="@array/policy_invite_values"
+        android:defaultValue="ask" />
+    <restriction
+        android:key="contacts"
+        android:title="@string/policy_contacts_title"
+        android:description="@string/policy_contacts_desc"
+        android:restrictionType="string"
+        android:defaultValue="" />
+    <restriction
+        android:key="mediaSend"
+        android:title="@string/policy_media_title"
+        android:description="@string/policy_media_desc"
+        android:restrictionType="bool"
+        android:defaultValue="true" />
+</restrictions>

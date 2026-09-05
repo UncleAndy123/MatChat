@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S19 Invitation detail. The full address wraps and is never truncated — it is
+     the thing the user is judging. Blocked: no Accept, only the explanation. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="@dimen/content_pad">
+
+    <TextView
+        android:id="@+id/detail_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="@dimen/text_heading"
+        android:textColor="@color/text_primary"
+        tools:text="Barn Crew" />
+
+    <TextView
+        android:id="@+id/detail_invited_by"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_secondary"
+        tools:text="Invited by Wayne Zimmerman" />
+
+    <TextView
+        android:id="@+id/detail_address"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="13sp"
+        android:textColor="@color/text_primary"
+        tools:text="@wayne:example.org" />
+
+    <TextView
+        android:id="@+id/detail_encryption"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/encrypted"
+        tools:text="Encrypted — only members can read this" />
+
+    <TextView
+        android:id="@+id/detail_blocked"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textSize="13sp"
+        android:textColor="@color/warning"
+        android:visibility="gone"
+        tools:text="Your organization does not allow messages from example.org."
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/detail_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/error"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/detail_accept"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/invite_accept"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_on_focus" />
+
+    <TextView
+        android:id="@+id/detail_decline"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/invite_decline"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_on_focus" />
+</LinearLayout>

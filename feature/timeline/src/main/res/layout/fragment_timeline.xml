@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S9 Timeline content band: unencrypted warning (G4), message list, and the
+     bottom compose strip (the last focus stop). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/unencrypted_band"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="14dp"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/content_pad"
+        android:paddingEnd="@dimen/content_pad"
+        android:background="@color/warning"
+        android:textColor="@color/text_on_inverse"
+        android:textSize="@dimen/text_meta"
+        android:text="@string/timeline_unencrypted"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/empty_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:padding="@dimen/content_pad"
+        android:textSize="@dimen/text_body"
+        android:textColor="@color/text_secondary"
+        android:text="@string/timeline_empty"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/timeline_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:descendantFocusability="afterDescendants"
+        android:focusable="false" />
+
+    <EditText
+        android:id="@+id/compose_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="18dp"
+        android:maxLines="3"
+        android:background="@drawable/focus_selector"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:inputType="textShortMessage|textCapSentences|textAutoCorrect"
+        android:imeOptions="actionSend"
+        android:importantForAutofill="no"
+        android:textSize="@dimen/text_body"
+        android:textColor="@color/text_primary"
+        android:hint="@string/timeline_compose_hint" />
+</LinearLayout>

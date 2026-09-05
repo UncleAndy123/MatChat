@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The single back-stack for the whole app (ARCHITECTURE.md). Cross-feature
+     moves go through Navigator (MainActivity); these destinations are the targets
+     it navigates to. Start at Welcome — the M0 stub session reports "no session",
+     so restore routes here (S1 → S2). -->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/welcomeFragment">
+
+    <fragment
+        android:id="@+id/welcomeFragment"
+        android:name="org.matchat.feature.onboarding.WelcomeFragment"
+        android:label="Welcome" />
+
+    <fragment
+        android:id="@+id/signInFragment"
+        android:name="org.matchat.feature.onboarding.SignInFragment"
+        android:label="Sign in" />
+
+    <fragment
+        android:id="@+id/roomListFragment"
+        android:name="org.matchat.feature.roomlist.RoomListFragment"
+        android:label="MatChat" />
+
+    <fragment
+        android:id="@+id/timelineFragment"
+        android:name="org.matchat.feature.timeline.TimelineFragment"
+        android:label="Timeline">
+        <argument
+            android:name="roomId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/invitesFragment"
+        android:name="org.matchat.feature.invites.InvitesFragment"
+        android:label="Invitations" />
+
+    <fragment
+        android:id="@+id/inviteDetailFragment"
+        android:name="org.matchat.feature.invites.InviteDetailFragment"
+        android:label="Invitation">
+        <argument
+            android:name="roomId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/newChatFragment"
+        android:name="org.matchat.feature.newchat.NewChatFragment"
+        android:label="New message" />
+
+    <fragment
+        android:id="@+id/typeAddressFragment"
+        android:name="org.matchat.feature.newchat.TypeAddressFragment"
+        android:label="Type an address" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="org.matchat.feature.settings.SettingsFragment"
+        android:label="Settings" />
+
+    <fragment
+        android:id="@+id/policyFragment"
+        android:name="org.matchat.feature.settings.PolicyFragment"
+        android:label="Policy" />
+
+    <fragment
+        android:id="@+id/helpFragment"
+        android:name="org.matchat.feature.settings.HelpFragment"
+        android:label="Help" />
+
+    <fragment
+        android:id="@+id/verificationFragment"
+        android:name="org.matchat.feature.verification.VerificationFragment"
+        android:label="Verify" />
+</navigation>

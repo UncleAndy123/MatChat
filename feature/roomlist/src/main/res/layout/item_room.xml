@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One room row (S8). Focus lives on the row; the row is the click target
+     (AGENTS.md §4). minHeight, never a fixed height, so it grows in large-text
+     mode (UX-SPEC S16). -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.MatChat.Row"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/room_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_meta_on_focus"
+        tools:text="3:42 PM" />
+
+    <TextView
+        android:id="@+id/room_unread"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/room_time"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="2dp"
+        android:minWidth="18dp"
+        android:gravity="center"
+        android:paddingStart="5dp"
+        android:paddingEnd="5dp"
+        android:background="@color/surface_inverse"
+        android:textColor="@color/text_on_inverse"
+        android:textSize="@dimen/text_meta"
+        android:visibility="gone"
+        tools:text="3"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/room_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toStartOf="@id/room_time"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textStyle="bold"
+        android:textSize="@dimen/text_room_name"
+        android:textColor="@color/text_on_focus"
+        tools:text="Barn Crew" />
+
+    <TextView
+        android:id="@+id/room_preview"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/room_name"
+        android:layout_toStartOf="@id/room_unread"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textSize="13sp"
+        android:textColor="@color/text_meta_on_focus"
+        tools:text="See you at six by the north gate" />
+</RelativeLayout>

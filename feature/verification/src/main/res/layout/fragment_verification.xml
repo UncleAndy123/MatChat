@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S6 Emoji verification (SAS) shell. The 7-emoji grid and match/no-match wiring
+     attach to the SDK verification API at M4; M0 renders the frame so the screen
+     is reachable and traversable. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="@dimen/content_pad">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/verify_heading"
+        android:textStyle="bold"
+        android:textSize="@dimen/text_heading"
+        android:textColor="@color/text_primary" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="@string/verify_explanation"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_secondary" />
+
+    <TextView
+        android:id="@+id/verify_match"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/verify_match"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_on_focus" />
+
+    <TextView
+        android:id="@+id/verify_no_match"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/verify_no_match"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_on_focus" />
+</LinearLayout>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Unable-to-decrypt row (S9): plain-language, focusable, CENTER routes to
+     verification (S6) — never a scary grey blob. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/focus_selector"
+    android:focusable="true"
+    android:focusableInTouchMode="false"
+    android:minHeight="@dimen/row_min_height_compact"
+    android:paddingStart="@dimen/content_pad"
+    android:paddingEnd="@dimen/content_pad"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="italic"
+        android:textSize="@dimen/text_body"
+        android:textColor="@color/text_on_focus"
+        android:text="@string/timeline_utd" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_link"
+        android:text="@string/timeline_fix_encryption" />
+</LinearLayout>

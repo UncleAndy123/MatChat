@@ -1,0 +1,16 @@
+*.iml
+.gradle/
+build/
+/local.properties
+.idea/
+.DS_Store
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.hprof
+# Paparazzi failure images
+**/out/failures/
+# Never commit secrets or session tokens
+*.keystore
+!debug.keystore

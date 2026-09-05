@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- S20 New message. -->
+    <string name="newchat_title">New message</string>
+    <string name="newchat_section_contacts">Contacts</string>
+    <string name="newchat_section_recent">Recent</string>
+    <string name="newchat_type_address">Type an address</string>
+    <string name="newchat_empty">No saved contacts yet.</string>
+
+    <!-- S21 Type an address. -->
+    <string name="type_address_title">Type an address</string>
+    <string name="type_address_label">Address</string>
+    <!-- Field furniture: the @ and : are pre-inserted, not typed on a keypad. -->
+    <string name="type_address_prefill" translatable="false">@</string>
+    <string name="type_address_hint">Example: @wayne:example.org</string>
+    <string name="type_address_continue">Continue</string>
+    <string name="type_address_encrypted">Encrypted</string>
+    <string name="type_address_start">Start chat</string>
+    <string name="type_address_start_anyway">Start anyway</string>
+    <string name="type_address_change">Change</string>
+    <!-- %1$s is the resolved name or the address. -->
+    <string name="type_address_send_to">Send to %1$s?</string>
+    <!-- %1$s is the blocked domain. -->
+    <string name="type_address_blocked">Your organization does not allow messages to %1$s.</string>
+    <string name="type_address_error_malformed">That does not look like an address.</string>
+    <string name="type_address_error_not_found">No one at that address.</string>
+    <string name="type_address_error_unreachable">Could not reach that server.</string>
+</resources>

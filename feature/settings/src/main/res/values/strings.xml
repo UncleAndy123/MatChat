@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- S13 Settings. -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_text_size">Text size</string>
+    <string name="settings_encryption">Encryption</string>
+    <string name="settings_session">About this phone\'s session</string>
+    <string name="settings_help">Help</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_sign_out_confirm">Sign out? Messages on this phone will be removed.</string>
+    <string name="settings_policy_managed">Policy — Managed by your organization</string>
+    <string name="settings_policy_unmanaged">Policy — Not managed</string>
+
+    <!-- S23 Policy. -->
+    <string name="policy_title">Policy</string>
+    <string name="policy_managed">Managed by your organization</string>
+    <string name="policy_managed_sub">Your organization sets who you can message.</string>
+    <string name="policy_unmanaged">Not managed</string>
+    <string name="policy_unmanaged_sub">This phone is not managed by an organization.</string>
+    <string name="policy_homeserver">Home server</string>
+    <string name="policy_homeserver_none">Not set</string>
+    <string name="policy_allowed">Allowed servers</string>
+    <string name="policy_all_allowed">All servers allowed</string>
+    <string name="policy_direct">Direct messages</string>
+    <string name="policy_direct_allowed">Allowed</string>
+    <string name="policy_direct_blocked">Not allowed</string>
+
+    <!-- S14 Help. -->
+    <string name="help_title">Help</string>
+    <string name="help_softkeys">Left key opens Options. Right key goes Back.</string>
+    <string name="help_dpad">Up and Down move between items.</string>
+    <string name="help_center">Center key opens or sends the item in focus.</string>
+    <string name="help_back">Right key or Back returns to the previous screen.</string>
+    <string name="help_unread">Hold # to jump to the next unread group.</string>
+    <string name="help_large_text">Hold * to make text larger.</string>
+</resources>

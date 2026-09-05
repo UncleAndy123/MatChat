@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="verify_title">Verify</string>
+    <string name="verify_heading">Protect your messages</string>
+    <string name="verify_explanation">Check that the same picture words appear on your other device.</string>
+    <string name="verify_match">They match</string>
+    <string name="verify_no_match">They do not match</string>
+</resources>

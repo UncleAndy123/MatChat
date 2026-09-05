@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
+    * { box-sizing: border-box; }
+    body { margin: 0; width: 240px; height: 320px; background: #F6F4EE; color: #14130E;
+      font-family: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased; overflow: hidden; }
+    a { color: #A15C00; } a:hover { color: #7d4600; }
+    .screen { width: 240px; height: 320px; display: flex; flex-direction: column;
+      background: #F6F4EE; }
+    .title { flex: 0 0 18px; display: flex; align-items: center; justify-content: space-between;
+      gap: 4px; padding: 0 6px; font-size: 12px; font-weight: 700; line-height: 18px;
+      border-bottom: 1px solid #C9C4B8; }
+    .title .t { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .title .g { flex: 0 0 auto; display: flex; align-items: center; gap: 3px; }
+    .body { flex: 1 1 auto; display: flex; flex-direction: column; overflow: hidden; }
+    .pad { padding: 8px; }
+    .keys { flex: 0 0 20px; display: flex; align-items: center; background: #14130E;
+      color: #F6F4EE; font-size: 11px; font-weight: 700; line-height: 20px; padding: 0 6px; }
+    .keys .l { flex: 0 0 auto; } .keys .c { flex: 1 1 auto; text-align: center; }
+    .keys .r { flex: 0 0 auto; }
+    .row { display: flex; flex-direction: column; justify-content: center; gap: 1px;
+      height: 44px; padding: 0 6px; border-bottom: 1px solid #C9C4B8; }
+    .row .a { display: flex; align-items: baseline; gap: 6px; }
+    .name { font-size: 16px; font-weight: 700; overflow: hidden; white-space: nowrap;
+      text-overflow: ellipsis; flex: 1 1 auto; }
+    .time { font-size: 11px; color: #55524A; flex: 0 0 auto; }
+    .prev { font-size: 13px; color: #55524A; overflow: hidden; white-space: nowrap;
+      text-overflow: ellipsis; flex: 1 1 auto; }
+    .badge { flex: 0 0 auto; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+      background: #14130E; color: #F6F4EE; font-size: 11px; font-weight: 700; line-height: 16px;
+      text-align: center; }
+    .focus { background: #14130E; color: #F6F4EE; }
+    .focus .time, .focus .prev { color: #CFCBBF; }
+    .focus .badge { background: #F6F4EE; color: #14130E; }
+    .btn { display: flex; align-items: center; height: 30px; padding: 0 8px; font-size: 15px;
+      font-weight: 700; border: 2px solid #14130E; background: #F6F4EE; color: #14130E; }
+    .btn.focus { background: #14130E; color: #F6F4EE; }
+    .field { display: flex; flex-direction: column; gap: 1px; }
+    .field .lab { font-size: 11px; color: #55524A; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .04em; }
+    .field .box { height: 26px; border: 2px solid #C9C4B8; background: #FFFDF7; padding: 0 6px;
+      font-size: 16px; line-height: 22px; color: #14130E; }
+    .field .box.focus { border-color: #14130E; }
+    .h1 { font-size: 17px; font-weight: 700; line-height: 20px; }
+    .p { font-size: 13px; line-height: 17px; color: #55524A; }
+    .sep { display: flex; align-items: center; gap: 6px; padding: 3px 6px; }
+    .sep i { flex: 1 1 auto; height: 1px; background: #C9C4B8; }
+    .sep span { font-size: 11px; color: #55524A; letter-spacing: .06em; text-transform: uppercase; }
+    .msg { padding: 3px 6px; }
+    .who { font-size: 12px; font-weight: 700; color: #1F5C4A; }
+    .txt { font-size: 16px; line-height: 19px; }
+    .meta { font-size: 11px; color: #55524A; text-align: right; }
+    .own { text-align: right; }
+    .own .txt { display: inline-block; text-align: left; }
+    .input { flex: 0 0 auto; border-top: 1px solid #C9C4B8; padding: 2px 6px; font-size: 14px;
+      color: #55524A; background: #FFFDF7; }
+    .banner { flex: 0 0 auto; background: #8A1E15; color: #F6F4EE; font-size: 11px;
+      font-weight: 700; padding: 3px 6px; }
+    .menu { position: absolute; left: 0; right: 0; bottom: 20px; background: #F6F4EE;
+      border-top: 2px solid #14130E; }
+    .menu div { height: 26px; display: flex; align-items: center; padding: 0 8px;
+      font-size: 15px; border-bottom: 1px solid #C9C4B8; }
+    .scrim { position: absolute; inset: 18px 0 20px 0; background: rgba(20,19,14,.45); }
+</style>
+</helmet>
+<div class="screen" style="position: relative;">
+<div class="title"><span class="t">MatChat</span><span class="g"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 3v5h-5"/></svg></span></div>
+<div class="body" style="align-items: center; justify-content: center; gap: 10px;">
+  <div style="font-size: 24px; font-weight: 700; letter-spacing: -.01em;">MatChat</div>
+  <div style="width: 120px; height: 3px; background: #C9C4B8;">
+    <div style="width: 46px; height: 3px; background: #14130E;"></div></div>
+  <div class="p" style="font-size: 14px;">Signing you in&hellip;</div>
+</div>
+<div class="keys"><span class="l"></span><span class="c"></span><span class="r">Cancel</span></div>
+</div>
+</x-dc>
+</body>
+</html>

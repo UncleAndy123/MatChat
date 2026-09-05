@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S14 Help. The manual for a user with no second screen: one key hint per row,
+     in the same vocabulary as the softkey labels. Rows are focusable so the list
+     scrolls as focus moves. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/content_pad"
+        android:paddingEnd="@dimen/content_pad">
+
+        <TextView style="@style/Widget.MatChat.Row" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/help_softkeys"
+            android:textSize="@dimen/text_body" android:textColor="@color/text_on_focus" />
+
+        <TextView style="@style/Widget.MatChat.Row" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/help_dpad"
+            android:textSize="@dimen/text_body" android:textColor="@color/text_on_focus" />
+
+        <TextView style="@style/Widget.MatChat.Row" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/help_center"
+            android:textSize="@dimen/text_body" android:textColor="@color/text_on_focus" />
+
+        <TextView style="@style/Widget.MatChat.Row" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/help_back"
+            android:textSize="@dimen/text_body" android:textColor="@color/text_on_focus" />
+
+        <TextView style="@style/Widget.MatChat.Row" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/help_unread"
+            android:textSize="@dimen/text_body" android:textColor="@color/text_on_focus" />
+
+        <TextView style="@style/Widget.MatChat.Row" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/help_large_text"
+            android:textSize="@dimen/text_body" android:textColor="@color/text_on_focus" />
+    </LinearLayout>
+</ScrollView>

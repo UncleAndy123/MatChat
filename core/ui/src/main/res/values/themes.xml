@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Base theme for MatChat. AppCompat, not Material: Views deliberately
+     (docs/adr/0002). No ripples, no elevation, no animation over 150 ms. -->
+<resources>
+    <style name="Theme.MatChat" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/surface</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="colorAccent">@color/encrypted</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <!-- These are D-pad devices: never behave as if a touch is available. -->
+        <item name="android:windowIsTranslucent">false</item>
+    </style>
+
+    <!-- A focusable row: full-width inverse focus block, no touch feedback. -->
+    <style name="Widget.MatChat.Row">
+        <item name="android:background">@drawable/focus_selector</item>
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">false</item>
+        <item name="android:minHeight">@dimen/row_min_height</item>
+        <item name="android:paddingStart">@dimen/content_pad</item>
+        <item name="android:paddingEnd">@dimen/content_pad</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
+    <style name="Text.Body">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/text_on_focus</item>
+    </style>
+
+    <style name="Text.Label">
+        <item name="android:textSize">@dimen/text_label</item>
+        <item name="android:textColor">@color/text_on_focus</item>
+    </style>
+
+    <style name="Text.Meta">
+        <item name="android:textSize">@dimen/text_meta</item>
+        <item name="android:textColor">@color/text_meta_on_focus</item>
+    </style>
+
+    <!-- The MenuSheet dialog: bottom-anchored, no dim animation, BACK dismisses. -->
+    <style name="Theme.MatChat.Menu" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+</resources>

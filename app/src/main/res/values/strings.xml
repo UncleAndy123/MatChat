@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MatChat</string>
+
+    <!-- Sync foreground service (S15, PLAN.md §6.6). -->
+    <string name="sync_notification_running">MatChat is running</string>
+    <string name="sync_channel_name">Sync</string>
+
+    <!-- Managed-configuration titles/descriptions shown in the EMM console (docs/MDM.md §3). -->
+    <string name="policy_homeserver_title">Home server</string>
+    <string name="policy_homeserver_desc">Homeserver URL; shown read-only on sign in when set.</string>
+    <string name="policy_domains_title">Allowed servers</string>
+    <string name="policy_domains_desc">Comma-separated domains the user may message. Empty allows all.</string>
+    <string name="policy_dm_title">Allow direct messages</string>
+    <string name="policy_dm_desc">When off, New message is hidden; invitations still work.</string>
+    <string name="policy_invites_title">Invitation handling</string>
+    <string name="policy_invites_desc">Ask on every invitation, or auto-join allowed domains.</string>
+    <string name="policy_contacts_title">Contacts</string>
+    <string name="policy_contacts_desc">JSON array of {name, address} shown first in New message.</string>
+    <string name="policy_media_title">Allow sending images</string>
+    <string name="policy_media_desc">When off, images cannot be sent.</string>
+</resources>

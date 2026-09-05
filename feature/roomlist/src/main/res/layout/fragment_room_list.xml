@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S8 content band. The chrome (title + softkeys) is provided by SoftkeyFragment. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Pending-invitation band: first focus stop, opens S18 (UX-SPEC S8). -->
+    <TextView
+        android:id="@+id/invite_band"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/row_min_height_compact"
+        android:textSize="@dimen/text_label"
+        android:textColor="@color/text_on_focus"
+        android:visibility="gone"
+        tools:text="1 invitation"
+        tools:visibility="visible" />
+
+    <!-- Offline banner (UX-SPEC S8). -->
+    <TextView
+        android:id="@+id/offline_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="16dp"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/content_pad"
+        android:paddingEnd="@dimen/content_pad"
+        android:background="@color/palette_line_soft"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_secondary"
+        android:text="@string/roomlist_offline"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/room_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:descendantFocusability="afterDescendants"
+        android:focusable="false" />
+
+    <!-- Empty state (UX-SPEC S8). -->
+    <TextView
+        android:id="@+id/empty_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:padding="@dimen/content_pad"
+        android:textSize="@dimen/text_body"
+        android:textColor="@color/text_secondary"
+        android:text="@string/roomlist_empty"
+        android:visibility="gone" />
+</LinearLayout>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MatChat</string>
+
+    <!-- S2 Welcome. -->
+    <string name="welcome_purpose">Private group messaging for your phone.</string>
+    <string name="welcome_qr">Sign in with QR code</string>
+    <string name="welcome_password">Sign in with password</string>
+    <string name="welcome_help">Help</string>
+
+    <!-- S3 Sign in. -->
+    <string name="signin_title">Sign in</string>
+    <!-- %1$s is the homeserver, optionally prefixed with a lock glyph when pinned. -->
+    <string name="signin_homeserver">Home server: %1$s</string>
+    <string name="signin_username">Username</string>
+    <string name="signin_password">Password</string>
+    <string name="signin_submit">Sign in</string>
+    <!-- Errors: what happened, then what to do (UX-SPEC §4). -->
+    <string name="signin_error_credentials">That username or password did not work.</string>
+    <string name="signin_error_network">No network. Check signal and try again.</string>
+</resources>

@@ -1,0 +1,52 @@
+# Detekt configuration for MatChat (PLAN.md §8.4).
+# The custom rules named in PLAN.md — NoSdkImportOutsideCoreMatrix,
+# NoDiscoveryApis, NoTouchListeners, NoHardcodedStrings — are enforced in the
+# skeleton by the Konsist architecture tests in app/src/test (ArchitectureTest,
+# DiscoveryApiTest, TouchApiTest). They will be promoted to a custom Detekt
+# ruleset module once that plugin module lands; until then the Konsist tests are
+# the mechanical gate and run in the same CI stage.
+
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+complexity:
+  LongMethod:
+    threshold: 60
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 8
+  TooManyFunctions:
+    active: false
+
+style:
+  MagicNumber:
+    active: false
+  ReturnCount:
+    max: 4
+  UnusedPrivateMember:
+    active: true
+  MaxLineLength:
+    maxLineLength: 120
+  ForbiddenComment:
+    active: true
+    # A TODO with no linked issue number fails the build (AGENTS.md §8).
+    comments:
+      - reason: "TODO must reference an issue number, e.g. TODO(#123)."
+        value: "TODO"
+        allowedPatterns: "TODO\\(#[0-9]+\\)"
+
+naming:
+  FunctionNaming:
+    functionPattern: "[a-z][a-zA-Z0-9]*"
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+  SwallowedException:
+    # No silent catches (ARCHITECTURE.md — every catch logs and changes state).
+    active: true

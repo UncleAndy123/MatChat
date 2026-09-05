@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S20 New message. The ScrollView scrolls only as focus moves between rows —
+     there is no pixel drag on these devices (UX-SPEC §1). The list is short by
+     construction, so a linear list, not a RecyclerView, is enough. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/newchat_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/content_pad"
+        android:paddingEnd="@dimen/content_pad" />
+</ScrollView>

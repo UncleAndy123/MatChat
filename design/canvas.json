@@ -1,0 +1,254 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Timeline.dc.html",
+      "x": 340,
+      "y": 0,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Compose.dc.html",
+      "x": 680,
+      "y": 0,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "MessageMenu.dc.html",
+      "x": 1020,
+      "y": 0,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "RoomInfo.dc.html",
+      "x": 0,
+      "y": 500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Settings.dc.html",
+      "x": 340,
+      "y": 500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Help.dc.html",
+      "x": 680,
+      "y": 500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Notification.dc.html",
+      "x": 1020,
+      "y": 500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Splash.dc.html",
+      "x": 0,
+      "y": 1000,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Welcome.dc.html",
+      "x": 340,
+      "y": 1000,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "SignIn.dc.html",
+      "x": 680,
+      "y": 1000,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "SignInQr.dc.html",
+      "x": 1020,
+      "y": 1000,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Encryption.dc.html",
+      "x": 0,
+      "y": 1500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Verify.dc.html",
+      "x": 340,
+      "y": 1500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "RecoveryKey.dc.html",
+      "x": 680,
+      "y": 1500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Empty.dc.html",
+      "x": 1020,
+      "y": 1500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "RoomListLarge.dc.html",
+      "x": 1360,
+      "y": 1500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "Invites.dc.html",
+      "x": 0,
+      "y": 2000,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "InviteDetail.dc.html",
+      "x": 340,
+      "y": 2000,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "InviteBlocked.dc.html",
+      "x": 680,
+      "y": 2000,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "NewChat.dc.html",
+      "x": 1020,
+      "y": 2000,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "TypeAddress.dc.html",
+      "x": 0,
+      "y": 2500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "AddressConfirm.dc.html",
+      "x": 340,
+      "y": 2500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "AddressBlocked.dc.html",
+      "x": 680,
+      "y": 2500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "PolicyInfo.dc.html",
+      "x": 1020,
+      "y": 2500,
+      "w": 240,
+      "h": 320
+    },
+    {
+      "file": "RoomListLandscape.dc.html",
+      "x": 1700,
+      "y": 1500,
+      "w": 320,
+      "h": 240
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -190,
+      "w": 700,
+      "text": "MatChat - Matrix client for D-pad feature phones.\nEvery artboard is one screen at true device size: 240x320 px, 2.6\" QVGA\n(plus one 320x240 landscape check).\nFocus is an inverted block. The bottom bar is Options | Select | Back -\nLEFT is blank only where a screen has no options, and never means\nanything else. Screens follow docs/UX-SPEC.md."
+    },
+    {
+      "id": "row-daily",
+      "x": -300,
+      "y": 0,
+      "w": 250,
+      "text": "DAILY USE\nS8 room list, S9 timeline, S10 compose, S11 message menu."
+    },
+    {
+      "id": "row-secondary",
+      "x": -300,
+      "y": 500,
+      "w": 250,
+      "text": "AROUND THE EDGES\nS12 group info, S13 settings, S14 help (the only manual\na user has), S15 notifications."
+    },
+    {
+      "id": "row-onboarding",
+      "x": -300,
+      "y": 1000,
+      "w": 250,
+      "text": "ONBOARDING\nS1-S4. Homeserver is pinned and not editable.\nQR sign-in avoids typing a password on a keypad."
+    },
+    {
+      "id": "row-crypto",
+      "x": -300,
+      "y": 1500,
+      "w": 250,
+      "text": "ENCRYPTION + EDGE STATES\nS5-S7, plus the empty/offline room list."
+    },
+    {
+      "id": "alt-large",
+      "x": 1360,
+      "y": 1370,
+      "w": 250,
+      "text": "LARGE-TEXT MODE (hold *) - spec S16.\nSame rows, 21px names, four visible.\nRow heights are min-heights, never fixed, so this is a scale\nchange and not a second layout."
+    },
+    {
+      "id": "row-invites",
+      "x": -300,
+      "y": 2000,
+      "w": 250,
+      "text": "INVITATIONS (S18-S19)\nNothing auto-joins. An invite from a blocked domain is\nstill SHOWN, with the reason - a user who cannot see an\ninvitation cannot ask anyone about it."
+    },
+    {
+      "id": "row-address",
+      "x": -300,
+      "y": 2500,
+      "w": 250,
+      "text": "DIRECT CHAT BY ADDRESS (S20-S22)\nContacts and recents, then typing. The @ and : are field\nfurniture, not keys to hunt for. Confirm the person before\ncreating the room - a typo otherwise leaves an orphan chat.\nLast artboard: Settings > Policy, so a blocked user can find\nout why without phoning anyone."
+    },
+    {
+      "id": "alt-landscape",
+      "x": 1700,
+      "y": 1370,
+      "w": 260,
+      "text": "LANDSCAPE CHECK (spec S17) - 320x240, DuraXE Epic class.\nSame screens, 202px content band: four rooms instead of six.\nEvery screen must survive this size."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

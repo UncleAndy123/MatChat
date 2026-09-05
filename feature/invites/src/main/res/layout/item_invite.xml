@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S18 invitation row. "from …" is ellipsized from the left so the domain always
+     stays visible. A blocked domain carries a "Not allowed" tag and still opens. -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    style="@style/Widget.MatChat.Row"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="@dimen/row_min_height_compact"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/invite_blocked"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/warning"
+        android:text="@string/invites_not_allowed"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/invite_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toStartOf="@id/invite_blocked"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textStyle="bold"
+        android:textSize="@dimen/text_room_name"
+        android:textColor="@color/text_on_focus"
+        tools:text="Barn Crew" />
+
+    <TextView
+        android:id="@+id/invite_from"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/invite_name"
+        android:layout_toStartOf="@id/invite_blocked"
+        android:maxLines="1"
+        android:ellipsize="start"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_meta_on_focus"
+        tools:text="from @wayne:example.org" />
+</RelativeLayout>

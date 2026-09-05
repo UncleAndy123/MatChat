@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="@dimen/content_pad">
+
+    <!-- Entry group -->
+    <LinearLayout
+        android:id="@+id/entry_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/type_address_label"
+            android:textSize="@dimen/text_meta"
+            android:textColor="@color/text_secondary" />
+
+        <EditText
+            android:id="@+id/address_field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/focus_selector"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:inputType="textEmailAddress"
+            android:importantForAutofill="no"
+            android:textSize="@dimen/text_body"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/type_address_hint"
+            android:textSize="@dimen/text_meta"
+            android:textColor="@color/text_secondary" />
+
+        <TextView
+            android:id="@+id/type_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/text_meta"
+            android:textColor="@color/error"
+            android:visibility="gone"
+            tools:text="That does not look like an address." />
+
+        <TextView
+            android:id="@+id/type_blocked"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/warning"
+            android:visibility="gone"
+            tools:text="Your organization does not allow messages to example.org." />
+
+        <TextView
+            android:id="@+id/continue_button"
+            style="@style/Widget.MatChat.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/type_address_continue"
+            android:textSize="@dimen/text_label"
+            android:textColor="@color/text_on_focus" />
+    </LinearLayout>
+
+    <!-- Confirmation group (S21 step 4) -->
+    <LinearLayout
+        android:id="@+id/confirm_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/confirm_prompt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/text_body"
+            android:textColor="@color/text_primary"
+            tools:text="Send to Wayne Zimmerman?" />
+
+        <TextView
+            android:id="@+id/confirm_address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            tools:text="@wayne:example.org" />
+
+        <TextView
+            android:id="@+id/confirm_encryption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/text_meta"
+            android:textColor="@color/encrypted"
+            android:text="@string/type_address_encrypted" />
+
+        <TextView
+            android:id="@+id/confirm_start"
+            style="@style/Widget.MatChat.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/type_address_start"
+            android:textSize="@dimen/text_label"
+            android:textColor="@color/text_on_focus" />
+
+        <TextView
+            android:id="@+id/confirm_change"
+            style="@style/Widget.MatChat.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/type_address_change"
+            android:textSize="@dimen/text_label"
+            android:textColor="@color/text_on_focus" />
+    </LinearLayout>
+</LinearLayout>
