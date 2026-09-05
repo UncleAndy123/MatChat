@@ -46,6 +46,9 @@ abstract class SoftkeyFragment : Fragment(), LogicalKeyReceiver {
         chrome = binding
         inflater.inflate(contentLayoutId, binding.chromeContent, true)
         binding.chromeSoftkeys.render(leftLabel, centerLabel, rightLabel)
+        // Tapping a softkey label behaves exactly like its hardware key (useful on
+        // an emulator / touch device; a no-op on a real feature phone).
+        binding.chromeSoftkeys.onKey = { key -> onLogicalKey(key) }
         onContentViewCreated(binding.chromeContent.getChildAt(0))
         return binding.root
     }
