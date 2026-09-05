@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import org.matchat.core.model.DeviceTrust
 import org.matchat.core.model.EventId
 import org.matchat.core.model.InviteSummary
+import org.matchat.core.model.MediaKind
 import org.matchat.core.model.Profile
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
@@ -56,6 +57,14 @@ interface RoomTimeline {
     suspend fun paginateBack(count: Int = 20): Boolean
 
     suspend fun send(body: String)
+
+    /**
+     * Uploads a local file at [path] and sends it as a media message (S9 send,
+     * gated upstream by policy.mediaSend). [kind] picks the msgtype; [caption] is
+     * an optional text shown with the attachment. The SDK does the encryption and
+     * upload; only a filesystem path crosses this line, never an Android Uri.
+     */
+    suspend fun sendMedia(path: String, mimeType: String, kind: MediaKind, caption: String?)
 
     suspend fun markRead(eventId: EventId)
 }

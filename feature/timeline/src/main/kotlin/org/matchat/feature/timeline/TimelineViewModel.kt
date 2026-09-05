@@ -21,12 +21,14 @@ import org.matchat.core.model.MillisClock
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.format.RelativeTime
+import org.matchat.core.policy.PolicyProvider
 import javax.inject.Inject
 
 @HiltViewModel
 class TimelineViewModel @Inject constructor(
     private val session: MatrixSession,
     private val clock: MillisClock,
+    private val policyProvider: PolicyProvider,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -35,6 +37,9 @@ class TimelineViewModel @Inject constructor(
 
     private val composeFocused = MutableStateFlow(false)
     private val loadingEarlier = MutableStateFlow(false)
+
+    /** Whether attaching media is permitted on this (possibly managed) device. */
+    val canSendMedia: Boolean get() = policyProvider.policy.value.mediaSend
 
     private val navChannel = Channel<TimelineNav>(Channel.BUFFERED)
     val navEvents: Flow<TimelineNav> = navChannel.receiveAsFlow()
@@ -139,6 +144,13 @@ class TimelineViewModel @Inject constructor(
 
     /** Download a media message's bytes for the UI to render/open/play. */
     suspend fun loadMedia(eventId: EventId): ByteArray? = session.loadMedia(eventId)
+
+    /** Send a picked file as media (S9). Blocked if the policy forbids it — the UI
+     *  hides the entry, but re-check here so a stale menu cannot slip through. */
+    fun sendMedia(path: String, mimeType: String, kind: MediaKind, caption: String?) {
+        if (!policyProvider.policy.value.mediaSend) return
+        viewModelScope.launch { timeline.sendMedia(path, mimeType, kind, caption) }
+    }
 
     private fun mediaRow(item: TimelineItem.Media, senderName: String?): TimelineRow {
         val glyph = when {

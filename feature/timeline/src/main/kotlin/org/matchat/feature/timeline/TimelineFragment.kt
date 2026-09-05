@@ -48,8 +48,16 @@ class TimelineFragment : SoftkeyFragment() {
         onFixEncryption = { viewModel.onAction(TimelineAction.FixEncryption(it)) },
         onMessageActivated = { openMessageMenu(it) },
         onImageBind = { eventId, image -> loadImageInto(eventId, image) },
+        onImageActivated = { navigator.toImageViewer(it) },
         onAttachmentActivated = { openAttachment(it) },
     )
+
+    // SAF document picker — the system Documents UI is D-pad navigable, unlike a
+    // gallery grid. The picked file's kind is derived from its resolved MIME type.
+    private val mediaPicker =
+        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) sendPicked(uri)
+        }
 
     override fun onContentViewCreated(content: View) {
         val b = FragmentTimelineBinding.bind(content)
@@ -116,19 +124,58 @@ class TimelineFragment : SoftkeyFragment() {
     }
 
     override fun onOptions(): Boolean {
-        val items = listOf(
-            MenuItem(OPT_INFO, getString(R.string.timeline_opt_room_info)),
-            MenuItem(OPT_READ, getString(R.string.timeline_opt_mark_read)),
-            MenuItem(OPT_MUTE, getString(R.string.timeline_opt_mute)),
-            MenuItem(OPT_HELP, getString(R.string.timeline_opt_help)),
-        )
+        val items = buildList {
+            if (viewModel.canSendMedia) {
+                add(MenuItem(OPT_SEND_PHOTO, getString(R.string.timeline_opt_send_photo)))
+                add(MenuItem(OPT_SEND_FILE, getString(R.string.timeline_opt_send_file)))
+            }
+            add(MenuItem(OPT_INFO, getString(R.string.timeline_opt_room_info)))
+            add(MenuItem(OPT_READ, getString(R.string.timeline_opt_mark_read)))
+            add(MenuItem(OPT_MUTE, getString(R.string.timeline_opt_mute)))
+            add(MenuItem(OPT_HELP, getString(R.string.timeline_opt_help)))
+        }
         MenuSheet.show(requireContext(), items) { selected ->
             when (selected.id) {
+                OPT_SEND_PHOTO -> launchPicker("image/*")
+                OPT_SEND_FILE -> launchPicker("*/*")
                 OPT_HELP -> navigator.toHelp()
                 else -> Unit // room info / mark read / mute wire up in M2–M4
             }
         }
         return true
+    }
+
+    private fun launchPicker(mimeFilter: String) {
+        runCatching { mediaPicker.launch(arrayOf(mimeFilter)) }.onFailure {
+            Toast.makeText(requireContext(), R.string.timeline_media_no_app, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** Copy the picked content to the cache (the SDK uploads from a file path) and
+     *  send it, deriving the media kind from the resolved MIME type. */
+    private fun sendPicked(uri: android.net.Uri) {
+        val ctx = requireContext()
+        val mime = ctx.contentResolver.getType(uri) ?: "application/octet-stream"
+        val kind = when {
+            mime.startsWith("image/") -> org.matchat.core.model.MediaKind.IMAGE
+            mime.startsWith("video/") -> org.matchat.core.model.MediaKind.VIDEO
+            mime.startsWith("audio/") -> org.matchat.core.model.MediaKind.AUDIO
+            else -> org.matchat.core.model.MediaKind.FILE
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val bytes = runCatching {
+                    ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }.getOrNull() ?: return@withContext null
+                MediaFiles.writeToCache(ctx, MediaFiles.displayName(ctx, uri), bytes)
+            }
+            if (file == null) {
+                Toast.makeText(ctx, R.string.timeline_media_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            Toast.makeText(ctx, R.string.timeline_sending, Toast.LENGTH_SHORT).show()
+            viewModel.sendMedia(file.absolutePath, mime, kind, caption = null)
+        }
     }
 
     /** S11 message menu, opened with CENTER on a message row. */
@@ -179,6 +226,8 @@ class TimelineFragment : SoftkeyFragment() {
         const val OPT_READ = "read"
         const val OPT_MUTE = "mute"
         const val OPT_HELP = "help"
+        const val OPT_SEND_PHOTO = "send_photo"
+        const val OPT_SEND_FILE = "send_file"
         const val MSG_REPLY = "reply"
         const val MSG_COPY = "copy"
         const val MSG_INFO = "msg_info"

@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import org.matchat.client.sync.SyncForegroundService
 import org.matchat.core.matrix.MatrixAuth
 import org.matchat.core.matrix.MatrixSessionStore
+import org.matchat.core.model.EventId
 import org.matchat.core.model.RoomId
 import org.matchat.core.ui.key.KeyMap
 import org.matchat.core.ui.key.LogicalKey
@@ -101,6 +102,9 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun toRoom(roomId: RoomId) =
         navController.navigate(R.id.timelineFragment, bundleOf(ARG_ROOM_ID to roomId.value))
 
+    override fun toImageViewer(eventId: EventId) =
+        navController.navigate(R.id.imageViewerFragment, bundleOf(ARG_EVENT_ID to eventId.value))
+
     override fun toInvites() = navController.navigate(R.id.invitesFragment)
     override fun toInvite(roomId: RoomId) =
         navController.navigate(R.id.inviteDetailFragment, bundleOf(ARG_ROOM_ID to roomId.value))
@@ -115,5 +119,6 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     companion object {
         const val ARG_ROOM_ID = "roomId"
+        const val ARG_EVENT_ID = "eventId"
     }
 }

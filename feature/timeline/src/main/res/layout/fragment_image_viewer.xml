@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S9 full-screen image viewer. Non-touch: * / # zoom, D-pad pans (ZoomPanImageView).
+     Black ground so the image reads on a small screen; a one-line key hint sits at
+     the bottom. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <org.matchat.feature.timeline.ZoomPanImageView
+        android:id="@+id/viewer_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <TextView
+        android:id="@+id/viewer_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/text_body"
+        android:text="@string/viewer_loading" />
+
+    <TextView
+        android:id="@+id/viewer_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="#99000000"
+        android:gravity="center"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:textColor="@android:color/white"
+        android:textSize="@dimen/text_meta"
+        android:text="@string/viewer_hint" />
+</FrameLayout>

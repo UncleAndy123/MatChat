@@ -4,10 +4,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.matchat.core.matrix.RoomTimeline
 import org.matchat.core.model.EventId
+import org.matchat.core.model.MediaKind
 import org.matchat.core.model.TimelineItem
+import org.matrix.rustcomponents.sdk.AudioInfo
+import org.matrix.rustcomponents.sdk.FileInfo
+import org.matrix.rustcomponents.sdk.ImageInfo
 import org.matrix.rustcomponents.sdk.Room
+import org.matrix.rustcomponents.sdk.UploadParameters
+import org.matrix.rustcomponents.sdk.VideoInfo
 import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.Timeline
 import org.matrix.rustcomponents.sdk.TimelineDiff
@@ -59,6 +67,66 @@ internal class RustRoomTimeline(
     override suspend fun send(body: String) {
         val tl = timeline ?: return
         runCatching { tl.send(messageEventContentFromMarkdown(body)) }
+    }
+
+    override suspend fun sendMedia(
+        path: String,
+        mimeType: String,
+        kind: MediaKind,
+        caption: String?,
+    ) = withContext(Dispatchers.IO) {
+        val tl = timeline ?: return@withContext
+        val size = runCatching { java.io.File(path).length().toULong() }.getOrNull()
+        // FFI: media-send is one of the more version-sensitive corners of the SDK.
+        // The upload takes a local file path (UploadParameters.filename), a per-type
+        // *Info record (all fields nullable), an optional thumbnail path and progress
+        // watcher, and returns a join handle that must be awaited. If a signature
+        // differs on the AAR, it is these four calls and the *Info constructors that
+        // move — keep the whole media-send surface here, in one place.
+        val params = UploadParameters(
+            filename = path,
+            caption = caption,
+            formattedCaption = null,
+            mentions = null,
+            replyParams = null,
+        )
+        runCatching {
+            val handle = when (kind) {
+                MediaKind.IMAGE -> tl.sendImage(
+                    params = params,
+                    thumbnailPath = null,
+                    imageInfo = ImageInfo(
+                        height = null, width = null, mimetype = mimeType, size = size,
+                        thumbnailInfo = null, thumbnailSource = null, blurhash = null, isAnimated = null,
+                    ),
+                    progressWatcher = null,
+                )
+                MediaKind.VIDEO -> tl.sendVideo(
+                    params = params,
+                    thumbnailPath = null,
+                    videoInfo = VideoInfo(
+                        duration = null, height = null, width = null, mimetype = mimeType, size = size,
+                        thumbnailInfo = null, thumbnailSource = null, blurhash = null,
+                    ),
+                    progressWatcher = null,
+                )
+                MediaKind.AUDIO, MediaKind.VOICE -> tl.sendAudio(
+                    params = params,
+                    audioInfo = AudioInfo(duration = null, size = size, mimetype = mimeType),
+                    progressWatcher = null,
+                )
+                MediaKind.FILE -> tl.sendFile(
+                    params = params,
+                    fileInfo = FileInfo(
+                        mimetype = mimeType, size = size, thumbnailInfo = null,
+                        thumbnailSource = null,
+                    ),
+                    progressWatcher = null,
+                )
+            }
+            handle.join()
+        }
+        Unit
     }
 
     override suspend fun markRead(eventId: EventId) {

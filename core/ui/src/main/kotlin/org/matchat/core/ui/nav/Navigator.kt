@@ -1,5 +1,6 @@
 package org.matchat.core.ui.nav
 
+import org.matchat.core.model.EventId
 import org.matchat.core.model.RoomId
 
 /**
@@ -14,6 +15,8 @@ interface Navigator {
     /** After sign-out: welcome becomes the root, everything else is cleared. */
     fun toWelcomeRoot()
     fun toRoom(roomId: RoomId)
+    /** Full-screen image viewer for a timeline image (D-pad pan, * / # zoom). */
+    fun toImageViewer(eventId: EventId)
     fun toInvites()
     fun toInvite(roomId: RoomId)
     fun toNewChat()

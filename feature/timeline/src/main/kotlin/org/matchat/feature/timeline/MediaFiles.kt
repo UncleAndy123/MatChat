@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
 import java.io.File
 
@@ -29,6 +31,20 @@ internal object MediaFiles {
         }
         val opts = BitmapFactory.Options().apply { inSampleSize = sample }
         return runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts) }.getOrNull()
+    }
+
+    /** The user-facing name of a content [uri] (DISPLAY_NAME), or a fallback. */
+    fun displayName(context: Context, uri: Uri): String {
+        val projection = arrayOf(OpenableColumns.DISPLAY_NAME)
+        runCatching {
+            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0) cursor.getString(idx)?.let { return it }
+                }
+            }
+        }
+        return uri.lastPathSegment?.substringAfterLast('/') ?: "attachment"
     }
 
     /** Write bytes to the app cache under media/, returning the file. */

@@ -33,6 +33,15 @@
     </fragment>
 
     <fragment
+        android:id="@+id/imageViewerFragment"
+        android:name="org.matchat.feature.timeline.ImageViewerFragment"
+        android:label="Image">
+        <argument
+            android:name="eventId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
         android:id="@+id/invitesFragment"
         android:name="org.matchat.feature.invites.InvitesFragment"
         android:label="Invitations" />

@@ -21,6 +21,7 @@ internal class TimelineAdapter(
     private val onFixEncryption: (EventId) -> Unit,
     private val onMessageActivated: (EventId) -> Unit,
     private val onImageBind: (EventId, ImageView) -> Unit,
+    private val onImageActivated: (EventId) -> Unit,
     private val onAttachmentActivated: (TimelineRow.Attachment) -> Unit,
 ) : ListAdapter<TimelineRow, RecyclerView.ViewHolder>(DIFF) {
 
@@ -85,6 +86,7 @@ internal class TimelineAdapter(
             time.text = if (row.sendGlyph.isEmpty()) row.time else "${row.time} ${row.sendGlyph}"
             image.setImageDrawable(null)
             onImageBind(row.eventId, image)
+            itemView.setOnClickListener { onImageActivated(row.eventId) }
         }
     }
 
