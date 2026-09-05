@@ -24,11 +24,15 @@ android {
         testInstrumentationRunner = "org.matchat.client.HiltTestRunner"
     }
 
-    // Ship armeabi-v7a + arm64-v8a splits; the Rust .so is the bulk of the APK
-    // and the release size check fails a split over 25 MB (PLAN.md §3, §8.4).
+    // Ship armeabi-v7a + arm64-v8a splits for RELEASE only; the Rust .so is the
+    // bulk of the APK and the release size check fails a split over 25 MB
+    // (PLAN.md §3, §8.4). Debug stays a single all-ABI APK so it installs on any
+    // emulator (incl. x86_64) — there are no native libs until M1, so splitting a
+    // debug build only makes it uninstallable on dev machines for no benefit.
+    val abiSplitEnabled = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
     splits {
         abi {
-            isEnable = true
+            isEnable = abiSplitEnabled
             reset()
             include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
