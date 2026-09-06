@@ -55,4 +55,19 @@
         android:textSize="@dimen/text_body"
         android:textColor="@color/text_primary"
         android:hint="@string/timeline_compose_hint" />
+
+    <!-- Voice recording bar (S9). Shown only while recording; CENTER sends, Back
+         cancels. Replaces the compose strip visually during a take. -->
+    <TextView
+        android:id="@+id/recording_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="18dp"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/content_pad"
+        android:paddingEnd="@dimen/content_pad"
+        android:background="@color/warning"
+        android:textColor="@color/text_on_inverse"
+        android:textSize="@dimen/text_body"
+        android:visibility="gone" />
 </LinearLayout>

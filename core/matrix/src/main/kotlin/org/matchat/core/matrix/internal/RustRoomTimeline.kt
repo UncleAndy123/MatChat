@@ -122,6 +122,31 @@ internal class RustRoomTimeline(
         Unit
     }
 
+    override suspend fun sendVoice(
+        path: String,
+        mimeType: String,
+        durationMs: Long,
+        waveform: List<Float>,
+    ) = withContext(Dispatchers.IO) {
+        val tl = timeline ?: return@withContext
+        val size = runCatching { java.io.File(path).length().toULong() }.getOrNull()
+        val params = UploadParameters(
+            source = UploadSource.File(path),
+            caption = null,
+            formattedCaption = null,
+            mentions = null,
+            inReplyTo = null,
+            extraContentJson = null,
+        )
+        val info = AudioInfo(
+            duration = java.time.Duration.ofMillis(durationMs),
+            size = size,
+            mimetype = mimeType,
+        )
+        runCatching { tl.sendVoiceMessage(params, info, waveform).join() }
+        Unit
+    }
+
     override suspend fun markRead(eventId: EventId) {
         // Read receipts are sent on the latest visible event by the SDK.
         runCatching { timeline?.markAsRead(org.matrix.rustcomponents.sdk.ReceiptType.READ) }

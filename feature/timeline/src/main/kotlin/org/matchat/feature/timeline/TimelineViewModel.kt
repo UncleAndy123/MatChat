@@ -152,6 +152,12 @@ class TimelineViewModel @Inject constructor(
         viewModelScope.launch { timeline.sendMedia(path, mimeType, kind, caption) }
     }
 
+    /** Send a recorded voice note (gated by policy, re-checked here). */
+    fun sendVoice(path: String, mimeType: String, durationMs: Long, waveform: List<Float>) {
+        if (!policyProvider.policy.value.mediaSend) return
+        viewModelScope.launch { timeline.sendVoice(path, mimeType, durationMs, waveform) }
+    }
+
     private fun mediaRow(item: TimelineItem.Media, senderName: String?): TimelineRow {
         val glyph = when {
             item.isOwn && item.isRead -> READ_GLYPH

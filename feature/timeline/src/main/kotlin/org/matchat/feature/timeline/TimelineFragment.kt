@@ -30,19 +30,28 @@ class TimelineFragment : SoftkeyFragment() {
 
     // CENTER label reads Send while the input is focused, Select otherwise (S10).
     override val centerLabel: CharSequence
-        get() = getString(
-            if (viewModel.state.value.isComposeFocused) {
-                org.matchat.core.ui.R.string.softkey_send
-            } else {
-                org.matchat.core.ui.R.string.softkey_select
-            },
-        )
+        get() = when {
+            isRecording -> getString(R.string.timeline_softkey_send_voice)
+            viewModel.state.value.isComposeFocused -> getString(org.matchat.core.ui.R.string.softkey_send)
+            else -> getString(org.matchat.core.ui.R.string.softkey_select)
+        }
 
     private val viewModel: TimelineViewModel by viewModels()
     private var binding: FragmentTimelineBinding? = null
     private var lastMarkedStableId: String? = null
     private val audio = AudioPlayback()
+    private var recorder: VoiceRecorder? = null
+    private var isRecording = false
     private val navigator: Navigator get() = requireActivity() as Navigator
+
+    private val recordPermission =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        ) { granted ->
+            if (granted) beginRecording() else {
+                Toast.makeText(requireContext(), R.string.timeline_record_denied, Toast.LENGTH_SHORT).show()
+            }
+        }
 
     private val adapter = TimelineAdapter(
         onMessageFocused = { viewModel.onAction(TimelineAction.MessageFocused(it)) },
@@ -133,6 +142,10 @@ class TimelineFragment : SoftkeyFragment() {
     }
 
     override fun onCenter(): Boolean {
+        if (isRecording) {
+            stopRecordingAndSend()
+            return true
+        }
         val b = binding ?: return false
         if (viewModel.state.value.isComposeFocused) {
             viewModel.onAction(TimelineAction.Send(b.composeInput.text.toString()))
@@ -142,11 +155,20 @@ class TimelineFragment : SoftkeyFragment() {
         return super.onCenter()
     }
 
+    override fun onBack(): Boolean {
+        if (isRecording) {
+            cancelRecording()
+            return true
+        }
+        return super.onBack()
+    }
+
     override fun onOptions(): Boolean {
         val items = buildList {
             if (viewModel.canSendMedia) {
                 add(MenuItem(OPT_SEND_PHOTO, getString(R.string.timeline_opt_send_photo)))
                 if (hasCamera()) add(MenuItem(OPT_TAKE_PHOTO, getString(R.string.timeline_opt_take_photo)))
+                if (hasMic()) add(MenuItem(OPT_RECORD_VOICE, getString(R.string.timeline_opt_record_voice)))
                 add(MenuItem(OPT_SEND_FILE, getString(R.string.timeline_opt_send_file)))
             }
             add(MenuItem(OPT_INFO, getString(R.string.timeline_opt_room_info)))
@@ -158,6 +180,7 @@ class TimelineFragment : SoftkeyFragment() {
             when (selected.id) {
                 OPT_SEND_PHOTO -> launchAttachmentChooser(imageOnly = true)
                 OPT_TAKE_PHOTO -> launchCamera()
+                OPT_RECORD_VOICE -> startRecording()
                 OPT_SEND_FILE -> launchAttachmentChooser(imageOnly = false)
                 OPT_HELP -> navigator.toHelp()
                 else -> Unit // room info / mark read / mute wire up in M2–M4
@@ -168,6 +191,78 @@ class TimelineFragment : SoftkeyFragment() {
 
     private fun hasCamera(): Boolean =
         requireContext().packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY)
+
+    private fun hasMic(): Boolean =
+        requireContext().packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_MICROPHONE)
+
+    // --- Voice recording ----------------------------------------------------
+
+    private fun startRecording() {
+        if (isRecording) return
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.RECORD_AUDIO,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) beginRecording() else recordPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+    }
+
+    private fun beginRecording() {
+        val rec = VoiceRecorder(requireContext())
+        if (!rec.start()) {
+            Toast.makeText(requireContext(), R.string.timeline_record_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        audio.stop() // don't record over playback
+        recorder = rec
+        isRecording = true
+        binding?.recordingBar?.isVisible = true
+        binding?.composeInput?.isVisible = false
+        refreshSoftkeys()
+        tickRecording()
+    }
+
+    /** Updates the timer and samples the input level ~5x/second while recording. */
+    private fun tickRecording() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            while (isRecording) {
+                val rec = recorder ?: break
+                rec.sampleAmplitude()
+                val secs = rec.elapsedMs() / 1000
+                binding?.recordingBar?.text =
+                    getString(R.string.timeline_recording, "%d:%02d".format(secs / 60, secs % 60))
+                kotlinx.coroutines.delay(RECORD_TICK_MS)
+            }
+        }
+    }
+
+    private fun stopRecordingAndSend() {
+        val rec = recorder ?: return
+        val result = rec.stop()
+        endRecordingUi()
+        if (result == null) {
+            Toast.makeText(requireContext(), R.string.timeline_record_failed, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (result.durationMs < MIN_VOICE_MS) {
+            runCatching { result.file.delete() }
+            Toast.makeText(requireContext(), R.string.timeline_record_too_short, Toast.LENGTH_SHORT).show()
+            return
+        }
+        viewModel.sendVoice(result.file.absolutePath, rec.mimeType, result.durationMs, result.waveform)
+    }
+
+    private fun cancelRecording() {
+        recorder?.cancel()
+        endRecordingUi()
+    }
+
+    private fun endRecordingUi() {
+        isRecording = false
+        recorder = null
+        binding?.recordingBar?.isVisible = false
+        binding?.composeInput?.isVisible = true
+        refreshSoftkeys()
+    }
 
     /** Offer the Documents UI AND the device Gallery (via ACTION_GET_CONTENT
      *  initial intents) — on a feature phone the Gallery is often the only
@@ -295,6 +390,7 @@ class TimelineFragment : SoftkeyFragment() {
 
     override fun onDestroyView() {
         audio.stop()
+        if (isRecording) cancelRecording()
         binding?.timelineList?.adapter = null
         binding = null
         super.onDestroyView()
@@ -307,7 +403,10 @@ class TimelineFragment : SoftkeyFragment() {
         const val OPT_HELP = "help"
         const val OPT_SEND_PHOTO = "send_photo"
         const val OPT_TAKE_PHOTO = "take_photo"
+        const val OPT_RECORD_VOICE = "record_voice"
         const val OPT_SEND_FILE = "send_file"
+        const val RECORD_TICK_MS = 200L
+        const val MIN_VOICE_MS = 1_000L // ignore accidental sub-second taps
         const val MSG_REPLY = "reply"
         const val MSG_COPY = "copy"
         const val MSG_INFO = "msg_info"

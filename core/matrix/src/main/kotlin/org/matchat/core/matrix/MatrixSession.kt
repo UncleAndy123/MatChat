@@ -66,5 +66,10 @@ interface RoomTimeline {
      */
     suspend fun sendMedia(path: String, mimeType: String, kind: MediaKind, caption: String?)
 
+    /** Uploads a recorded clip at [path] and sends it as a voice message (MSC3245):
+     *  an audio event tagged as voice, carrying [durationMs] and a [waveform]
+     *  (amplitudes 0..1) so clients render the voice bar. */
+    suspend fun sendVoice(path: String, mimeType: String, durationMs: Long, waveform: List<Float>)
+
     suspend fun markRead(eventId: EventId)
 }
