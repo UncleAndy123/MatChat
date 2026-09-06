@@ -17,6 +17,9 @@ import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SyncState
 import org.matchat.core.model.UserId
+import org.matrix.rustcomponents.sdk.CreateRoomParameters
+import org.matrix.rustcomponents.sdk.RoomPreset
+import org.matrix.rustcomponents.sdk.RoomVisibility
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -61,10 +64,33 @@ internal class RustMatrixSession @Inject constructor(
         Profile(address, null)
     }
 
-    // FFI follow-up: createRoom(CreateRoomParameters(isDirect, encrypted, preset,
-    // invite=[address])). Staged after the read path lands.
+    /** Create (or reuse) an encrypted 1:1 room and invite [address] (S21). */
     override suspend fun startDirectChat(address: UserId): Result<RoomId> =
-        Result.failure(NotImplementedError("DM creation lands in the next M1 step"))
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val client = holder.requireClient()
+                // Reuse the existing DM with this person if the server has one.
+                val existing = runCatching { client.getDmRoom(address.value)?.id() }.getOrNull()
+                val roomId = existing ?: client.createRoom(
+                    CreateRoomParameters(
+                        name = null,
+                        topic = null,
+                        isEncrypted = true,
+                        isDirect = true,
+                        visibility = RoomVisibility.Private,
+                        preset = RoomPreset.TRUSTED_PRIVATE_CHAT,
+                        invite = listOf(address.value),
+                        avatar = null,
+                        powerLevelContentOverride = null,
+                        joinRuleOverride = null,
+                        historyVisibilityOverride = null,
+                        canonicalAlias = null,
+                        isSpace = false,
+                    ),
+                )
+                RoomId(roomId)
+            }
+        }
 
     override suspend fun sendMessage(roomId: RoomId, body: String) = withContext(Dispatchers.IO) {
         val room = holder.roomFor(roomId) ?: return@withContext
