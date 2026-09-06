@@ -40,6 +40,14 @@ interface MatrixSession {
      * the device gains the key backup + cross-signing, so previously
      * unable-to-decrypt history becomes readable (PLAN.md §6.2).
      */
+    /** Fire-and-forget text send to a room, without opening a live timeline —
+     *  for the notification inline-reply action (PLAN.md §6.6). */
+    suspend fun sendMessage(roomId: RoomId, body: String)
+
+    /** Mark a room read (its latest event) — for the notification action and
+     *  when a notification is dismissed by opening the room. */
+    suspend fun markRoomRead(roomId: RoomId)
+
     suspend fun recoverEncryption(recoveryKey: String): Result<Unit>
 
     /** Download a media message's bytes by event id (image/video/audio/voice/file),

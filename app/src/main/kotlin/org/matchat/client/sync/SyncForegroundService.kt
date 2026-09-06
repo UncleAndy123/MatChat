@@ -9,8 +9,14 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import org.matchat.client.R
+import org.matchat.client.notify.MessageNotifier
+import org.matchat.core.matrix.MatrixSession
+import org.matchat.core.model.RoomSummary
+import javax.inject.Inject
 
 /**
  * The single owner of the SDK sync loop (ARCHITECTURE.md "Sync lifecycle").
@@ -26,11 +32,46 @@ import org.matchat.client.R
 @AndroidEntryPoint
 class SyncForegroundService : LifecycleService() {
 
+    @Inject lateinit var session: MatrixSession
+
+    private val lastUnread = HashMap<String, Int>()
+    private var seeded = false
+    private var observing = false
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         startForeground(NOTIFICATION_ID, buildNotification())
-        // M1: start the SDK SyncService here and mirror its state into a Flow.
+        observeRoomsForNotifications()
         return START_STICKY
+    }
+
+    /** Watch joined-room unread counts and raise a per-room notification when one
+     *  climbs (a new incoming message), cancelling it when the room is read. The
+     *  first emission only seeds the baseline so existing history never alerts. */
+    private fun observeRoomsForNotifications() {
+        if (observing) return
+        observing = true
+        lifecycleScope.launch {
+            session.rooms.collect { rooms -> onRooms(rooms) }
+        }
+    }
+
+    private fun onRooms(rooms: List<RoomSummary>) {
+        if (!seeded) {
+            rooms.forEach { lastUnread[it.id.value] = it.unreadCount }
+            seeded = true
+            return
+        }
+        rooms.forEach { room ->
+            val prev = lastUnread[room.id.value] ?: 0
+            val now = room.unreadCount
+            when {
+                now > prev && now > 0 ->
+                    MessageNotifier.show(this, room.id, room.name.ifBlank { room.id.value }, now)
+                now == 0 && prev > 0 -> MessageNotifier.cancel(this, room.id)
+            }
+            lastUnread[room.id.value] = now
+        }
     }
 
     private fun buildNotification(): Notification {

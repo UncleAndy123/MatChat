@@ -1,5 +1,6 @@
 package org.matchat.client
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
@@ -34,12 +35,38 @@ class MainActivity : AppCompatActivity(), Navigator {
     @Inject lateinit var auth: MatrixAuth
     @Inject lateinit var sessionStore: MatrixSessionStore
 
+    // A room to open once the session is live (from a tapped notification on a
+    // cold start). Consumed after restore routes to the room list.
+    private var pendingRoomId: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val host = supportFragmentManager.findFragmentById(R.id.nav_host) as NavHostFragment
         navController = host.navController
+        pendingRoomId = intent?.getStringExtra(org.matchat.client.notify.MessageNotifier.EXTRA_ROOM_ID)
+        requestNotificationsIfNeeded()
         restoreSessionIfPresent()
+    }
+
+    private val notificationPermission =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        ) { /* best-effort; notifications simply stay silent if denied */ }
+
+    private fun requestNotificationsIfNeeded() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return
+        val perm = android.Manifest.permission.POST_NOTIFICATIONS
+        if (checkSelfPermission(perm) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            notificationPermission.launch(perm)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val roomValue = intent.getStringExtra(org.matchat.client.notify.MessageNotifier.EXTRA_ROOM_ID) ?: return
+        if (sessionStore.hasSession()) toRoom(RoomId(roomValue)) else pendingRoomId = roomValue
     }
 
     /** Cold start with a saved session: restore it, start sync, jump to the room
@@ -50,6 +77,7 @@ class MainActivity : AppCompatActivity(), Navigator {
             if (auth.restoreSession().isSuccess) {
                 SyncForegroundService.start(this@MainActivity)
                 toRoomListRoot()
+                pendingRoomId?.let { pendingRoomId = null; toRoom(RoomId(it)) }
             }
         }
     }

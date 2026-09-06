@@ -6,6 +6,15 @@
     <string name="sync_notification_running">MatChat is running</string>
     <string name="sync_channel_name">Sync</string>
 
+    <!-- Incoming-message notifications. -->
+    <string name="messages_channel_name">Messages</string>
+    <string name="notif_reply">Reply</string>
+    <string name="notif_mark_read">Mark as read</string>
+    <plurals name="notif_new_messages">
+        <item quantity="one">New message</item>
+        <item quantity="other">%d new messages</item>
+    </plurals>
+
     <!-- Managed-configuration titles/descriptions shown in the EMM console (docs/MDM.md §3). -->
     <string name="policy_homeserver_title">Home server</string>
     <string name="policy_homeserver_desc">Homeserver URL; shown read-only on sign in when set.</string>

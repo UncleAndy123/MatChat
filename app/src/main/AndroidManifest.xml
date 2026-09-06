@@ -44,6 +44,10 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Notification action handlers (inline reply, mark as read). -->
+        <receiver android:name=".notify.MessageReplyReceiver" android:exported="false" />
+        <receiver android:name=".notify.MarkReadReceiver" android:exported="false" />
+
         <!-- Hands downloaded attachments to the system viewer via content:// URIs. -->
         <provider
             android:name="androidx.core.content.FileProvider"

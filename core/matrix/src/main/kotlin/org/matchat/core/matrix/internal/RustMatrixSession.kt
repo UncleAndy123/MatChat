@@ -66,6 +66,23 @@ internal class RustMatrixSession @Inject constructor(
     override suspend fun startDirectChat(address: UserId): Result<RoomId> =
         Result.failure(NotImplementedError("DM creation lands in the next M1 step"))
 
+    override suspend fun sendMessage(roomId: RoomId, body: String) = withContext(Dispatchers.IO) {
+        val room = holder.roomFor(roomId) ?: return@withContext
+        // A transient timeline (no listener attached) is enough for a one-shot send.
+        val tl = room.timeline()
+        runCatching {
+            tl.send(org.matrix.rustcomponents.sdk.messageEventContentFromMarkdown(body))
+        }
+        Unit
+    }
+
+    override suspend fun markRoomRead(roomId: RoomId) = withContext(Dispatchers.IO) {
+        val room = holder.roomFor(roomId) ?: return@withContext
+        val tl = room.timeline()
+        runCatching { tl.markAsRead(org.matrix.rustcomponents.sdk.ReceiptType.READ) }
+        Unit
+    }
+
     override suspend fun recoverEncryption(recoveryKey: String): Result<Unit> =
         runCatching { holder.recover(recoveryKey.trim()) }
 
