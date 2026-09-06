@@ -17,8 +17,8 @@ import android.view.View
  *
  * The view is focusable so it receives D-pad and keypad key events through the
  * normal platform dispatch (MainActivity passes directional and star/pound keys
- * straight through). Panning is clamped to the image edges; zoom is clamped to
- * [FIT, MAX_ZOOM].
+ * straight through). Panning is clamped to the image edges; zoom steps through
+ * discrete levels, and 0 resets to fit.
  */
 class ZoomPanImageView @JvmOverloads constructor(
     context: Context,
@@ -48,28 +48,50 @@ class ZoomPanImageView @JvmOverloads constructor(
         invalidate()
     }
 
+    // D-pad and `*`/`#` reach the focused view directly (the host forwards them to
+    // the platform). Digit keys are routed to the Fragment instead, which calls the
+    // public pan/zoom/reset methods below — so both paths drive the same logic.
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (bitmap == null) return super.onKeyDown(keyCode, event)
         return when (keyCode) {
-            KeyEvent.KEYCODE_STAR -> { zoomBy(ZOOM_STEP); true }
-            KeyEvent.KEYCODE_POUND -> { zoomBy(1f / ZOOM_STEP); true }
-            KeyEvent.KEYCODE_DPAD_LEFT -> panBy(PAN_STEP, 0f)
-            KeyEvent.KEYCODE_DPAD_RIGHT -> panBy(-PAN_STEP, 0f)
-            KeyEvent.KEYCODE_DPAD_UP -> panBy(0f, PAN_STEP)
-            KeyEvent.KEYCODE_DPAD_DOWN -> panBy(0f, -PAN_STEP)
+            KeyEvent.KEYCODE_STAR -> { zoomIn(); true }
+            KeyEvent.KEYCODE_POUND -> { zoomOut(); true }
+            KeyEvent.KEYCODE_DPAD_LEFT -> pan(PAN_STEP, 0f)
+            KeyEvent.KEYCODE_DPAD_RIGHT -> pan(-PAN_STEP, 0f)
+            KeyEvent.KEYCODE_DPAD_UP -> pan(0f, PAN_STEP)
+            KeyEvent.KEYCODE_DPAD_DOWN -> pan(0f, -PAN_STEP)
             else -> super.onKeyDown(keyCode, event)
         }
     }
 
-    private fun zoomBy(factor: Float) {
-        zoom = (zoom * factor).coerceIn(FIT, MAX_ZOOM)
+    fun zoomIn() = stepZoom(+1)
+    fun zoomOut() = stepZoom(-1)
+    fun panLeft() = pan(PAN_STEP, 0f)
+    fun panRight() = pan(-PAN_STEP, 0f)
+    fun panUp() = pan(0f, PAN_STEP)
+    fun panDown() = pan(0f, -PAN_STEP)
+
+    fun resetView() {
+        zoom = FIT
+        panX = 0f
+        panY = 0f
+        invalidate()
+    }
+
+    /** Moves to the next/previous discrete zoom level (crisper than a continuous
+     *  factor on a small screen). */
+    private fun stepZoom(direction: Int) {
+        val current = ZOOM_LEVELS.indexOfLast { it <= zoom + 0.01f }.coerceAtLeast(0)
+        val next = (current + direction).coerceIn(0, ZOOM_LEVELS.lastIndex)
+        zoom = ZOOM_LEVELS[next]
+        if (zoom <= FIT) { panX = 0f; panY = 0f }
         clampPan()
         invalidate()
     }
 
     /** Pans by (dx, dy); returns true when the image actually moved (so a pan at an
      *  edge, or with nothing to pan, does not steal focus behaviour elsewhere). */
-    private fun panBy(dx: Float, dy: Float): Boolean {
+    private fun pan(dx: Float, dy: Float): Boolean {
         val beforeX = panX
         val beforeY = panY
         panX += dx
@@ -118,8 +140,7 @@ class ZoomPanImageView @JvmOverloads constructor(
 
     private companion object {
         const val FIT = 1f
-        const val MAX_ZOOM = 8f
-        const val ZOOM_STEP = 1.4f
         const val PAN_STEP = 48f
+        val ZOOM_LEVELS = floatArrayOf(1f, 2f, 3f, 4f, 6f)
     }
 }

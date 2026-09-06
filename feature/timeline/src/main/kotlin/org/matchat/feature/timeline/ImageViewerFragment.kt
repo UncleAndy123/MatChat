@@ -46,6 +46,21 @@ class ImageViewerFragment : SoftkeyFragment() {
         FocusEngine.requestInitialFocus(img)
     }
 
+    // Digits are delivered to the screen, not the focused view, so the keypad
+    // cluster (2/4/6/8 pan, 0 reset) is forwarded to the image here. * / # and the
+    // D-pad reach the view directly.
+    override fun onOtherKey(key: org.matchat.core.ui.key.LogicalKey): Boolean {
+        val img = image ?: return false
+        return when (key) {
+            org.matchat.core.ui.key.LogicalKey.DIGIT_2 -> { img.panUp(); true }
+            org.matchat.core.ui.key.LogicalKey.DIGIT_8 -> { img.panDown(); true }
+            org.matchat.core.ui.key.LogicalKey.DIGIT_4 -> { img.panLeft(); true }
+            org.matchat.core.ui.key.LogicalKey.DIGIT_6 -> { img.panRight(); true }
+            org.matchat.core.ui.key.LogicalKey.DIGIT_0 -> { img.resetView(); true }
+            else -> false
+        }
+    }
+
     private fun render(state: ImageViewerState) {
         val statusView = status ?: return
         when {

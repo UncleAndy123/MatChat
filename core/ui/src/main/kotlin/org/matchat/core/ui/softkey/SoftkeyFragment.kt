@@ -85,9 +85,15 @@ abstract class SoftkeyFragment : Fragment(), LogicalKeyReceiver {
         LogicalKey.SOFT_LEFT -> onOptions()
         LogicalKey.SOFT_RIGHT -> onBack()
         LogicalKey.CENTER -> onCenter()
-        // UP/DOWN fall through to the platform focus search (XML order).
-        else -> false
+        // UP/DOWN/LEFT/RIGHT never arrive here (the host sends them to the platform
+        // focus search); digits and holds do — a screen opts in via [onOtherKey].
+        else -> onOtherKey(key)
     }
+
+    /** Non-softkey, non-CENTER keys (digits, # / * holds). Default: ignored. A
+     *  screen overrides this to use the keypad for its own actions (e.g. the image
+     *  viewer pans on 2/4/6/8 and resets on 0). */
+    protected open fun onOtherKey(key: LogicalKey): Boolean = false
 
     /** LEFT softkey. Default: no options. Override to open the screen's menu. */
     protected open fun onOptions(): Boolean = false

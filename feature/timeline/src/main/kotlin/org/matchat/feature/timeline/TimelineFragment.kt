@@ -53,11 +53,29 @@ class TimelineFragment : SoftkeyFragment() {
         onAttachmentActivated = { openAttachment(it) },
     )
 
-    // SAF document picker — the system Documents UI is D-pad navigable, unlike a
-    // gallery grid. The picked file's kind is derived from its resolved MIME type.
-    private val mediaPicker =
-        registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri != null) sendPicked(uri)
+    // A chooser (Documents UI + the device Gallery) returns a content Uri via
+    // StartActivityForResult; the picked file's kind is derived from its MIME.
+    private val attachmentPicker =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+        ) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                result.data?.data?.let { sendPicked(it) }
+            }
+        }
+
+    // Camera capture writes into our own cache/media file; on success we send it.
+    private var pendingCameraFile: java.io.File? = null
+    private val cameraCapture =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
+        ) { success ->
+            val file = pendingCameraFile
+            pendingCameraFile = null
+            if (success && file != null && file.length() > 0) {
+                Toast.makeText(requireContext(), R.string.timeline_sending, Toast.LENGTH_SHORT).show()
+                viewModel.sendMedia(file.absolutePath, "image/jpeg", org.matchat.core.model.MediaKind.IMAGE, null)
+            }
         }
 
     override fun onContentViewCreated(content: View) {
@@ -128,6 +146,7 @@ class TimelineFragment : SoftkeyFragment() {
         val items = buildList {
             if (viewModel.canSendMedia) {
                 add(MenuItem(OPT_SEND_PHOTO, getString(R.string.timeline_opt_send_photo)))
+                if (hasCamera()) add(MenuItem(OPT_TAKE_PHOTO, getString(R.string.timeline_opt_take_photo)))
                 add(MenuItem(OPT_SEND_FILE, getString(R.string.timeline_opt_send_file)))
             }
             add(MenuItem(OPT_INFO, getString(R.string.timeline_opt_room_info)))
@@ -137,8 +156,9 @@ class TimelineFragment : SoftkeyFragment() {
         }
         MenuSheet.show(requireContext(), items) { selected ->
             when (selected.id) {
-                OPT_SEND_PHOTO -> launchPicker("image/*")
-                OPT_SEND_FILE -> launchPicker("*/*")
+                OPT_SEND_PHOTO -> launchAttachmentChooser(imageOnly = true)
+                OPT_TAKE_PHOTO -> launchCamera()
+                OPT_SEND_FILE -> launchAttachmentChooser(imageOnly = false)
                 OPT_HELP -> navigator.toHelp()
                 else -> Unit // room info / mark read / mute wire up in M2–M4
             }
@@ -146,9 +166,43 @@ class TimelineFragment : SoftkeyFragment() {
         return true
     }
 
-    private fun launchPicker(mimeFilter: String) {
-        runCatching { mediaPicker.launch(arrayOf(mimeFilter)) }.onFailure {
+    private fun hasCamera(): Boolean =
+        requireContext().packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY)
+
+    /** Offer the Documents UI AND the device Gallery (via ACTION_GET_CONTENT
+     *  initial intents) — on a feature phone the Gallery is often the only
+     *  D-pad-navigable image browser. Mirrors the DPAD-Messaging approach. */
+    private fun launchAttachmentChooser(imageOnly: Boolean) {
+        val type = if (imageOnly) "image/*" else "*/*"
+        val openDocument = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(android.content.Intent.CATEGORY_OPENABLE)
+            this.type = type
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val getContent = android.content.Intent(android.content.Intent.ACTION_GET_CONTENT).apply {
+            addCategory(android.content.Intent.CATEGORY_OPENABLE)
+            this.type = type
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = android.content.Intent.createChooser(
+            openDocument,
+            getString(R.string.timeline_choose_source),
+        ).apply {
+            putExtra(android.content.Intent.EXTRA_INITIAL_INTENTS, arrayOf(getContent))
+        }
+        runCatching { attachmentPicker.launch(chooser) }.onFailure {
             Toast.makeText(requireContext(), R.string.timeline_media_no_app, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun launchCamera() {
+        val ctx = requireContext()
+        val file = MediaFiles.newCameraFile(ctx)
+        val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+        pendingCameraFile = file
+        runCatching { cameraCapture.launch(uri) }.onFailure {
+            pendingCameraFile = null
+            Toast.makeText(ctx, R.string.timeline_media_no_app, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -252,6 +306,7 @@ class TimelineFragment : SoftkeyFragment() {
         const val OPT_MUTE = "mute"
         const val OPT_HELP = "help"
         const val OPT_SEND_PHOTO = "send_photo"
+        const val OPT_TAKE_PHOTO = "take_photo"
         const val OPT_SEND_FILE = "send_file"
         const val MSG_REPLY = "reply"
         const val MSG_COPY = "copy"

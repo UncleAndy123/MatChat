@@ -8,7 +8,9 @@
 
     <!-- Options (S9). -->
     <string name="timeline_opt_send_photo">Send photo</string>
+    <string name="timeline_opt_take_photo">Take photo</string>
     <string name="timeline_opt_send_file">Send file</string>
+    <string name="timeline_choose_source">Choose a source</string>
     <string name="timeline_opt_room_info">Room info</string>
     <string name="timeline_opt_mark_read">Mark as read</string>
     <string name="timeline_opt_mute">Mute this group</string>
@@ -29,5 +31,5 @@
     <!-- Image viewer (S9). -->
     <string name="viewer_title">Image</string>
     <string name="viewer_loading">Loading…</string>
-    <string name="viewer_hint">* zoom in   # zoom out   ✥ pan</string>
+    <string name="viewer_hint">* in   # out   ✥/2468 pan   0 reset</string>
 </resources>

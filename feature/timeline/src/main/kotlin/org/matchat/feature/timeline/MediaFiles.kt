@@ -56,6 +56,12 @@ internal object MediaFiles {
         return if (ext.isNullOrBlank()) name else "$name.$ext"
     }
 
+    /** A fresh cache/media file for a camera capture (under the FileProvider path). */
+    fun newCameraFile(context: Context): File {
+        val dir = File(context.cacheDir, "media").apply { mkdirs() }
+        return File(dir, "camera_${System.currentTimeMillis()}.jpg")
+    }
+
     /** Write bytes to the app cache under media/, returning the file. */
     fun writeToCache(context: Context, filename: String, bytes: ByteArray): File {
         val dir = File(context.cacheDir, "media").apply { mkdirs() }
