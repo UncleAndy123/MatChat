@@ -79,12 +79,18 @@ internal class RustRoomTimeline(
         }
     }
 
-    override suspend fun paginateBack(count: Int): Boolean =
+    // Every SDK call below is blocking FFI and must run off the main thread — the
+    // callers launch on viewModelScope (Dispatchers.Main), so without withContext
+    // these would block the UI thread and ANR (e.g. markRead firing on each new
+    // message while the room is open).
+    override suspend fun paginateBack(count: Int): Boolean = withContext(Dispatchers.IO) {
         runCatching { timeline?.paginateBackwards(count.toUShort()) }.getOrNull() ?: false
+    }
 
-    override suspend fun send(body: String) {
-        val tl = timeline ?: return
+    override suspend fun send(body: String) = withContext(Dispatchers.IO) {
+        val tl = timeline ?: return@withContext
         runCatching { tl.send(messageEventContentFromMarkdown(body)) }
+        Unit
     }
 
     override suspend fun sendTyping(isTyping: Boolean) = withContext(Dispatchers.IO) {
@@ -170,9 +176,11 @@ internal class RustRoomTimeline(
         Unit
     }
 
-    override suspend fun markRead(eventId: EventId) {
-        // Read receipts are sent on the latest visible event by the SDK.
+    override suspend fun markRead(eventId: EventId) = withContext(Dispatchers.IO) {
+        // Read receipts are sent on the latest visible event by the SDK. This runs
+        // on every new message while the room is open, so it MUST stay off main.
         runCatching { timeline?.markAsRead(org.matrix.rustcomponents.sdk.ReceiptType.READ) }
+        Unit
     }
 
     private fun apply(diffs: List<TimelineDiff>) = synchronized(buffer) {
