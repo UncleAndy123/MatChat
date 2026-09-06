@@ -106,6 +106,10 @@ class TimelineFragment : SoftkeyFragment() {
             refreshSoftkeys()
         }
 
+        b.composeInput.addTextChangedListener { text ->
+            viewModel.onComposeTextChanged(text?.toString().orEmpty())
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.state.collect(::render) }
@@ -123,6 +127,8 @@ class TimelineFragment : SoftkeyFragment() {
         b.unencryptedBand.isVisible = state.showUnencryptedBand
         b.emptyView.isVisible = state.isEmpty
         b.timelineList.isVisible = !state.isEmpty
+        b.typingBar.isVisible = state.typingText != null
+        b.typingBar.text = state.typingText.orEmpty()
         adapter.submitList(state.rows)
 
         // Viewing the room clears its unread count (a read receipt on the latest

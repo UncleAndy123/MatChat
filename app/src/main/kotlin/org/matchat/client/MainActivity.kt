@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     @Inject lateinit var auth: MatrixAuth
     @Inject lateinit var sessionStore: MatrixSessionStore
+    @Inject lateinit var session: org.matchat.core.matrix.MatrixSession
 
     // A room to open once the session is live (from a tapped notification on a
     // cold start). Consumed after restore routes to the room list.
@@ -60,6 +61,19 @@ class MainActivity : AppCompatActivity(), Navigator {
         if (checkSelfPermission(perm) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             notificationPermission.launch(perm)
         }
+    }
+
+    // Own presence: online while the app is foregrounded, unavailable when it
+    // leaves. (The SDK exposes no way to read *other* users' presence, so this is
+    // outbound only — there are no peer presence dots.)
+    override fun onResume() {
+        super.onResume()
+        if (sessionStore.hasSession()) lifecycleScope.launch { session.setPresence(online = true) }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (sessionStore.hasSession()) lifecycleScope.launch { session.setPresence(online = false) }
     }
 
     override fun onNewIntent(intent: Intent) {

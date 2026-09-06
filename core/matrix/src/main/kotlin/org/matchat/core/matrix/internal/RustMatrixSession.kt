@@ -42,7 +42,7 @@ internal class RustMatrixSession @Inject constructor(
     override val ownDevice: Flow<DeviceTrust> = MutableStateFlow(DeviceTrust.VERIFIED)
 
     override fun timeline(roomId: RoomId): RoomTimeline =
-        RustRoomTimeline(holder.roomFor(roomId), scope)
+        RustRoomTimeline(holder.roomFor(roomId), scope, holder.ownUserId())
 
     // FFI follow-up: wire to the invited-room join()/leave() once the invites
     // flow above is populated. Invites are empty in this M1 step, so these are
@@ -80,6 +80,18 @@ internal class RustMatrixSession @Inject constructor(
         val room = holder.roomFor(roomId) ?: return@withContext
         val tl = room.timeline()
         runCatching { tl.markAsRead(org.matrix.rustcomponents.sdk.ReceiptType.READ) }
+        Unit
+    }
+
+    override suspend fun setPresence(online: Boolean) = withContext(Dispatchers.IO) {
+        // FFI: setPresence(state, bool). The trailing flag is version-specific; false
+        // is the safe default. No-op (via runCatching) when there is no live client.
+        val state = if (online) {
+            org.matrix.rustcomponents.sdk.PresenceState.ONLINE
+        } else {
+            org.matrix.rustcomponents.sdk.PresenceState.UNAVAILABLE
+        }
+        runCatching { holder.requireClient().setPresence(state, false) }
         Unit
     }
 

@@ -70,6 +70,8 @@ data class TimelineState(
     val isEncrypted: Boolean = true,
     val isLoadingEarlier: Boolean = false,
     val isComposeFocused: Boolean = false,
+    /** "Alice is typing…" / "Several people are typing…", or null when nobody is. */
+    val typingText: String? = null,
     val error: ErrorText? = null,
 ) {
     val isEmpty: Boolean get() = rows.isEmpty() && !isLoadingEarlier

@@ -50,7 +50,8 @@ class TimelineViewModel @Inject constructor(
             session.rooms,
             composeFocused,
             loadingEarlier,
-        ) { items, rooms, composing, loading ->
+            timeline.typing,
+        ) { items, rooms, composing, loading, typing ->
             val room = rooms.firstOrNull { it.id == roomId }
             TimelineState(
                 title = room?.name.orEmpty(),
@@ -58,8 +59,19 @@ class TimelineViewModel @Inject constructor(
                 isEncrypted = room?.isEncrypted ?: true,
                 isComposeFocused = composing,
                 isLoadingEarlier = loading,
+                typingText = typingLine(typing),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TimelineState())
+
+    /** Localpart-based label; peer display names are a follow-up (S9). */
+    private fun typingLine(typing: List<org.matchat.core.model.UserId>): String? = when {
+        typing.isEmpty() -> null
+        typing.size == 1 -> "${typing.first().value.removePrefix("@").substringBefore(':')} is typing…"
+        else -> "Several people are typing…"
+    }
+
+    private var typingActive = false
+    private var typingStopJob: kotlinx.coroutines.Job? = null
 
     fun onAction(action: TimelineAction) {
         when (action) {
@@ -81,7 +93,39 @@ class TimelineViewModel @Inject constructor(
     private fun send(body: String) {
         val text = body.trim()
         if (text.isEmpty()) return // empty send is a no-op, not an error (S10)
+        stopTyping()
         viewModelScope.launch { timeline.send(text) }
+    }
+
+    /** Called on every compose edit: start a typing notice on the first keystroke
+     *  and refresh a 4s auto-stop so a paused user stops appearing as typing. */
+    fun onComposeTextChanged(text: String) {
+        if (text.isBlank()) {
+            stopTyping()
+            return
+        }
+        if (!typingActive) {
+            typingActive = true
+            viewModelScope.launch { timeline.sendTyping(true) }
+        }
+        typingStopJob?.cancel()
+        typingStopJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(TYPING_IDLE_MS)
+            stopTyping()
+        }
+    }
+
+    private fun stopTyping() {
+        typingStopJob?.cancel()
+        typingStopJob = null
+        if (!typingActive) return
+        typingActive = false
+        viewModelScope.launch { timeline.sendTyping(false) }
+    }
+
+    override fun onCleared() {
+        stopTyping()
+        super.onCleared()
     }
 
     private fun paginateBack() {
@@ -218,6 +262,7 @@ class TimelineViewModel @Inject constructor(
     private companion object {
         const val PAGE = 20
         const val STOP_TIMEOUT_MS = 5_000L
+        const val TYPING_IDLE_MS = 4_000L // stop the typing notice after a pause
         const val READ_GLYPH = "✓✓" // own message read by another member
     }
 }

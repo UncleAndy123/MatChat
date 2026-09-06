@@ -55,6 +55,9 @@ internal class RustMatrixClientHolder @Inject constructor(
 
     fun isActive(): Boolean = client != null
 
+    /** Our own Matrix user id, or null before login. */
+    fun ownUserId(): String? = runCatching { client?.userId() }.getOrNull()
+
     /** Builds a client for [homeserver] (a server name or a full URL — well-known
      *  discovery resolves it). [resetStore] wipes the SDK store first, which a
      *  fresh login needs so a new device does not clash with a stored crypto

@@ -10,6 +10,7 @@ import org.matchat.core.matrix.RoomTimeline
 import org.matchat.core.model.EventId
 import org.matchat.core.model.MediaKind
 import org.matchat.core.model.TimelineItem
+import org.matchat.core.model.UserId
 import org.matrix.rustcomponents.sdk.AudioInfo
 import org.matrix.rustcomponents.sdk.FileInfo
 import org.matrix.rustcomponents.sdk.ImageInfo
@@ -22,6 +23,7 @@ import org.matrix.rustcomponents.sdk.Timeline
 import org.matrix.rustcomponents.sdk.TimelineDiff
 import org.matrix.rustcomponents.sdk.TimelineItem as RustTimelineItem
 import org.matrix.rustcomponents.sdk.TimelineListener
+import org.matrix.rustcomponents.sdk.TypingNotificationsListener
 import org.matrix.rustcomponents.sdk.messageEventContentFromMarkdown
 
 /**
@@ -35,14 +37,18 @@ import org.matrix.rustcomponents.sdk.messageEventContentFromMarkdown
 internal class RustRoomTimeline(
     private val room: Room?,
     private val scope: CoroutineScope,
+    private val ownUserId: String?,
 ) : RoomTimeline {
 
     private val buffer = mutableListOf<RustTimelineItem>()
     private val itemsFlow = MutableStateFlow<List<TimelineItem>>(emptyList())
+    private val typingFlow = MutableStateFlow<List<UserId>>(emptyList())
     private var timeline: Timeline? = null
     private var handle: TaskHandle? = null // held so the diff stream is not dropped
+    private var typingHandle: TaskHandle? = null // held so the typing stream is not dropped
 
     override val items: Flow<List<TimelineItem>> = itemsFlow
+    override val typing: Flow<List<UserId>> = typingFlow
 
     init {
         scope.launch {
@@ -59,6 +65,17 @@ internal class RustRoomTimeline(
             // timeline stays empty until some event (e.g. the user's own send)
             // triggers a diff.
             runCatching { tl.paginateBackwards(INITIAL_PAGE_COUNT.toUShort()) }
+
+            typingHandle = runCatching {
+                r.subscribeToTypingNotifications(object : TypingNotificationsListener {
+                    override fun call(typingUserIds: List<String>) {
+                        // The server usually omits us already; filter to be safe.
+                        typingFlow.value = typingUserIds
+                            .filter { it != ownUserId }
+                            .map { UserId(it) }
+                    }
+                })
+            }.getOrNull()
         }
     }
 
@@ -68,6 +85,12 @@ internal class RustRoomTimeline(
     override suspend fun send(body: String) {
         val tl = timeline ?: return
         runCatching { tl.send(messageEventContentFromMarkdown(body)) }
+    }
+
+    override suspend fun sendTyping(isTyping: Boolean) = withContext(Dispatchers.IO) {
+        val r = room ?: return@withContext
+        runCatching { r.typingNotice(isTyping) }
+        Unit
     }
 
     override suspend fun sendMedia(

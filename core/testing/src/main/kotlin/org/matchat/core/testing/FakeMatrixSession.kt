@@ -11,6 +11,7 @@ import org.matchat.core.model.Profile
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SyncState
+import org.matchat.core.model.MediaKind
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
 
@@ -64,21 +65,49 @@ class FakeMatrixSession(
 
     override suspend fun loadMedia(eventId: EventId): ByteArray? = mediaBytes
 
+    val sentMessages = mutableListOf<Pair<RoomId, String>>()
+    val readRooms = mutableListOf<RoomId>()
+    var lastPresenceOnline: Boolean? = null
+
+    override suspend fun sendMessage(roomId: RoomId, body: String) {
+        sentMessages += roomId to body
+    }
+
+    override suspend fun markRoomRead(roomId: RoomId) { readRooms += roomId }
+
+    override suspend fun setPresence(online: Boolean) { lastPresenceOnline = online }
+
     override suspend fun logout() = Unit
 }
 
 /** A [RoomTimeline] backed by a mutable list; [emit] pushes new item lists. */
 class FakeTimeline(
     val itemsFlow: MutableStateFlow<List<TimelineItem>> = MutableStateFlow(emptyList()),
+    val typingFlow: MutableStateFlow<List<UserId>> = MutableStateFlow(emptyList()),
 ) : RoomTimeline {
     override val items: Flow<List<TimelineItem>> = itemsFlow
+    override val typing: Flow<List<UserId>> = typingFlow
 
     val sent = mutableListOf<String>()
+    val sentMedia = mutableListOf<String>()
+    val sentVoice = mutableListOf<String>()
+    val typingNotices = mutableListOf<Boolean>()
     var canPaginate = false
 
     override suspend fun paginateBack(count: Int): Boolean = canPaginate
     override suspend fun send(body: String) { sent += body }
+    override suspend fun sendTyping(isTyping: Boolean) { typingNotices += isTyping }
+
+    override suspend fun sendMedia(path: String, mimeType: String, kind: MediaKind, caption: String?) {
+        sentMedia += path
+    }
+
+    override suspend fun sendVoice(path: String, mimeType: String, durationMs: Long, waveform: List<Float>) {
+        sentVoice += path
+    }
+
     override suspend fun markRead(eventId: EventId) = Unit
 
     fun emit(items: List<TimelineItem>) { itemsFlow.value = items }
+    fun emitTyping(users: List<UserId>) { typingFlow.value = users }
 }

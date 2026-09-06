@@ -40,6 +40,20 @@
         android:descendantFocusability="afterDescendants"
         android:focusable="false" />
 
+    <!-- Typing indicator (S9): "Alice is typing…". Hidden when nobody is typing. -->
+    <TextView
+        android:id="@+id/typing_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="14dp"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/content_pad"
+        android:paddingEnd="@dimen/content_pad"
+        android:textSize="@dimen/text_meta"
+        android:textColor="@color/text_secondary"
+        android:textStyle="italic"
+        android:visibility="gone" />
+
     <EditText
         android:id="@+id/compose_input"
         android:layout_width="match_parent"

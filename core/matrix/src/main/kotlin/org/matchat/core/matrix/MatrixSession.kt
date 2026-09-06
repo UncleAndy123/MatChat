@@ -50,6 +50,12 @@ interface MatrixSession {
 
     suspend fun recoverEncryption(recoveryKey: String): Result<Unit>
 
+    /** Publish our own presence. The SDK only supports *setting* presence
+     *  (Client.setPresence); reading other users' presence is not exposed in this
+     *  SDK version, so there are no peer presence dots. Best-effort — a no-op when
+     *  there is no live client. */
+    suspend fun setPresence(online: Boolean)
+
     /** Download a media message's bytes by event id (image/video/audio/voice/file),
      *  decrypting if needed. Returns null when the source is unknown or fails. */
     suspend fun loadMedia(eventId: EventId): ByteArray?
@@ -61,10 +67,16 @@ interface MatrixSession {
 interface RoomTimeline {
     val items: Flow<List<TimelineItem>> // already paginated + deduped
 
+    /** User ids currently typing in this room, excluding ourselves. */
+    val typing: Flow<List<UserId>>
+
     /** Loads [count] older events. Returns false when the start is reached. */
     suspend fun paginateBack(count: Int = 20): Boolean
 
     suspend fun send(body: String)
+
+    /** Publish our typing state in this room (Room.typingNotice). */
+    suspend fun sendTyping(isTyping: Boolean)
 
     /**
      * Uploads a local file at [path] and sends it as a media message (S9 send,
