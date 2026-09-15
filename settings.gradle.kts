@@ -23,6 +23,14 @@ dependencyResolutionManagement {
         maven("https://jitpack.io") {
             content { includeGroup("com.github.davidliu") }
         }
+        // Opt-in only (default off): consume the locally-built patched sdk-android
+        // AAR from tools/matrix-shim (docs/VOICE.md §4.1). Off by default so the
+        // normal build resolves exactly as before.
+        if (providers.gradleProperty("matchat.useShimSdk").orNull.toBoolean()) {
+            mavenLocal {
+                content { includeModule("org.matrix.rustcomponents", "sdk-android") }
+            }
+        }
     }
 }
 

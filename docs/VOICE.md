@@ -116,6 +116,16 @@ gone. The three real paths:
 Until one lands, calls are only intelligible in **unencrypted** rooms; keep the
 in-call "Not end-to-end encrypted" banner (§4 obligation 1) honest.
 
+**Chosen path: the uniffi Rust shim** — it is the only option that keeps the
+client lightweight and portable across the whole low-end fleet (a native `.so`
+runs wherever the app runs; a WebView is the least predictable component on old
+AOSP units) and converges toward upstream's own native MatrixRTC work. The build
+pipeline is scaffolded in `tools/matrix-shim/` (patch the FFI → cargo-ndk +
+uniffi → patched `sdk-android` AAR → the app links it via an opt-in Gradle flag,
+default off). The first milestone is a *pipeline* spike: prove a trivial added
+FFI method round-trips to Kotlin, before writing any key-exchange code. See
+`tools/matrix-shim/README.md`.
+
 ## 5. Ringing without push
 
 No Play Services means no FCM. The foreground sync service that already runs is

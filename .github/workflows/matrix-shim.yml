@@ -1,0 +1,57 @@
+# Build the patched sdk-android AAR (docs/VOICE.md §4.1, tools/matrix-shim).
+#
+# Manual / occasional only — this cross-compiles the whole matrix-rust-sdk and is
+# far too slow for PR CI. It runs on demand (or when the shim harness changes) and
+# uploads the AAR as an artifact. Wiring the app to consume it stays opt-in
+# (-Pmatchat.useShimSdk=true); this job does not touch the normal build.
+name: matrix-shim AAR
+
+on:
+  # Manual only: a full matrix-rust-sdk cross-compile is ~an hour, and the first
+  # runs reconcile checkout tag / paths / build flags, so auto-triggering on push
+  # would just burn runners on expected-fail. Dispatch it when you want an AAR.
+  workflow_dispatch:
+    inputs:
+      sdk_version:
+        description: "matrix-rustsdk version (must match libs.versions.toml)"
+        required: false
+        default: "26.09.3"
+
+jobs:
+  build-aar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Rust + Android targets
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add aarch64-linux-android armv7-linux-androideabi \
+            i686-linux-android x86_64-linux-android
+          cargo install cargo-ndk --locked
+
+      - name: Set up Android NDK
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+
+      - name: Build patched AAR
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+          SDK_VERSION: ${{ github.event.inputs.sdk_version || '26.09.3' }}
+          PUBLISH: file
+        run: tools/matrix-shim/build-aar.sh
+
+      - name: Upload AAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-android-matchat-shim
+          path: tools/matrix-shim/work/out/*.aar
+          if-no-files-found: error
