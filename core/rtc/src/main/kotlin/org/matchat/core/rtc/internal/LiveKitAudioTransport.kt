@@ -6,7 +6,9 @@ import android.media.AudioManager
 import android.os.Build
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import io.livekit.android.AudioOptions
 import io.livekit.android.LiveKit
+import io.livekit.android.LiveKitOverrides
 import io.livekit.android.room.Room
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,7 +39,8 @@ internal class LiveKitAudioTransport @Inject constructor(
     private var room: Room? = null
 
     override suspend fun connect(config: TransportConfig): Boolean = runCatching {
-        val r = room ?: LiveKit.create(context.applicationContext).also { room = it }
+        val r = room ?: LiveKit.create(context.applicationContext, overrides = audioOverrides())
+            .also { room = it }
         r.connect(config.livekitUrl, config.token)
         _connected.value = true
         // Mic is best-effort: if RECORD_AUDIO was denied the call still connects
@@ -81,6 +84,22 @@ internal class LiveKitAudioTransport @Inject constructor(
             }
         }.onFailure { Log.w(TAG, "speaker route failed: ${it.message}") }
     }
+
+    /**
+     * The entry-level MediaTek chips these phones use (Helio A22, docs/VOICE.md
+     * §6) ship broken built-in AEC/noise-suppressor hardware that mangles the
+     * captured PCM — the far side (e.g. Element) hears garbled, constantly noisy
+     * audio while its own mic is fine. Turn the hardware effects off so WebRTC
+     * does echo cancellation and noise suppression in software instead.
+     */
+    private fun audioOverrides() = LiveKitOverrides(
+        audioOptions = AudioOptions(
+            javaAudioDeviceModuleCustomizer = { builder ->
+                builder.setUseHardwareAcousticEchoCanceler(false)
+                builder.setUseHardwareNoiseSuppressor(false)
+            },
+        ),
+    )
 
     private companion object { const val TAG = "LiveKitAudioTransport" }
 }
