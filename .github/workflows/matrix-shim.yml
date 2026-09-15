@@ -7,15 +7,23 @@
 name: matrix-shim AAR
 
 on:
-  # Manual only: a full matrix-rust-sdk cross-compile is ~an hour, and the first
-  # runs reconcile checkout tag / paths / build flags, so auto-triggering on push
-  # would just burn runners on expected-fail. Dispatch it when you want an AAR.
   workflow_dispatch:
     inputs:
       sdk_version:
         description: "matrix-rustsdk version (must match libs.versions.toml)"
         required: false
         default: "26.09.3"
+  # Spike convenience: run automatically when the shim harness changes on the
+  # dev branch, so it's testable via GitHub before this lands on the default
+  # branch (workflow_dispatch's "Run workflow" button only appears there). The
+  # early reconcile steps fail fast (seconds), so this is cheap until the build
+  # is green; only a fully-reconciled run costs ~an hour. Remove this trigger
+  # once the pipeline builds.
+  push:
+    branches: [Encryption_signout_features]
+    paths:
+      - "tools/matrix-shim/**"
+      - ".github/workflows/matrix-shim.yml"
 
 jobs:
   build-aar:
