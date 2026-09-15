@@ -25,7 +25,10 @@ log() { printf '\n\033[1;34m[matrix-shim]\033[0m %s\n' "$*"; }
 die() { printf '\n\033[1;31m[matrix-shim] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # --- 0. sanity ------------------------------------------------------------
-catalog_ver="$(grep -E '^matrix-rustsdk\s*=' "$repo_root/gradle/libs.versions.toml" | sed -E 's/.*"([^"]+)".*/\1/')"
+# Match only the [versions] entry (value is a quoted string); the [libraries]
+# entry also starts with `matrix-rustsdk =` but is `{ ... }`, so require a quote
+# right after `=` and take the first hit.
+catalog_ver="$(grep -E '^matrix-rustsdk[[:space:]]*=[[:space:]]*"' "$repo_root/gradle/libs.versions.toml" | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')"
 [ "$catalog_ver" = "$SDK_VERSION" ] || die "SDK_VERSION=$SDK_VERSION but libs.versions.toml pins $catalog_ver — align them first."
 : "${ANDROID_NDK_HOME:=${ANDROID_NDK_ROOT:-}}"
 [ -n "${ANDROID_NDK_HOME:-}" ] || die "Set ANDROID_NDK_HOME to your Android NDK (r26+)."
