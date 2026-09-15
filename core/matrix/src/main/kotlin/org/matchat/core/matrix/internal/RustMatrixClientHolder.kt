@@ -137,7 +137,16 @@ internal class RustMatrixClientHolder @Inject constructor(
             requireClient().restoreSession(session)
             startSync()
             true
-        }.getOrDefault(false)
+        }.getOrElse {
+            // buildClient() sets `client` before restoreSession()/startSync() run, so
+            // a failure here leaves a half-built client with no sync loop. Left as-is,
+            // the `client != null` guard above and isActive() both report that zombie
+            // as a live, syncing session, so neither this path nor the sync service
+            // ever retries — sync stays dead. Tear it back down so the next restore
+            // genuinely rebuilds (mirrors buildClient()'s own teardown-on-entry).
+            teardownClient()
+            false
+        }
     }
 
     /** Start the sync loop and begin observing the room list. */
