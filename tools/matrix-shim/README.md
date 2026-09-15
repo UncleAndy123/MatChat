@@ -71,16 +71,28 @@ to your local Maven (`~/.m2`), or writes the `.aar` under `WORK_DIR/out`.
 
 ## Point the MatChat build at the shim (opt-in, default off)
 
-The app build is untouched unless you opt in. In `gradle.properties` (or `-P`):
+You build the app in Android Studio; the AAR comes from CI (you have no Rust/NDK
+locally). Flow:
 
-```properties
-matchat.useShimSdk=true
-matchat.shimSdkVersion=26.09.3-matchat-shim1
-```
+1. Run the **matrix-shim AAR** GitHub Action (Actions tab → Run workflow, or it
+   auto-runs when `tools/matrix-shim/**` changes on the dev branch).
+2. Download its `sdk-android-matchat-shim` artifact and unzip it — it contains an
+   `m2/` tree. **Merge `m2/` into your `~/.m2/repository/`** (so you get
+   `~/.m2/repository/org/matrix/rustcomponents/sdk-android/<ver>/…`).
+3. In `gradle.properties` (or `-P`):
+   ```properties
+   matchat.useShimSdk=true
+   matchat.shimSdkVersion=26.09.3-matchat-shim1
+   ```
+4. Sync + build in Android Studio.
 
 That flag (wired in `settings.gradle.kts` + root `build.gradle.kts`) adds
 `mavenLocal()` and substitutes the `sdk-android` version. With it off — the
 committed default — resolution is byte-identical to today.
+
+To sideload on the actual phone, first rebuild the AAR for its ABI
+(`ONLY_TARGET=armv7-linux-androideabi`, or empty for all) — the default arm64
+build proves the pipeline but won't install on a 32-bit device.
 
 ### Verify the round-trip (the spike's actual pass/fail)
 

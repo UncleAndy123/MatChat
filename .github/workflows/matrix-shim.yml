@@ -57,9 +57,11 @@ jobs:
           PUBLISH: file
         run: tools/matrix-shim/build-aar.sh
 
-      - name: Upload AAR
+      - name: Upload AAR (drop-in Maven layout)
         uses: actions/upload-artifact@v4
         with:
           name: sdk-android-matchat-shim
-          path: tools/matrix-shim/work/out/*.aar
+          # Contains m2/org/matrix/rustcomponents/sdk-android/<ver>/{aar,pom}.
+          # Merge the extracted m2/ into your ~/.m2/repository/ to consume it.
+          path: tools/matrix-shim/work/out/m2/**
           if-no-files-found: error

@@ -87,27 +87,45 @@ aar="$components_dir/sdk/sdk-android/build/outputs/aar/sdk-android-release.aar"
 log "Built: $aar"
 
 # --- 5. publish -----------------------------------------------------------
-case "$PUBLISH" in
-  mavenlocal)
-    dest="$HOME/.m2/repository/org/matrix/rustcomponents/sdk-android/$SHIM_VERSION"
-    mkdir -p "$dest"
-    cp "$aar" "$dest/sdk-android-$SHIM_VERSION.aar"
-    cat > "$dest/sdk-android-$SHIM_VERSION.pom" <<POM
+# The POM must carry the SAME transitive deps as the upstream sdk-android POM —
+# especially JNA, the uniffi Kotlin runtime binding — or the app resolves/links
+# but crashes at runtime. Kept in sync with sdk-android-$SDK_VERSION.pom.
+write_pom() {
+  cat > "$1" <<POM
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.matrix.rustcomponents</groupId>
   <artifactId>sdk-android</artifactId>
   <version>$SHIM_VERSION</version>
   <packaging>aar</packaging>
+  <dependencies>
+    <dependency><groupId>org.jetbrains.kotlin</groupId><artifactId>kotlin-stdlib</artifactId><version>1.9.25</version><scope>compile</scope></dependency>
+    <dependency><groupId>net.java.dev.jna</groupId><artifactId>jna</artifactId><version>5.18.1</version><type>aar</type><scope>runtime</scope>
+      <exclusions><exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion></exclusions></dependency>
+    <dependency><groupId>org.jetbrains.kotlinx</groupId><artifactId>kotlinx-coroutines-core</artifactId><version>1.7.3</version><scope>runtime</scope></dependency>
+    <dependency><groupId>androidx.annotation</groupId><artifactId>annotation</artifactId><version>1.9.1</version><scope>runtime</scope></dependency>
+  </dependencies>
 </project>
 POM
+}
+
+case "$PUBLISH" in
+  mavenlocal)
+    dest="$HOME/.m2/repository/org/matrix/rustcomponents/sdk-android/$SHIM_VERSION"
+    mkdir -p "$dest"
+    cp "$aar" "$dest/sdk-android-$SHIM_VERSION.aar"
+    write_pom "$dest/sdk-android-$SHIM_VERSION.pom"
     log "Published to mavenLocal: org.matrix.rustcomponents:sdk-android:$SHIM_VERSION"
     log "Enable in the app: -Pmatchat.useShimSdk=true -Pmatchat.shimSdkVersion=$SHIM_VERSION"
     ;;
   file)
-    out="$WORK_DIR/out"; mkdir -p "$out"
-    cp "$aar" "$out/sdk-android-$SHIM_VERSION.aar"
-    log "Copied AAR to $out/sdk-android-$SHIM_VERSION.aar"
+    # Drop-in Maven layout: merge out/m2/ into your ~/.m2/repository/ then build
+    # the app with -Pmatchat.useShimSdk=true -Pmatchat.shimSdkVersion=$SHIM_VERSION.
+    dest="$WORK_DIR/out/m2/org/matrix/rustcomponents/sdk-android/$SHIM_VERSION"
+    mkdir -p "$dest"
+    cp "$aar" "$dest/sdk-android-$SHIM_VERSION.aar"
+    write_pom "$dest/sdk-android-$SHIM_VERSION.pom"
+    log "Wrote drop-in Maven layout under $WORK_DIR/out/m2 (merge into ~/.m2/repository)"
     ;;
   *) die "Unknown PUBLISH=$PUBLISH (want mavenlocal|file)";;
 esac
