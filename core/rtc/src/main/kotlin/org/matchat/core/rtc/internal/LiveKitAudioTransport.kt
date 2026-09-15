@@ -1,15 +1,14 @@
 package org.matchat.core.rtc.internal
 
 import android.content.Context
-import android.media.AudioDeviceInfo
-import android.media.AudioManager
-import android.os.Build
 import android.util.Log
+import com.twilio.audioswitch.AudioDevice
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.livekit.android.AudioOptions
 import io.livekit.android.ConnectOptions
 import io.livekit.android.LiveKit
 import io.livekit.android.LiveKitOverrides
+import io.livekit.android.audio.AudioSwitchHandler
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
 import io.livekit.android.room.Room
@@ -45,6 +44,23 @@ internal class LiveKitAudioTransport @Inject constructor(
 
     private var room: Room? = null
     private var eventsJob: Job? = null
+
+    /**
+     * The single owner of in-call audio routing. Earpiece is placed BEFORE
+     * Speakerphone (LiveKit's default order is the reverse) so a call opens on the
+     * earpiece like a normal phone call (docs/VOICE.md §6). With speakerphone as
+     * the default, the mic re-captures the loudspeaker output as echo — the
+     * constant call noise on these devices. The `*`/Options key flips it via
+     * [setSpeakerOn], driven through this same handler so nothing else fights it.
+     */
+    private val audioHandler = AudioSwitchHandler(context).apply {
+        preferredDeviceList = listOf(
+            AudioDevice.BluetoothHeadset::class.java,
+            AudioDevice.WiredHeadset::class.java,
+            AudioDevice.Earpiece::class.java,
+            AudioDevice.Speakerphone::class.java,
+        )
+    }
 
     override suspend fun connect(config: TransportConfig): Boolean = runCatching {
         val r = room ?: LiveKit.create(context.applicationContext, overrides = audioOverrides())
@@ -106,39 +122,24 @@ internal class LiveKitAudioTransport @Inject constructor(
     }
 
     override fun setSpeakerOn(on: Boolean) {
-        // Route earpiece/loudspeaker via AudioManager. The proximity sensor is
-        // unreliable on these phones (docs/VOICE.md §6), so routing is explicit.
-        val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-        runCatching {
-            am.mode = AudioManager.MODE_IN_COMMUNICATION
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // isSpeakerphoneOn is a no-op from API 31; the communication-device
-                // API is the supported route control.
-                val type =
-                    if (on) AudioDeviceInfo.TYPE_BUILTIN_SPEAKER else AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
-                val device = am.availableCommunicationDevices.firstOrNull { it.type == type }
-                if (device != null) am.setCommunicationDevice(device) else am.clearCommunicationDevice()
-            } else {
-                @Suppress("DEPRECATION")
-                am.isSpeakerphoneOn = on
-            }
-        }.onFailure { Log.w(TAG, "speaker route failed: ${it.message}") }
+        // Drive routing through the same AudioSwitchHandler LiveKit uses, so there
+        // is one owner and nothing overrides it back. Pick the built-in speaker or
+        // earpiece from what is actually available; a wired/BT headset, if present,
+        // is left to the handler's own preference.
+        val device = audioHandler.availableAudioDevices.firstOrNull {
+            if (on) it is AudioDevice.Speakerphone else it is AudioDevice.Earpiece
+        }
+        if (device != null) audioHandler.selectDevice(device)
     }
 
     /**
-     * The entry-level MediaTek chips these phones use (Helio A22, docs/VOICE.md
-     * §6) ship broken built-in AEC/noise-suppressor hardware that mangles the
-     * captured PCM — the far side (e.g. Element) hears garbled, constantly noisy
-     * audio while its own mic is fine. Turn the hardware effects off so WebRTC
-     * does echo cancellation and noise suppression in software instead.
+     * Hand LiveKit our [audioHandler] so calls default to the earpiece instead of
+     * the loudspeaker (the echo/noise source on these phones). Hardware AEC/noise
+     * suppression is left at the SDK default (on where supported) — VOICE_COMMUNICATION
+     * capture plus the platform echo canceller is what keeps a speaker call clean.
      */
     private fun audioOverrides() = LiveKitOverrides(
-        audioOptions = AudioOptions(
-            javaAudioDeviceModuleCustomizer = { builder ->
-                builder.setUseHardwareAcousticEchoCanceler(false)
-                builder.setUseHardwareNoiseSuppressor(false)
-            },
-        ),
+        audioOptions = AudioOptions(audioHandler = audioHandler),
     )
 
     private companion object { const val TAG = "LiveKitAudioTransport" }
