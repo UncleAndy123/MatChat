@@ -7,11 +7,18 @@ import android.os.Build
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.livekit.android.AudioOptions
+import io.livekit.android.ConnectOptions
 import io.livekit.android.LiveKit
 import io.livekit.android.LiveKitOverrides
+import io.livekit.android.events.RoomEvent
+import io.livekit.android.events.collect
 import io.livekit.android.room.Room
+import io.livekit.android.room.track.RemoteTrackPublication
+import io.livekit.android.room.track.Track
+import io.livekit.android.room.track.TrackPublication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,12 +44,20 @@ internal class LiveKitAudioTransport @Inject constructor(
     override val connected: Flow<Boolean> = _connected
 
     private var room: Room? = null
+    private var eventsJob: Job? = null
 
     override suspend fun connect(config: TransportConfig): Boolean = runCatching {
         val r = room ?: LiveKit.create(context.applicationContext, overrides = audioOverrides())
             .also { room = it }
-        r.connect(config.livekitUrl, config.token)
+        // Audio-only, so never auto-subscribe: with autoSubscribe on, the SFU
+        // forwards the far side's (Element) video track and LiveKit spins up a VP8
+        // decoder. On these low-end devices that decoder fails to configure and
+        // retries in a hot loop, starving the audio threads — the garbled, noisy
+        // call audio. We subscribe to audio publications ourselves and leave video
+        // untouched, so no video decoder is ever created (docs/VOICE.md §2).
+        r.connect(config.livekitUrl, config.token, ConnectOptions(autoSubscribe = false))
         _connected.value = true
+        subscribeToRemoteAudio(r)
         // Mic is best-effort: if RECORD_AUDIO was denied the call still connects
         // receive-only rather than dropping the whole call (docs/VOICE.md §6).
         runCatching { r.localParticipant.setMicrophoneEnabled(true) }
@@ -54,7 +69,32 @@ internal class LiveKitAudioTransport @Inject constructor(
         false
     }
 
+    /**
+     * Subscribe to remote AUDIO tracks only (video is never decoded — see
+     * [connect]). Handles both tracks already published when we join and any
+     * published later via [RoomEvent.TrackPublished].
+     */
+    private fun subscribeToRemoteAudio(room: Room) {
+        eventsJob?.cancel()
+        eventsJob = scope.launch {
+            room.events.collect { event ->
+                if (event is RoomEvent.TrackPublished) subscribeIfAudio(event.publication)
+            }
+        }
+        room.remoteParticipants.values.forEach { participant ->
+            participant.trackPublications.values.forEach(::subscribeIfAudio)
+        }
+    }
+
+    private fun subscribeIfAudio(publication: TrackPublication) {
+        if (publication.kind == Track.Kind.AUDIO) {
+            (publication as? RemoteTrackPublication)?.let { runCatching { it.setSubscribed(true) } }
+        }
+    }
+
     override fun disconnect() {
+        eventsJob?.cancel()
+        eventsJob = null
         runCatching { room?.disconnect() }
         room = null
         _connected.value = false
