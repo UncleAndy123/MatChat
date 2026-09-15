@@ -17,6 +17,12 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // LiveKit's audioswitch dependency is published only on JitPack (as a
+        // git-commit version). Scope JitPack to that group so nothing else
+        // resolves through it.
+        maven("https://jitpack.io") {
+            content { includeGroup("com.github.davidliu") }
+        }
     }
 }
 
