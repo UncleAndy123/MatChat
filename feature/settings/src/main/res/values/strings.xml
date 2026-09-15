@@ -8,6 +8,8 @@
     <string name="settings_advanced">Advanced</string>
     <string name="settings_encryption">Encryption</string>
     <string name="settings_session">About this phone\'s session</string>
+    <string name="settings_update">Software update</string>
+    <string name="settings_update_available">Software update — Available ›</string>
     <string name="settings_help">Help</string>
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_sign_out_confirm">Sign out? Messages on this phone will be removed.</string>
@@ -86,6 +88,25 @@
     <string name="policy_direct">Direct messages</string>
     <string name="policy_direct_allowed">Allowed</string>
     <string name="policy_direct_blocked">Not allowed</string>
+
+    <!-- Software update (reached from S13 Settings > Software update). In-app
+         updater over GitHub Releases: checks on launch and here, downloads the
+         universal APK, and hands it to the system installer. -->
+    <string name="update_title">Software update</string>
+    <string name="update_checking">Checking for updates…</string>
+    <string name="update_up_to_date">You\'re up to date.</string>
+    <string name="update_available">An update is available.</string>
+    <string name="update_downloading">Downloading…</string>
+    <string name="update_downloading_pct">Downloading… %1$d%%</string>
+    <string name="update_ready">Downloaded. Ready to install.</string>
+    <string name="update_failed">Couldn\'t check for updates. Check your connection and try again.</string>
+    <string name="update_versions_format">Installed %1$s · Latest %2$s</string>
+    <string name="update_version_current_format">Installed %1$s</string>
+    <string name="update_action_check">Check again</string>
+    <string name="update_action_checking">Checking…</string>
+    <string name="update_action_download">Download update</string>
+    <string name="update_action_downloading">Downloading…</string>
+    <string name="update_action_install">Install</string>
 
     <!-- S14 Help. -->
     <string name="help_title">Help</string>

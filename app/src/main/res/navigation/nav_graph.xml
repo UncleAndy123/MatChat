@@ -141,6 +141,11 @@
         android:label="Policy" />
 
     <fragment
+        android:id="@+id/updateFragment"
+        android:name="org.matchat.feature.settings.UpdateFragment"
+        android:label="Software update" />
+
+    <fragment
         android:id="@+id/helpFragment"
         android:name="org.matchat.feature.settings.HelpFragment"
         android:label="Help" />

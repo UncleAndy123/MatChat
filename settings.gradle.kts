@@ -44,6 +44,7 @@ include(":core:ui")
 include(":core:policy")
 include(":core:contacts")
 include(":core:rtc")
+include(":core:update")
 include(":core:testing")
 
 include(":feature:onboarding")
