@@ -59,6 +59,10 @@ class MainActivity : AppCompatActivity(), Navigator {
     // cold start). Consumed after restore routes to the room list.
     private var pendingRoomId: String? = null
 
+    // An incoming call to open once the session is live (ring tapped from a cold
+    // start). Cleared after it's shown.
+    private var pendingCall: Triple<String, String, Boolean>? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         userPreferences = EntryPointAccessors.fromApplication(
             applicationContext,
@@ -72,6 +76,7 @@ class MainActivity : AppCompatActivity(), Navigator {
         val host = supportFragmentManager.findFragmentById(R.id.nav_host) as NavHostFragment
         navController = host.navController
         pendingRoomId = intent?.getStringExtra(org.matchat.client.notify.MessageNotifier.EXTRA_ROOM_ID)
+        intent?.let { stashCallIntent(it) }
         requestNotificationsIfNeeded()
         restoreSessionIfPresent()
         observeThemeChanges()
@@ -187,8 +192,34 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.hasExtra(org.matchat.client.notify.CallNotifier.EXTRA_CALL_ROOM)) {
+            stashCallIntent(intent)
+            if (sessionStore.hasSession()) openPendingCall()
+            return
+        }
         val roomValue = intent.getStringExtra(org.matchat.client.notify.MessageNotifier.EXTRA_ROOM_ID) ?: return
         if (sessionStore.hasSession()) toRoom(RoomId(roomValue)) else pendingRoomId = roomValue
+    }
+
+    private fun stashCallIntent(intent: Intent) {
+        val room = intent.getStringExtra(org.matchat.client.notify.CallNotifier.EXTRA_CALL_ROOM) ?: return
+        val caller = intent.getStringExtra(org.matchat.client.notify.CallNotifier.EXTRA_CALL_CALLER).orEmpty()
+        val answer = intent.getBooleanExtra(org.matchat.client.notify.CallNotifier.EXTRA_CALL_ANSWER, false)
+        pendingCall = Triple(room, caller, answer)
+    }
+
+    private fun openPendingCall() {
+        val (room, caller, answer) = pendingCall ?: return
+        pendingCall = null
+        navController.navigate(
+            R.id.callFragment,
+            bundleOf(
+                ARG_ROOM_ID to room,
+                "peerName" to caller,
+                "incoming" to true,
+                "answer" to answer,
+            ),
+        )
     }
 
     /** Cold start with a saved session: show the room list immediately and restore
@@ -205,6 +236,7 @@ class MainActivity : AppCompatActivity(), Navigator {
                     pendingRoomId = null
                     toRoom(RoomId(it))
                 }
+                if (pendingCall != null) openPendingCall()
             } else {
                 toWelcomeRoot()
             }

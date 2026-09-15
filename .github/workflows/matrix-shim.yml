@@ -1,0 +1,67 @@
+# Build the patched sdk-android AAR (docs/VOICE.md §4.1, tools/matrix-shim).
+#
+# Manual / occasional only — this cross-compiles the whole matrix-rust-sdk and is
+# far too slow for PR CI. It runs on demand (or when the shim harness changes) and
+# uploads the AAR as an artifact. Wiring the app to consume it stays opt-in
+# (-Pmatchat.useShimSdk=true); this job does not touch the normal build.
+name: matrix-shim AAR
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_version:
+        description: "matrix-rustsdk version (must match libs.versions.toml)"
+        required: false
+        default: "26.09.3"
+  # Spike convenience: run automatically when the shim harness changes on the
+  # dev branch, so it's testable via GitHub before this lands on the default
+  # branch (workflow_dispatch's "Run workflow" button only appears there). The
+  # early reconcile steps fail fast (seconds), so this is cheap until the build
+  # is green; only a fully-reconciled run costs ~an hour. Remove this trigger
+  # once the pipeline builds.
+  push:
+    branches: [Encryption_signout_features]
+    paths:
+      - "tools/matrix-shim/**"
+      - ".github/workflows/matrix-shim.yml"
+
+jobs:
+  build-aar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Rust + Android targets
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add aarch64-linux-android armv7-linux-androideabi \
+            i686-linux-android x86_64-linux-android
+          cargo install cargo-ndk --locked
+
+      - name: Set up Android NDK
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+
+      - name: Build patched AAR
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+          SDK_VERSION: ${{ github.event.inputs.sdk_version || '26.09.3' }}
+          PUBLISH: file
+        run: tools/matrix-shim/build-aar.sh
+
+      - name: Upload AAR (drop-in Maven layout)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-android-matchat-shim
+          # Contains m2/org/matrix/rustcomponents/sdk-android/<ver>/{aar,pom}.
+          # Merge the extracted m2/ into your ~/.m2/repository/ to consume it.
+          path: tools/matrix-shim/work/out/m2/**
+          if-no-files-found: error

@@ -74,6 +74,58 @@ Two obligations that come with that choice:
    work is matching Element Call's key distribution, not inventing crypto. It is
    a v1.1 item with its own spike, not a "someday".
 
+### 4.1 E2EE-interop spike result (2026-09-15)
+
+On-device confirmation: **a MatChat↔Element call is clean in an unencrypted
+room and pure noise in an encrypted one.** That is the E2EE mismatch, not a
+codec, routing, or transport fault — Element Call turns on per-participant
+frame E2EE whenever the Matrix room is encrypted (and MatChat's rooms always
+are), so Element sends SFrame-encrypted Opus that MatChat plays as noise, while
+MatChat's plaintext Opus is noise to Element. One participant alone is silent;
+the noise starts the moment a second, encrypting participant joins.
+
+Element Call shares those keys as **encrypted `io.element.call.encryption_keys`
+to-device events**, so interop requires MatChat to send and receive them. The
+follow-on FFI spike (§7 spike 1) is the blocker:
+
+**The pinned `sdk-android 26.09.3` FFI exposes no to-device primitive.**
+`Client`/`Encryption`/`Room` have no `sendToDevice`, no incoming-to-device
+subscription — only the SDK's own internal verification-request handling. The
+one SDK-provided path that does this key sharing is the **widget driver**
+(`makeWidgetDriver`, `WidgetDriverHandle`, `generateWebviewUrl`,
+`getElementCallRequiredPermissions` — the last literally negotiates
+`io.element.call.encryption_keys`), and it is **WebView-bound** — the route §2
+rejected for these devices.
+
+So E2EE calls hit exactly the fork §7.1 anticipated, and the cheap option is
+gone. The three real paths:
+
+- **Uniffi Rust shim** (native, matches this app's design): compile our own
+  binding exposing `send_to_device` + a to-device receive stream over the
+  matrix-rust-sdk core (which *does* have these internally), package the `.aar`
+  per ABI, then do the key schedule + LiveKit `E2EEOptions`/key-provider wiring
+  on top. Biggest lift is the Rust/`cargo-ndk`/uniffi build pipeline, not the
+  Kotlin.
+- **Widget driver / WebView**: let the SDK's widget machinery run Element Call
+  and handle keys. Fastest to working E2EE, but it is the touch-UI-in-a-WebView
+  route §2 ruled out on a Helio A22 / msm8909.
+- **Track upstream**: matrix-rust-sdk is building native MatrixRTC; when its FFI
+  surfaces call-key sharing, use it directly. Not present in `main` as of this
+  spike, so it is a "wait", not a today option.
+
+Until one lands, calls are only intelligible in **unencrypted** rooms; keep the
+in-call "Not end-to-end encrypted" banner (§4 obligation 1) honest.
+
+**Chosen path: the uniffi Rust shim** — it is the only option that keeps the
+client lightweight and portable across the whole low-end fleet (a native `.so`
+runs wherever the app runs; a WebView is the least predictable component on old
+AOSP units) and converges toward upstream's own native MatrixRTC work. The build
+pipeline is scaffolded in `tools/matrix-shim/` (patch the FFI → cargo-ndk +
+uniffi → patched `sdk-android` AAR → the app links it via an opt-in Gradle flag,
+default off). The first milestone is a *pipeline* spike: prove a trivial added
+FFI method round-trips to Kotlin, before writing any key-exchange code. See
+`tools/matrix-shim/README.md`.
+
 ## 5. Ringing without push
 
 No Play Services means no FCM. The foreground sync service that already runs is
@@ -117,6 +169,10 @@ in raises a full-screen intent.
    widget machinery headlessly, or compile a small Rust shim with our own uniffi
    binding. **This determines whether the whole route is cheap or expensive, so
    it goes first.**
+   **Result (2026-09-15):** state events ride `sendStateEvent`/`sendRawEvent`
+   fine, so signalling works — but the same spike found the FFI exposes **no
+   to-device primitive**, which E2EE call keys need. See §4.1 for the fork this
+   forces.
 2. **Two-way audio to Element.** MatChat ↔ Element X on the same room, media
    through self-hosted LiveKit. Nothing else matters until this works once.
 3. **Ring latency on hardware**, screen off, flip closed, after an hour idle.

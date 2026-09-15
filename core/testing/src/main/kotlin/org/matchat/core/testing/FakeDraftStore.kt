@@ -22,4 +22,8 @@ class FakeDraftStore(
     override suspend fun clearDraft(roomId: RoomId) {
         draftsFlow.value = draftsFlow.value - roomId.value
     }
+
+    override suspend fun clearAll() {
+        draftsFlow.value = emptyMap()
+    }
 }

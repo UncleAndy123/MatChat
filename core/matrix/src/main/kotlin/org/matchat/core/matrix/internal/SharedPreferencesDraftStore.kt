@@ -58,6 +58,11 @@ internal class SharedPreferencesDraftStore @Inject constructor(
         draftsState.value = draftsState.value - roomId.value
     }
 
+    override suspend fun clearAll() {
+        prefs.edit { clear() }
+        draftsState.value = emptyMap()
+    }
+
     private companion object {
         const val PREFS_NAME = "message_drafts"
     }

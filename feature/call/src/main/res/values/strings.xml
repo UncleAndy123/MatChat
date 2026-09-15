@@ -6,6 +6,7 @@
     <string name="call_answer">Answer</string>
     <string name="call_mute">Mute</string>
     <string name="call_speaker">Speaker</string>
+    <string name="call_earpiece">Earpiece</string>
 
     <string name="call_status_dialing">Calling…</string>
     <string name="call_status_ringing">Incoming call</string>

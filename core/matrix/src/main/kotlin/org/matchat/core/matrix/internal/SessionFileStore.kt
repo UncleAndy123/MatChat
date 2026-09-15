@@ -1,6 +1,7 @@
 package org.matchat.core.matrix.internal
 
 import android.content.Context
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,6 +23,10 @@ internal class SessionFileStore @Inject constructor(
     private val file: File get() = File(context.filesDir, "session.bin")
 
     private val sdkStoreDir: File get() = File(context.filesDir, "matrix-sdk")
+
+    /** Cached photos, saved media and voice notes (feature/timeline MediaFiles /
+     *  VoiceRecorder both write here). Account data — wiped on sign-out. */
+    private val mediaCacheDir: File get() = File(context.cacheDir, "media")
 
     /** The single-user SDK store directory; must exist before building a Client. */
     val sdkStorePath: String
@@ -49,9 +54,27 @@ internal class SessionFileStore @Inject constructor(
         runCatching { KeystoreCrypto.decrypt(file.readBytes()) }.getOrNull()
     }
 
+    /**
+     * Sign-out wipe: remove every trace of the account from disk so the next
+     * login starts clean — the session token, the SDK's SQLite crypto/state
+     * store, and cached media. A leftover crypto store from an interrupted or
+     * partial delete is what corrupts a re-login ("disk I/O error" on
+     * migrations) and breaks device verification, so the SDK-store delete is
+     * verified: if the directory survives (a file was still held open), it is
+     * logged rather than silently left behind. Callers must have torn down the
+     * live Client first so no native handle keeps the files open.
+     */
     override suspend fun clear() = withContext(Dispatchers.IO) {
         file.delete()
-        File(sdkStorePath).deleteRecursively()
+        sdkStoreDir.deleteRecursively()
+        mediaCacheDir.deleteRecursively()
+        if (sdkStoreDir.exists()) {
+            Log.w(TAG, "crypto store survived sign-out wipe; a handle may still be open")
+        }
         Unit
+    }
+
+    private companion object {
+        const val TAG = "SessionStore"
     }
 }

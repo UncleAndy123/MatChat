@@ -30,6 +30,10 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.core.ktx)
+    // LiveKit Android (bundles WebRTC natives) — the media transport for calls.
+    // Largest single APK addition; release builds split per ABI (PLAN.md §4).
+    implementation(libs.livekit.android)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     testImplementation(project(":core:testing"))

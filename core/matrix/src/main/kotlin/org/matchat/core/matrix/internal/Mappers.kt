@@ -40,6 +40,7 @@ internal object Mappers {
             unreadCount = (info?.numUnreadMessages ?: 0uL).toInt(),
             isEncrypted = encrypted,
             avatarUrl = info?.avatarUrl ?: runCatching { room.avatarUrl() }.getOrNull(),
+            hasActiveCall = runCatching { info?.hasRoomCall }.getOrNull() ?: false,
         )
     }
 

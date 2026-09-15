@@ -13,11 +13,15 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.matchat.client.R
+import org.matchat.client.notify.CallNotifier
 import org.matchat.client.notify.MessageNotifier
 import org.matchat.core.matrix.MatrixAuth
 import org.matchat.core.matrix.MatrixSession
 import org.matchat.core.matrix.MatrixSessionStore
 import org.matchat.core.model.RoomSummary
+import org.matchat.core.rtc.CallController
+import org.matchat.core.rtc.CallPhase
+import org.matchat.core.rtc.IncomingCall
 import org.matchat.core.ui.prefs.UserPreferences
 import javax.inject.Inject
 
@@ -47,7 +51,15 @@ class SyncForegroundService : LifecycleService() {
 
     @Inject lateinit var userPreferences: UserPreferences
 
+    @Inject lateinit var callController: CallController
+
     private val lastUnread = HashMap<String, Int>()
+    private val lastCall = HashMap<String, Boolean>()
+    /** Rooms we raised a ring for, roomId -> caller; cleared on answer or end. */
+    private val ringingRooms = HashMap<String, String>()
+    /** True while we are in any call (our own or a ring we raised) — suppresses a
+     *  second ring and our own outgoing call from ringing us. */
+    private var ownCallActive = false
     private var seeded = false
     private var observing = false
 
@@ -88,15 +100,34 @@ class SyncForegroundService : LifecycleService() {
         lifecycleScope.launch {
             session.rooms.collect { rooms -> onRooms(rooms) }
         }
+        // Track our call phase: once a ringing call connects it's answered (drop
+        // it from the missed-call set); isActive gates a second ring.
+        lifecycleScope.launch {
+            callController.session.collect { s ->
+                ownCallActive = s.isActive
+                if (s.phase == CallPhase.CONNECTED) s.roomId?.let { ringingRooms.remove(it.value) }
+            }
+        }
     }
 
     private suspend fun onRooms(rooms: List<RoomSummary>) {
         if (!seeded) {
-            rooms.forEach { lastUnread[it.id.value] = it.unreadCount }
+            // Seed both baselines so existing unread history and an already-ongoing
+            // call (app just launched into it) never alert.
+            rooms.forEach {
+                lastUnread[it.id.value] = it.unreadCount
+                lastCall[it.id.value] = it.hasActiveCall
+            }
             seeded = true
             return
         }
         rooms.forEach { room ->
+            val hadCall = lastCall[room.id.value] ?: false
+            when {
+                room.hasActiveCall && !hadCall -> onCallAppeared(room)
+                !room.hasActiveCall && hadCall -> onCallDisappeared(room)
+            }
+            lastCall[room.id.value] = room.hasActiveCall
             val prev = lastUnread[room.id.value] ?: 0
             val now = room.unreadCount
             when {
@@ -114,6 +145,24 @@ class SyncForegroundService : LifecycleService() {
             }
             lastUnread[room.id.value] = now
         }
+    }
+
+    /** A call appeared in a room: ring, unless we are already in a call (our own
+     *  outgoing call lights up the same room, and we don't ring ourselves). */
+    private fun onCallAppeared(room: RoomSummary) {
+        if (ownCallActive) return
+        val caller = room.name.ifBlank { room.id.value }
+        ringingRooms[room.id.value] = caller
+        callController.onIncomingCall(IncomingCall(room.id, caller))
+        CallNotifier.showIncoming(this, room.id, caller)
+    }
+
+    /** A call ended: drop the ring. If we raised it and never answered (still in
+     *  ringingRooms — the session collector removes answered ones), show missed. */
+    private fun onCallDisappeared(room: RoomSummary) {
+        CallNotifier.cancel(this)
+        val caller = ringingRooms.remove(room.id.value) ?: return
+        CallNotifier.showMissed(this, room.id, caller)
     }
 
     private fun buildNotification(): Notification {
