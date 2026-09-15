@@ -55,10 +55,16 @@ Key variables (all overridable as env vars; defaults track `libs.versions.toml`)
 | var | default | meaning |
 |---|---|---|
 | `SDK_VERSION` | `26.09.3` | must equal `matrix-rustsdk` in `gradle/libs.versions.toml` |
-| `COMPONENTS_TAG` | `v${SDK_VERSION}` | tag in `matrix-org/matrix-rust-components-kotlin` |
+| `COMPONENTS_TAG` | `sdk-v${SDK_VERSION}` | tag in `matrix-org/matrix-rust-components-kotlin` |
+| `SDK_REF` | `f4b9512…` | `matrix-rust-sdk` commit that `COMPONENTS_TAG` was built from (that release's notes) |
 | `SHIM_VERSION` | `${SDK_VERSION}-matchat-shim1` | version stamped on our AAR |
-| `WORK_DIR` | `tools/matrix-shim/work` | scratch checkout (git-ignored) |
+| `ONLY_TARGET` | `aarch64-linux-android` | one ABI for a fast spike build; empty = **all** ABIs; e.g. `armv7-linux-androideabi` for the flip phones |
+| `WORK_DIR` | `tools/matrix-shim/work` | scratch checkouts (git-ignored) |
 | `PUBLISH` | `mavenlocal` | `mavenlocal` \| `file` (drops the aar in `WORK_DIR/out`) |
+
+Note `ONLY_TARGET`: the default builds a single arm64 ABI so the first green run
+is fast. To sideload on the actual device build its ABI (msm8909-class phones are
+32-bit → `armv7-linux-androideabi`) or set `ONLY_TARGET=` empty for all four.
 
 On success it publishes `org.matrix.rustcomponents:sdk-android:${SHIM_VERSION}`
 to your local Maven (`~/.m2`), or writes the `.aar` under `WORK_DIR/out`.
@@ -93,13 +99,18 @@ upstream SDK).
 
 ## How the overlay is applied
 
-`build-aar.sh` copies `overlay/matchat_shim.rs` into the checked-out
-`matrix-rust-sdk/bindings/matrix-sdk-ffi/src/` and ensures `mod matchat_shim;` is
-declared in that crate's `lib.rs`. This avoids a fragile line-numbered patch. If
-uniffi rejects a second `#[…::export] impl Client` block in a separate module
-(a thing this spike is meant to discover), the fallback is to inline the method
-into the existing exported `impl Client` in `client.rs` — see the header of
-`overlay/matchat_shim.rs`.
+`build-aar.sh` clones `matrix-rust-components-kotlin` (@ `COMPONENTS_TAG`) and,
+separately, `matrix-rust-sdk` (@ `SDK_REF` — components-kotlin does not vendor
+it; its `scripts/build.sh -p <sdk>` takes the path). It copies
+`overlay/matchat_shim.rs` into the SDK's `bindings/matrix-sdk-ffi/src/` and
+ensures `mod matchat_shim;` is declared in that crate's `lib.rs`, then runs
+components-kotlin's `scripts/build.sh` (cargo xtask cross-compile + uniffi codegen
+→ `gradlew :sdk:sdk-android:assembleRelease`). This avoids a fragile line-numbered
+patch. If uniffi rejects a second `#[matrix_sdk_ffi_macros::export] impl Client`
+block in a separate module (a thing this spike is meant to discover — client.rs
+already uses that macro on multiple `impl Client` blocks, so it is expected to
+work), the fallback is to inline the method into the existing exported
+`impl Client` in `client.rs` — see the header of `overlay/matchat_shim.rs`.
 
 ## Next increment (post-spike)
 
