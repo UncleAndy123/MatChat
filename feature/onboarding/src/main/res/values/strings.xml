@@ -19,4 +19,7 @@
     <string name="signin_error_network">No network. Check signal and try again.</string>
     <!-- %1$s is the underlying failure message (bad server, certificate, etc.). -->
     <string name="signin_error_generic">Could not sign in: %1$s</string>
+
+    <!-- Sign in > Options (LEFT softkey) menu. -->
+    <string name="signin_opt_update">Software update</string>
 </resources>
