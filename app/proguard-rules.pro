@@ -18,6 +18,12 @@
 -dontwarn com.sun.jna.**
 -dontwarn java.awt.**
 
+# The SDK validates TLS with rustls-platform-verifier, which the native layer
+# initializes on load by calling into these Java classes over JNI — invisible to
+# R8, so it would strip them and sign-in then fails with "Expect
+# rustls-platform-verifier to be initialized". Keep rule per the crate's docs.
+-keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
+
 # Hilt/Dagger generate their own keep rules. Navigation needs Fragment names,
 # which are referenced from nav_graph.xml and kept by AGP's resource shrinker.
 
