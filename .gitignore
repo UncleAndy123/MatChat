@@ -11,6 +11,10 @@ local.properties
 *.hprof
 # Paparazzi failure images
 **/out/failures/
+# matrix-shim build scratch + built AARs (tools/matrix-shim) — never committed
+tools/matrix-shim/work/
+*.aar
+
 # Never commit secrets or session tokens
 *.keystore
 !debug.keystore

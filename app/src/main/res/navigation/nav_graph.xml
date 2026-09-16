@@ -83,6 +83,7 @@
         <argument android:name="roomId" app:argType="string" />
         <argument android:name="peerName" app:argType="string" android:defaultValue="" />
         <argument android:name="incoming" app:argType="boolean" android:defaultValue="false" />
+        <argument android:name="answer" app:argType="boolean" android:defaultValue="false" />
     </fragment>
 
     <fragment
@@ -138,6 +139,11 @@
         android:id="@+id/policyFragment"
         android:name="org.matchat.feature.settings.PolicyFragment"
         android:label="Policy" />
+
+    <fragment
+        android:id="@+id/updateFragment"
+        android:name="org.matchat.feature.settings.UpdateFragment"
+        android:label="Software update" />
 
     <fragment
         android:id="@+id/helpFragment"

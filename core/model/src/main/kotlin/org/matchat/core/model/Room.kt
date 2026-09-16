@@ -19,6 +19,9 @@ data class RoomSummary(
      *  decodes it by id (MatrixSession.loadAvatar) — no SDK type crosses this
      *  line, same rule as everything else in :core:model. */
     val avatarUrl: String? = null,
+    /** True when a MatrixRTC call is active in this room — the ring pipeline's
+     *  signal (docs/VOICE.md §5), read from RoomInfo.hasRoomCall. */
+    val hasActiveCall: Boolean = false,
 )
 
 /** An invitation (a room whose membership state is Invited). See S18/S19. */

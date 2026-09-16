@@ -9,7 +9,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import org.matchat.core.matrix.DraftStore
 import org.matchat.core.matrix.MatrixDevConfig
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
@@ -39,6 +42,7 @@ import javax.inject.Singleton
 @Singleton
 internal class RustMatrixClientHolder @Inject constructor(
     private val store: SessionFileStore,
+    private val draftStore: DraftStore,
     private val devConfig: MatrixDevConfig,
     @ApplicationContext private val context: Context,
 ) {
@@ -63,6 +67,12 @@ internal class RustMatrixClientHolder @Inject constructor(
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
+    // Serializes restore so two callers (MainActivity's cold-start restore and the
+    // sync service's ensureSessionRestored) can't build two clients against the
+    // same crypto store at once — that race corrupts the olm/verification state
+    // (messaging survives it; device verification does not).
+    private val restoreMutex = Mutex()
+
     fun requireClient(): Client = requireNotNull(client) { "no active Matrix client" }
 
     fun isActive(): Boolean = client != null
@@ -77,6 +87,12 @@ internal class RustMatrixClientHolder @Inject constructor(
     suspend fun buildClient(homeserver: String, resetStore: Boolean = true): Client =
         // All SDK + file work is on IO, never the main thread (ARCHITECTURE.md).
         withContext(Dispatchers.IO) {
+            // Close any live SDK objects (and their native SQLite handles) BEFORE we
+            // touch the store. Without this, a leftover Client from a prior build or
+            // a crashed session still holds the store's DB files open; deleting the
+            // directory (resetStore) and recreating a DB at the same path then fails
+            // migrations with "disk I/O error" — the login failure we saw on device.
+            teardownClient()
             val path = if (resetStore) store.resetSdkStore() else store.sdkStorePath
             // FFI: sessionPaths(dataPath, cachePath) is deprecated but present in
             // 26.09.x; if removed, switch to sqliteStore(SqliteStoreBuilder(path)).
@@ -110,15 +126,27 @@ internal class RustMatrixClientHolder @Inject constructor(
      * Returns false — routing the app to Welcome — when there is nothing to
      * restore or restoration fails (self-healing: the next login resets the store).
      */
-    suspend fun restore(): Boolean {
-        val blob = store.load() ?: return false
-        return runCatching {
+    suspend fun restore(): Boolean = restoreMutex.withLock {
+        // Already restored (e.g. the other caller won the race) — don't rebuild the
+        // client, which would tear down a live sync loop and crypto session.
+        if (client != null) return@withLock true
+        val blob = store.load() ?: return@withLock false
+        runCatching {
             val session = SessionCodec.decode(blob)
             buildClient(session.homeserverUrl, resetStore = false)
             requireClient().restoreSession(session)
             startSync()
             true
-        }.getOrDefault(false)
+        }.getOrElse {
+            // buildClient() sets `client` before restoreSession()/startSync() run, so
+            // a failure here leaves a half-built client with no sync loop. Left as-is,
+            // the `client != null` guard above and isActive() both report that zombie
+            // as a live, syncing session, so neither this path nor the sync service
+            // ever retries — sync stays dead. Tear it back down so the next restore
+            // genuinely rebuilds (mirrors buildClient()'s own teardown-on-entry).
+            teardownClient()
+            false
+        }
     }
 
     /** Start the sync loop and begin observing the room list. */
@@ -178,14 +206,29 @@ internal class RustMatrixClientHolder @Inject constructor(
             runCatching { cm?.unregisterNetworkCallback(cb) }
         }
         networkCallback = null
-        client = null
-        syncService = null
-        roomList = null
-        entriesResult = null
+        teardownClient()
         synchronized(entries) { entries.clear() }
         rooms.value = emptyList()
         syncState.value = SyncState.IDLE
+        draftStore.clearAll()
         store.clear()
+    }
+
+    /**
+     * Drop all live SDK objects, destroying their native handles so the crypto
+     * store's SQLite files are closed deterministically (uniffi objects otherwise
+     * linger until GC, keeping the DB open). Order: dependents before the client.
+     * Idempotent — safe to call when nothing is built.
+     */
+    private fun teardownClient() {
+        runCatching { entriesResult?.destroy() }
+        runCatching { roomList?.destroy() }
+        runCatching { syncService?.destroy() }
+        runCatching { client?.destroy() }
+        entriesResult = null
+        roomList = null
+        syncService = null
+        client = null
     }
 
     private fun applyUpdates(updates: List<RoomListEntriesUpdate>) = synchronized(entries) {

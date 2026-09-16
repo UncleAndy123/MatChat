@@ -56,6 +56,11 @@ class FakeMatrixSession(
     var ownUser: UserId? = UserId("@me:local")
     override suspend fun ownUserId(): UserId? = ownUser
 
+    var deviceIdValue: String? = "DEVICE"
+    var openIdTokenValue: org.matchat.core.model.MatrixOpenIdToken? = null
+    override suspend fun deviceId(): String? = deviceIdValue
+    override suspend fun openIdToken(): org.matchat.core.model.MatrixOpenIdToken? = openIdTokenValue
+
     override suspend fun lookupProfile(address: UserId): Result<Profile> = profileResult(address)
 
     override suspend fun startDirectChat(address: UserId): Result<RoomId> = startDirectChatResult(address)

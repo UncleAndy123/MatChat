@@ -4,6 +4,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import org.matchat.core.matrix.MatrixSession
+import org.matchat.core.rtc.CallController
 
 /**
  * Hilt accessor for the notification action receivers. A BroadcastReceiver can't
@@ -15,4 +16,5 @@ import org.matchat.core.matrix.MatrixSession
 @InstallIn(SingletonComponent::class)
 interface NotifEntryPoint {
     fun matrixSession(): MatrixSession
+    fun callController(): CallController
 }

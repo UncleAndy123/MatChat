@@ -7,24 +7,31 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.matchat.core.matrix.MatrixSession
 import org.matchat.core.policy.PolicyProvider
+import org.matchat.core.update.UpdateManager
+import org.matchat.core.update.UpdateStatus
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val session: MatrixSession,
     policyProvider: PolicyProvider,
+    updateManager: UpdateManager,
 ) : ViewModel() {
 
     val state: StateFlow<SettingsState> =
-        policyProvider.policy
-            .map { SettingsState(isManaged = it.isManaged) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SettingsState())
+        combine(policyProvider.policy, updateManager.state) { policy, update ->
+            SettingsState(
+                isManaged = policy.isManaged,
+                updateAvailable = update is UpdateStatus.Available ||
+                    update is UpdateStatus.Downloaded,
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SettingsState())
 
     private val navChannel = Channel<SettingsNav>(Channel.BUFFERED)
     val navEvents: Flow<SettingsNav> = navChannel.receiveAsFlow()
@@ -37,6 +44,7 @@ class SettingsViewModel @Inject constructor(
             SettingsAction.OpenAdvanced -> emit(SettingsNav.Advanced)
             SettingsAction.OpenNotifications -> emit(SettingsNav.Notifications)
             SettingsAction.OpenPolicy -> emit(SettingsNav.Policy)
+            SettingsAction.OpenUpdate -> emit(SettingsNav.Update)
             SettingsAction.OpenHelp -> emit(SettingsNav.Help)
             SettingsAction.ConfirmSignOut -> signOut()
         }

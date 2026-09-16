@@ -38,5 +38,8 @@ object AppModule {
      */
     @Provides
     @Singleton
-    fun provideRtcConfig(): RtcConfig = RtcConfig(livekitUrl = "", tokenEndpoint = "")
+    fun provideRtcConfig(): RtcConfig = RtcConfig(
+        livekitUrl = "wss://livekit.carpathianserver.org",
+        tokenEndpoint = "https://matrix-rtc.carpathianserver.org",
+    )
 }

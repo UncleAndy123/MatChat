@@ -51,6 +51,8 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     @Inject lateinit var session: org.matchat.core.matrix.MatrixSession
 
+    @Inject lateinit var updateManager: org.matchat.core.update.UpdateManager
+
     // Read via an EntryPoint, not @Inject: Hilt's own field injection runs
     // inside super.onCreate(), too late to setTheme() before it.
     private lateinit var userPreferences: UserPreferences
@@ -58,6 +60,10 @@ class MainActivity : AppCompatActivity(), Navigator {
     // A room to open once the session is live (from a tapped notification on a
     // cold start). Consumed after restore routes to the room list.
     private var pendingRoomId: String? = null
+
+    // An incoming call to open once the session is live (ring tapped from a cold
+    // start). Cleared after it's shown.
+    private var pendingCall: Triple<String, String, Boolean>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         userPreferences = EntryPointAccessors.fromApplication(
@@ -72,9 +78,18 @@ class MainActivity : AppCompatActivity(), Navigator {
         val host = supportFragmentManager.findFragmentById(R.id.nav_host) as NavHostFragment
         navController = host.navController
         pendingRoomId = intent?.getStringExtra(org.matchat.client.notify.MessageNotifier.EXTRA_ROOM_ID)
+        intent?.let { stashCallIntent(it) }
         requestNotificationsIfNeeded()
         restoreSessionIfPresent()
         observeThemeChanges()
+        checkForUpdates()
+    }
+
+    /** Auto-check for a newer GitHub Release on launch (throttled to once every
+     *  few hours inside UpdateManager). Best-effort and silent: a hit just flags
+     *  the Settings > Software update row; the user opens that screen to act. */
+    private fun checkForUpdates() {
+        lifecycleScope.launch { updateManager.checkForUpdate(force = false) }
     }
 
     /** A change made on the Theme settings screen only takes effect on a
@@ -187,8 +202,34 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.hasExtra(org.matchat.client.notify.CallNotifier.EXTRA_CALL_ROOM)) {
+            stashCallIntent(intent)
+            if (sessionStore.hasSession()) openPendingCall()
+            return
+        }
         val roomValue = intent.getStringExtra(org.matchat.client.notify.MessageNotifier.EXTRA_ROOM_ID) ?: return
         if (sessionStore.hasSession()) toRoom(RoomId(roomValue)) else pendingRoomId = roomValue
+    }
+
+    private fun stashCallIntent(intent: Intent) {
+        val room = intent.getStringExtra(org.matchat.client.notify.CallNotifier.EXTRA_CALL_ROOM) ?: return
+        val caller = intent.getStringExtra(org.matchat.client.notify.CallNotifier.EXTRA_CALL_CALLER).orEmpty()
+        val answer = intent.getBooleanExtra(org.matchat.client.notify.CallNotifier.EXTRA_CALL_ANSWER, false)
+        pendingCall = Triple(room, caller, answer)
+    }
+
+    private fun openPendingCall() {
+        val (room, caller, answer) = pendingCall ?: return
+        pendingCall = null
+        navController.navigate(
+            R.id.callFragment,
+            bundleOf(
+                ARG_ROOM_ID to room,
+                "peerName" to caller,
+                "incoming" to true,
+                "answer" to answer,
+            ),
+        )
     }
 
     /** Cold start with a saved session: show the room list immediately and restore
@@ -205,6 +246,7 @@ class MainActivity : AppCompatActivity(), Navigator {
                     pendingRoomId = null
                     toRoom(RoomId(it))
                 }
+                if (pendingCall != null) openPendingCall()
             } else {
                 toWelcomeRoot()
             }
@@ -370,6 +412,7 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun toAdvanced() = navController.navigate(R.id.advancedFragment)
     override fun toNotifications() = navController.navigate(R.id.notificationsFragment)
     override fun toPolicy() = navController.navigate(R.id.policyFragment)
+    override fun toUpdate() = navController.navigate(R.id.updateFragment)
     override fun toHelp() = navController.navigate(R.id.helpFragment)
     override fun back() {
         navController.navigateUp()

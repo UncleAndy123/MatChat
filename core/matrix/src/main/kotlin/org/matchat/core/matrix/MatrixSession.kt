@@ -44,6 +44,12 @@ interface MatrixSession : SyncStateSource {
     /** Our own Matrix user id, or null before login (used for call membership). */
     suspend fun ownUserId(): UserId?
 
+    /** This session's device id (call membership state key + LiveKit token). */
+    suspend fun deviceId(): String?
+
+    /** A fresh Matrix OpenID token to exchange for a LiveKit JWT (docs/VOICE.md §3). */
+    suspend fun openIdToken(): org.matchat.core.model.MatrixOpenIdToken?
+
     /** Lookup of a known address to show a name before sending — not a search. */
     suspend fun lookupProfile(address: UserId): Result<Profile>
 

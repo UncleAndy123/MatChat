@@ -29,13 +29,18 @@ android {
     // (PLAN.md §3, §8.4). Debug stays a single all-ABI APK so it installs on any
     // emulator (incl. x86_64) — there are no native libs until M1, so splitting a
     // debug build only makes it uninstallable on dev machines for no benefit.
+    //
+    // Release also emits a universal APK (all ABIs): it's what the in-app updater
+    // downloads (:core:update / Settings > Software update), so one asset installs
+    // on any device without the updater having to match ABIs. It's larger than a
+    // split and is excluded from the 25 MB per-split gate below.
     val abiSplitEnabled = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
     splits {
         abi {
             isEnable = abiSplitEnabled
             reset()
             include("armeabi-v7a", "arm64-v8a")
-            isUniversalApk = false
+            isUniversalApk = abiSplitEnabled
         }
     }
 
@@ -65,6 +70,7 @@ dependencies {
     implementation(project(":core:policy"))
     implementation(project(":core:contacts"))
     implementation(project(":core:rtc"))
+    implementation(project(":core:update"))
 
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:roomlist"))
@@ -106,6 +112,9 @@ tasks.register("checkApkSize") {
         val limitBytes = 25L * 1024 * 1024
         val apks = fileTree("${layout.buildDirectory.get()}/outputs/apk/release") {
             include("**/*.apk")
+            // The universal APK bundles every ABI for the in-app updater; the
+            // 25 MB gate is a per-split download budget, so it doesn't apply.
+            exclude("**/*universal*.apk")
         }.files
         val tooBig = apks.filter { it.length() > limitBytes }
         require(tooBig.isEmpty()) {

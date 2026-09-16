@@ -24,6 +24,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:matrix"))
     implementation(project(":core:policy"))
+    implementation(project(":core:update"))
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

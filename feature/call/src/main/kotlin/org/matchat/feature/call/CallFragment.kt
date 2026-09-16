@@ -25,7 +25,12 @@ class CallFragment : SoftkeyFragment() {
 
     override val contentLayoutId: Int = R.layout.fragment_call
     override val leftLabel: CharSequence
-        get() = if (viewModel.session.value.phase == CallPhase.CONNECTED) getString(R.string.call_speaker) else ""
+        get() = viewModel.session.value.let { s ->
+            // The label names the route the key switches to: "Speaker" while on
+            // the earpiece, "Earpiece" once the loudspeaker is on.
+            if (s.phase != CallPhase.CONNECTED) ""
+            else if (s.speakerOn) getString(R.string.call_earpiece) else getString(R.string.call_speaker)
+        }
     override val centerLabel: CharSequence
         get() = when (viewModel.session.value.phase) {
             CallPhase.RINGING -> getString(R.string.call_answer)
@@ -37,13 +42,33 @@ class CallFragment : SoftkeyFragment() {
     private val navigator: Navigator get() = requireActivity() as Navigator
     private var binding: FragmentCallBinding? = null
 
+    /** Deferred place/answer, run once the mic permission result is in. */
+    private var pendingCallStart: (() -> Unit)? = null
+
+    // A call needs the mic. RECORD_AUDIO is a runtime permission, so it must be
+    // granted before we publish audio — declaring it in the manifest is not
+    // enough. Denial still lets the call connect receive-only rather than
+    // failing (docs/VOICE.md §6).
+    private val recordPermission =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        ) {
+            pendingCallStart?.invoke()
+            pendingCallStart = null
+        }
+
     override fun onContentViewCreated(content: View) {
         binding = FragmentCallBinding.bind(content)
         val args = requireArguments()
         val incoming = args.getBoolean(ARG_INCOMING, false)
         val roomId = args.getString(ARG_ROOM_ID).orEmpty()
         val peerName = args.getString(ARG_PEER_NAME)
-        if (!incoming && roomId.isNotEmpty()) viewModel.placeOnce(RoomId(roomId), peerName)
+        if (!incoming && roomId.isNotEmpty()) {
+            withMic { viewModel.placeOnce(RoomId(roomId), peerName) }
+        } else if (incoming && args.getBoolean(ARG_ANSWER, false)) {
+            // Opened via the notification's Answer action — accept immediately.
+            withMic { viewModel.answer() }
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -81,9 +106,23 @@ class CallFragment : SoftkeyFragment() {
         else -> getString(R.string.call_hint_end)
     }
 
+    /** Run [start] once we hold RECORD_AUDIO, requesting it first if needed. */
+    private fun withMic(start: () -> Unit) {
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.RECORD_AUDIO,
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            start()
+        } else {
+            pendingCallStart = start
+            recordPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
     override fun onOtherKey(key: LogicalKey): Boolean = when (key) {
         LogicalKey.CALL -> {
-            if (viewModel.session.value.phase == CallPhase.RINGING) viewModel.answer()
+            if (viewModel.session.value.phase == CallPhase.RINGING) withMic { viewModel.answer() }
             true
         }
         LogicalKey.END -> {
@@ -127,5 +166,6 @@ class CallFragment : SoftkeyFragment() {
         const val ARG_ROOM_ID = "roomId"
         const val ARG_PEER_NAME = "peerName"
         const val ARG_INCOMING = "incoming"
+        const val ARG_ANSWER = "answer"
     }
 }

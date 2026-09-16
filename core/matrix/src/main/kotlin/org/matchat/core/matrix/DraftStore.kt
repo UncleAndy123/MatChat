@@ -58,4 +58,8 @@ interface DraftStore {
     /** Remove any saved draft for [roomId] (sent, or the compose box and any
      *  staged attachment were both cleared). */
     suspend fun clearDraft(roomId: RoomId)
+
+    /** Wipe every saved draft — called on sign-out so no message content from
+     *  the previous account survives into the next login (holder.logout()). */
+    suspend fun clearAll()
 }

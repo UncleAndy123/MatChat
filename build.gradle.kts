@@ -43,3 +43,22 @@ tasks.register("detektAll") {
     description = "Runs detekt on every module."
     dependsOn(subprojects.map { "${it.path}:detekt" })
 }
+
+// --- matrix-shim opt-in (docs/VOICE.md §4.1, tools/matrix-shim) ---
+// When -Pmatchat.useShimSdk=true, resolve org.matrix.rustcomponents:sdk-android
+// to our locally-built patched AAR instead of the upstream version. Off by
+// default: the block is skipped entirely, so the normal build is unchanged.
+if (providers.gradleProperty("matchat.useShimSdk").orNull.toBoolean()) {
+    val shimVersion = providers.gradleProperty("matchat.shimSdkVersion").orNull
+        ?: error("matchat.useShimSdk=true requires matchat.shimSdkVersion (e.g. 26.09.3-matchat-shim1)")
+    allprojects {
+        configurations.configureEach {
+            resolutionStrategy.eachDependency {
+                if (requested.group == "org.matrix.rustcomponents" && requested.name == "sdk-android") {
+                    useVersion(shimVersion)
+                    because("matchat.useShimSdk: patched to-device build from tools/matrix-shim")
+                }
+            }
+        }
+    }
+}

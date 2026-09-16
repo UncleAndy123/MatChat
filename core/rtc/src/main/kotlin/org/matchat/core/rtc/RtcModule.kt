@@ -4,16 +4,17 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import org.matchat.core.rtc.internal.HttpTokenService
+import org.matchat.core.rtc.internal.LiveKitAudioTransport
 import org.matchat.core.rtc.internal.MatrixRtcCallController
-import org.matchat.core.rtc.internal.StubAudioTransport
-import org.matchat.core.rtc.internal.StubTokenService
 import javax.inject.Singleton
 
 /**
- * Wires the call stack. The audio transport + token service are the stub
- * implementations until LiveKit + lk-jwt-service are deployed (docs/VOICE.md §7);
- * swapping them for real impls is a one-line change here. [RtcConfig] is provided
- * by :app (blank by default), so this module stays free of app policy.
+ * Wires the call stack: MatrixRTC signalling + the real LiveKit media transport
+ * and lk-jwt-service token fetch (docs/VOICE.md §3, ADR 0006). Whether audio
+ * actually connects depends on [RtcConfig] being filled with the SFU endpoints
+ * (provided by :app); blank config makes a call reach CONNECTED with audio
+ * reported unavailable rather than failing.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -25,9 +26,9 @@ internal abstract class RtcModule {
 
     @Binds
     @Singleton
-    abstract fun bindAudioTransport(impl: StubAudioTransport): AudioTransport
+    abstract fun bindAudioTransport(impl: LiveKitAudioTransport): AudioTransport
 
     @Binds
     @Singleton
-    abstract fun bindTokenService(impl: StubTokenService): TokenService
+    abstract fun bindTokenService(impl: HttpTokenService): TokenService
 }
