@@ -19,6 +19,7 @@ import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SyncState
 import org.matrix.rustcomponents.sdk.Client
 import org.matrix.rustcomponents.sdk.ClientBuilder
+import org.matrix.rustcomponents.sdk.LogLevel
 import org.matrix.rustcomponents.sdk.Room
 import org.matrix.rustcomponents.sdk.RoomList
 import org.matrix.rustcomponents.sdk.RoomListEntriesDynamicFilterKind
@@ -27,6 +28,9 @@ import org.matrix.rustcomponents.sdk.RoomListEntriesUpdate
 import org.matrix.rustcomponents.sdk.RoomListEntriesWithDynamicAdaptersResult
 import org.matrix.rustcomponents.sdk.SlidingSyncVersionBuilder
 import org.matrix.rustcomponents.sdk.SyncService
+import org.matrix.rustcomponents.sdk.TracingConfiguration
+import org.matrix.rustcomponents.sdk.initPlatform
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -73,6 +77,11 @@ internal class RustMatrixClientHolder @Inject constructor(
     // (messaging survives it; device verification does not).
     private val restoreMutex = Mutex()
 
+    // The SDK's TLS layer (rustls-platform-verifier) must be initialized once per
+    // process, before any client is built, or sign-in fails with "Expect
+    // rustls-platform-verifier to be initialized" on a real (release) TLS path.
+    private val platformInitialized = AtomicBoolean(false)
+
     fun requireClient(): Client = requireNotNull(client) { "no active Matrix client" }
 
     fun isActive(): Boolean = client != null
@@ -87,6 +96,7 @@ internal class RustMatrixClientHolder @Inject constructor(
     suspend fun buildClient(homeserver: String, resetStore: Boolean = true): Client =
         // All SDK + file work is on IO, never the main thread (ARCHITECTURE.md).
         withContext(Dispatchers.IO) {
+            ensurePlatformInitialized()
             // Close any live SDK objects (and their native SQLite handles) BEFORE we
             // touch the store. Without this, a leftover Client from a prior build or
             // a crashed session still holds the store's DB files open; deleting the
@@ -113,6 +123,37 @@ internal class RustMatrixClientHolder @Inject constructor(
             client = built
             built
         }
+
+    /**
+     * Initializes the SDK platform (its Tokio runtime, tracing, and the
+     * rustls-platform-verifier TLS verifier) exactly once per process, before the
+     * first client is built. The verifier resolves the vendored
+     * org.rustls.platformverifier classes (:app, `libs/`) by name over JNI; without
+     * this call a real TLS path fails with "Expect rustls-platform-verifier to be
+     * initialized". Debug builds also disableSslVerification() (MatrixDevConfig), so
+     * the verifier is unused there, but initializing unconditionally matches how the
+     * SDK is meant to start and keeps release and debug on the same path.
+     */
+    private fun ensurePlatformInitialized() {
+        if (!platformInitialized.compareAndSet(false, true)) return
+        runCatching {
+            initPlatform(
+                TracingConfiguration(
+                    logLevel = LogLevel.WARN,
+                    traceLogPacks = emptyList(),
+                    extraTargets = emptyList(),
+                    writeToStdoutOrSystem = false,
+                    writeToFiles = null,
+                    sentryConfig = null,
+                ),
+                false, // useLightweightTokioRuntime: full runtime for the app process
+            )
+        }.onFailure {
+            // Don't hard-fail client build: log and let the (real) TLS error, if
+            // any, surface at sign-in with its own message.
+            android.util.Log.w("MatrixClientHolder", "initPlatform failed: ${it.message}")
+        }
+    }
 
     /** Persist the session (encrypted) after a successful login so the next cold
      *  start can restore it and reuse the same device/crypto store. */

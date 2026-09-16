@@ -72,6 +72,24 @@ dependencies {
     implementation(project(":core:rtc"))
     implementation(project(":core:update"))
 
+    // Vendored Android TLS verifier classes (org.rustls.platformverifier) that the
+    // Matrix SDK's native lib calls by name over JNI to validate the homeserver
+    // certificate. The sdk-android AAR bundles NONE of these, and the artifact is
+    // not on Maven Central (it ships only inside the rustls-platform-verifier-android
+    // crate's local maven repo), so we vendor the compiled classes here. Paired
+    // with the initPlatform() call in :core:matrix (RustMatrixClientHolder) and the
+    // keep rule in proguard-rules.pro. Without it, release sign-in fails with
+    // "Expect rustls-platform-verifier to be initialized".
+    //
+    // VERSION LOCK — must match the rustls-platform-verifier version compiled into
+    // sdk-android (libs.versions.toml `matrix-rustsdk`). Today: matrix-rustsdk
+    // 26.09.3 embeds rustls-platform-verifier 0.6.2, which pulls
+    // rustls-platform-verifier-android 0.1.0 (this jar). When bumping the SDK,
+    // re-check with:
+    //   unzip -p <sdk-android.aar> jni/arm64-v8a/libmatrix_sdk_ffi.so | strings | grep rustls-platform-verifier-
+    // and if the version changed, re-vendor the matching crate's AAR classes.jar.
+    implementation(files("libs/rustls-platform-verifier-android-0.1.0.jar"))
+
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:roomlist"))
     implementation(project(":feature:timeline"))

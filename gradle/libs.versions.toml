@@ -29,7 +29,17 @@ coil = "2.7.0"
 
 # --- Matrix protocol + crypto (added at M1; the ONLY dependency :core:matrix
 #     wires to the SDK). Calendar-versioned, matches Element X's binding.
-#     Kept here so M1 is a one-line module dependency, not a version hunt. ---
+#     Kept here so M1 is a one-line module dependency, not a version hunt.
+#
+#     TLS on release: this SDK bundles NO Android cert-verifier classes, so :app
+#     vendors org.rustls.platformverifier (app/libs/*.jar) and :core:matrix calls
+#     initPlatform(). That jar is VERSION-LOCKED to the rustls-platform-verifier
+#     build embedded in this SDK. On every bump of matrix-rustsdk, re-check it:
+#       unzip -p <sdk-android.aar> jni/arm64-v8a/libmatrix_sdk_ffi.so \
+#         | strings | grep -o 'rustls-platform-verifier-[0-9.]*'
+#     26.09.3 -> rustls-platform-verifier 0.6.2 -> rustls-platform-verifier-android
+#     0.1.0 (the vendored jar). If it changed, re-vendor the matching AAR classes
+#     (see :app build.gradle.kts for the extraction command). ---
 matrix-rustsdk = "26.09.3"
 
 # --- Test ---

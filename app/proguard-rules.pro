@@ -18,10 +18,12 @@
 -dontwarn com.sun.jna.**
 -dontwarn java.awt.**
 
-# The SDK validates TLS with rustls-platform-verifier, which the native layer
-# initializes on load by calling into these Java classes over JNI — invisible to
-# R8, so it would strip them and sign-in then fails with "Expect
-# rustls-platform-verifier to be initialized". Keep rule per the crate's docs.
+# The SDK validates TLS with rustls-platform-verifier. Its native layer calls
+# these Java classes by name over JNI (verifyCertificateChain) — invisible to R8,
+# so without a keep rule they are stripped/renamed and sign-in fails with "Expect
+# rustls-platform-verifier to be initialized". The classes are vendored in
+# app/libs (see :app build.gradle.kts) and the runtime is started by initPlatform()
+# in :core:matrix. Keep rule per the crate's docs.
 -keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
 
 # Hilt/Dagger generate their own keep rules. Navigation needs Fragment names,
