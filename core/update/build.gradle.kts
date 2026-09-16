@@ -1,17 +1,19 @@
-// :feature:settings — Settings (S13), Policy (S23), Help (S14).
+// :core:update — in-app update check + APK download/install against GitHub
+// Releases (Settings > Software update). Plain HttpURLConnection + org.json,
+// same rationale as :core:rtc's HttpTokenService — no extra HTTP client. Reads
+// the running version via PackageManager (BuildConfig is disabled app-wide,
+// gradle.properties). Nothing here imports the Matrix SDK or any feature.
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.paparazzi)
 }
 
 android {
-    namespace = "org.matchat.feature.settings"
+    namespace = "org.matchat.core.update"
     compileSdk = 35
     defaultConfig { minSdk = 24 }
-    buildFeatures { viewBinding = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -20,24 +22,14 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:model"))
-    implementation(project(":core:ui"))
-    implementation(project(":core:matrix"))
-    implementation(project(":core:policy"))
-    implementation(project(":core:update"))
-
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.androidx.fragment.ktx)
-    implementation(libs.androidx.lifecycle.viewmodel)
-    implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.androidx.core.ktx)
 
-    testImplementation(project(":core:testing"))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.turbine)
 }
 
 tasks.withType<Test> { useJUnitPlatform() }

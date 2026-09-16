@@ -51,6 +51,9 @@ interface Navigator {
     /** Settings > Notifications: on/off + sound. */
     fun toNotifications()
     fun toPolicy()
+
+    /** Settings > Software update: in-app updater over GitHub Releases. */
+    fun toUpdate()
     fun toHelp()
     fun back()
 }

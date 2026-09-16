@@ -51,6 +51,8 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     @Inject lateinit var session: org.matchat.core.matrix.MatrixSession
 
+    @Inject lateinit var updateManager: org.matchat.core.update.UpdateManager
+
     // Read via an EntryPoint, not @Inject: Hilt's own field injection runs
     // inside super.onCreate(), too late to setTheme() before it.
     private lateinit var userPreferences: UserPreferences
@@ -80,6 +82,14 @@ class MainActivity : AppCompatActivity(), Navigator {
         requestNotificationsIfNeeded()
         restoreSessionIfPresent()
         observeThemeChanges()
+        checkForUpdates()
+    }
+
+    /** Auto-check for a newer GitHub Release on launch (throttled to once every
+     *  few hours inside UpdateManager). Best-effort and silent: a hit just flags
+     *  the Settings > Software update row; the user opens that screen to act. */
+    private fun checkForUpdates() {
+        lifecycleScope.launch { updateManager.checkForUpdate(force = false) }
     }
 
     /** A change made on the Theme settings screen only takes effect on a
@@ -402,6 +412,7 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun toAdvanced() = navController.navigate(R.id.advancedFragment)
     override fun toNotifications() = navController.navigate(R.id.notificationsFragment)
     override fun toPolicy() = navController.navigate(R.id.policyFragment)
+    override fun toUpdate() = navController.navigate(R.id.updateFragment)
     override fun toHelp() = navController.navigate(R.id.helpFragment)
     override fun back() {
         navController.navigateUp()

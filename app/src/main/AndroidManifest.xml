@@ -17,6 +17,10 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Keep sync alive on idle; some carrier builds refuse it (PLAN.md §6.6). -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Install a downloaded update APK from Settings > Software update
+         (:core:update). The user still confirms each install, and on API 26+
+         must grant "install unknown apps" to MatChat first. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- No Google Play Services on these devices (PLAN.md §3). -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />

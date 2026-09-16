@@ -37,6 +37,7 @@ class SettingsFragment : SoftkeyFragment() {
         b.settingsAdvanced.setOnClickListener { viewModel.onAction(SettingsAction.OpenAdvanced) }
         b.settingsNotifications.setOnClickListener { viewModel.onAction(SettingsAction.OpenNotifications) }
         b.settingsPolicy.setOnClickListener { viewModel.onAction(SettingsAction.OpenPolicy) }
+        b.settingsUpdate.setOnClickListener { viewModel.onAction(SettingsAction.OpenUpdate) }
         b.settingsHelp.setOnClickListener { viewModel.onAction(SettingsAction.OpenHelp) }
         b.settingsSignOut.setOnClickListener { confirmSignOut() }
 
@@ -54,6 +55,9 @@ class SettingsFragment : SoftkeyFragment() {
         b.settingsPolicy.text = getString(
             if (state.isManaged) R.string.settings_policy_managed else R.string.settings_policy_unmanaged,
         )
+        b.settingsUpdate.text = getString(
+            if (state.updateAvailable) R.string.settings_update_available else R.string.settings_update,
+        )
     }
 
     private fun navigate(nav: SettingsNav) {
@@ -64,6 +68,7 @@ class SettingsFragment : SoftkeyFragment() {
             SettingsNav.Advanced -> navigator.toAdvanced()
             SettingsNav.Notifications -> navigator.toNotifications()
             SettingsNav.Policy -> navigator.toPolicy()
+            SettingsNav.Update -> navigator.toUpdate()
             SettingsNav.Help -> navigator.toHelp()
             SettingsNav.SignedOut -> navigator.toWelcomeRoot()
         }

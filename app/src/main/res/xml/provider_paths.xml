@@ -5,4 +5,6 @@
 <paths>
     <cache-path name="media" path="media/" />
     <cache-path name="notification_sounds" path="notification_sounds/" />
+    <!-- Downloaded update APKs handed to the system installer (:core:update). -->
+    <cache-path name="updates" path="updates/" />
 </paths>
