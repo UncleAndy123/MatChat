@@ -49,9 +49,8 @@ internal object PinnedEventsCache {
 
     /** Emits only values published *after* collection starts — a fresh
      *  subscriber gets its own seed via [get], not a replay of this. */
-    fun updatesFor(roomId: String): Flow<Set<String>> =
-        state.map { it[roomId] }
-            .drop(1)
-            .filterNotNull()
-            .distinctUntilChanged()
+    fun updatesFor(roomId: String): Flow<Set<String>> = state.map { it[roomId] }
+        .drop(1)
+        .filterNotNull()
+        .distinctUntilChanged()
 }

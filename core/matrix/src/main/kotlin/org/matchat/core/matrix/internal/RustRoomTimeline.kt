@@ -48,6 +48,7 @@ internal class RustRoomTimeline(
     // own listener thread (recompute) sees a fetch that completed on the init
     // coroutine without needing a lock for a plain reference read/swap.
     @Volatile private var members: Map<String, MemberInfo> = emptyMap()
+
     // Pinned messages round: seeded from the process-lifetime [PinnedEventsCache]
     // when another RustRoomTimeline instance for this room has already primed
     // it, falling back to a cold room.roomInfo() read otherwise (see init{}).

@@ -56,8 +56,11 @@ class UpdateFragment : SoftkeyFragment() {
             UpdatePhase.UP_TO_DATE -> getString(R.string.update_up_to_date)
             UpdatePhase.AVAILABLE -> getString(R.string.update_available)
             UpdatePhase.DOWNLOADING ->
-                if (state.percent < 0) getString(R.string.update_downloading)
-                else getString(R.string.update_downloading_pct, state.percent)
+                if (state.percent < 0) {
+                    getString(R.string.update_downloading)
+                } else {
+                    getString(R.string.update_downloading_pct, state.percent)
+                }
             UpdatePhase.READY -> getString(R.string.update_ready)
             UpdatePhase.FAILED -> getString(failureMessage(state.error))
         }
@@ -71,10 +74,16 @@ class UpdateFragment : SoftkeyFragment() {
         b.updateNotes.text = state.notes
         b.updateNotes.visibility =
             if (state.notes.isNotBlank() &&
-                (state.phase == UpdatePhase.AVAILABLE ||
-                    state.phase == UpdatePhase.DOWNLOADING ||
-                    state.phase == UpdatePhase.READY)
-            ) View.VISIBLE else View.GONE
+                (
+                    state.phase == UpdatePhase.AVAILABLE ||
+                        state.phase == UpdatePhase.DOWNLOADING ||
+                        state.phase == UpdatePhase.READY
+                    )
+            ) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
 
         val actionLabel = when (state.phase) {
             UpdatePhase.AVAILABLE -> getString(R.string.update_action_download)

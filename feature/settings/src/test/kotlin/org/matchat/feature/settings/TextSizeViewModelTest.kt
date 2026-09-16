@@ -20,6 +20,7 @@ class TextSizeViewModelTest {
     private fun subject() = TextSizeViewModel(prefs)
 
     @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+
     @AfterEach fun tearDown() = Dispatchers.resetMain()
 
     @Test

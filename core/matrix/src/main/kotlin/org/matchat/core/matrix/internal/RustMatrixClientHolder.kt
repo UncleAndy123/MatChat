@@ -146,7 +146,8 @@ internal class RustMatrixClientHolder @Inject constructor(
                     writeToFiles = null,
                     sentryConfig = null,
                 ),
-                false, // useLightweightTokioRuntime: full runtime for the app process
+                // useLightweightTokioRuntime: full runtime for the app process
+                false,
             )
         }.onFailure {
             // Don't hard-fail client build: log and let the (real) TLS error, if

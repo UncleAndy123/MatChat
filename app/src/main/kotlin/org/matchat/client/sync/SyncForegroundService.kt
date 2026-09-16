@@ -55,8 +55,10 @@ class SyncForegroundService : LifecycleService() {
 
     private val lastUnread = HashMap<String, Int>()
     private val lastCall = HashMap<String, Boolean>()
+
     /** Rooms we raised a ring for, roomId -> caller; cleared on answer or end. */
     private val ringingRooms = HashMap<String, String>()
+
     /** True while we are in any call (our own or a ring we raised) — suppresses a
      *  second ring and our own outgoing call from ringing us. */
     private var ownCallActive = false

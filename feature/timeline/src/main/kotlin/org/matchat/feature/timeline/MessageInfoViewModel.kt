@@ -41,14 +41,13 @@ class MessageInfoViewModel @Inject constructor(
             .map { it.reactionsOf(eventId) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
 
-    private fun List<TimelineItem>.reactionsOf(id: EventId): List<ReactionSummary> =
-        firstNotNullOfOrNull { item ->
-            when {
-                item is TimelineItem.Message && item.eventId == id -> item.reactions
-                item is TimelineItem.Media && item.eventId == id -> item.reactions
-                else -> null
-            }
-        }.orEmpty()
+    private fun List<TimelineItem>.reactionsOf(id: EventId): List<ReactionSummary> = firstNotNullOfOrNull { item ->
+        when {
+            item is TimelineItem.Message && item.eventId == id -> item.reactions
+            item is TimelineItem.Media && item.eventId == id -> item.reactions
+            else -> null
+        }
+    }.orEmpty()
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

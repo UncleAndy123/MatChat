@@ -221,6 +221,10 @@ class FakeTimeline(
         return pinnedResult
     }
 
-    fun emit(items: List<TimelineItem>) { itemsFlow.value = items }
-    fun emitTyping(users: List<UserId>) { typingFlow.value = users }
+    fun emit(items: List<TimelineItem>) {
+        itemsFlow.value = items
+    }
+    fun emitTyping(users: List<UserId>) {
+        typingFlow.value = users
+    }
 }

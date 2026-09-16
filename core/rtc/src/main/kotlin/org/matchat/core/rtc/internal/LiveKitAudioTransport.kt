@@ -142,5 +142,7 @@ internal class LiveKitAudioTransport @Inject constructor(
         audioOptions = AudioOptions(audioHandler = audioHandler),
     )
 
-    private companion object { const val TAG = "LiveKitAudioTransport" }
+    private companion object {
+        const val TAG = "LiveKitAudioTransport"
+    }
 }

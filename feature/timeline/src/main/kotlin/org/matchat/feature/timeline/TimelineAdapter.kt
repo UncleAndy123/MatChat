@@ -36,8 +36,7 @@ internal fun bindBubbleSide(bubble: LinearLayout, time: TextView, isOwn: Boolean
 /** Pinned messages round: the compact "prefix the time text" idiom sendGlyph
  *  already uses, reused rather than adding a new View — 📌 needs no room of
  *  its own on a 240dp-wide screen. */
-internal fun withPinPrefix(isPinned: Boolean, text: String): String =
-    if (isPinned) "📌 $text" else text
+internal fun withPinPrefix(isPinned: Boolean, text: String): String = if (isPinned) "📌 $text" else text
 
 /**
  * Timeline rows: text messages, images, attachments, day/state separators.
@@ -117,7 +116,9 @@ internal class TimelineAdapter(
         if (event.action != KeyEvent.ACTION_DOWN) return false
         val rv = view.parent as? RecyclerView ?: return false
         val stepPx = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_IN, SCROLL_STEP_INCHES, view.resources.displayMetrics,
+            TypedValue.COMPLEX_UNIT_IN,
+            SCROLL_STEP_INCHES,
+            view.resources.displayMetrics,
         ).toInt()
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_DOWN -> {

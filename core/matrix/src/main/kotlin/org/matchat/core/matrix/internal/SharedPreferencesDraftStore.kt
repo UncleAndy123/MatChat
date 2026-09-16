@@ -35,10 +35,9 @@ internal class SharedPreferencesDraftStore @Inject constructor(
     private val draftsState = MutableStateFlow(loadAll())
     override val drafts: StateFlow<Map<String, Draft>> = draftsState
 
-    private fun loadAll(): Map<String, Draft> =
-        prefs.all.mapNotNull { (key, value) ->
-            (value as? String)?.let { DraftCodec.fromJson(it) }?.let { key to it }
-        }.toMap()
+    private fun loadAll(): Map<String, Draft> = prefs.all.mapNotNull { (key, value) ->
+        (value as? String)?.let { DraftCodec.fromJson(it) }?.let { key to it }
+    }.toMap()
 
     override fun getDraft(roomId: RoomId): Draft? {
         val draft = draftsState.value[roomId.value] ?: return null

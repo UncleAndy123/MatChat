@@ -19,10 +19,9 @@ internal object VersionCompare {
     private val DIGITS = Regex("\\d+")
 
     /** Groups of consecutive digits, in order; empty when the string has none. */
-    private fun parts(version: String): List<Long> =
-        DIGITS.findAll(version.trim().removePrefix("v").removePrefix("V"))
-            .map { it.value.toLong() }
-            .toList()
+    private fun parts(version: String): List<Long> = DIGITS.findAll(version.trim().removePrefix("v").removePrefix("V"))
+        .map { it.value.toLong() }
+        .toList()
 
     /** Negative if [a] < [b], zero if equal, positive if [a] > [b]. */
     fun compare(a: String, b: String): Int {
