@@ -121,9 +121,9 @@ class MainActivity : AppCompatActivity(), Navigator {
     /** Layered onto the base via theme.applyStyle(_, force = true) — a flat
      *  lookup, one entry per accent, rather than a nested when (the old
      *  8-branch mode x accent shape this replaced). */
-    private fun accentStyleFor(accent: AccentColor): Int = ACCENT_STYLES.getValue(accent)
+    private fun accentStyleFor(accent: AccentColor): Int = accentStyles.getValue(accent)
 
-    private val ACCENT_STYLES: Map<AccentColor, Int> = mapOf(
+    private val accentStyles: Map<AccentColor, Int> = mapOf(
         AccentColor.GREEN to org.matchat.core.ui.R.style.Theme_MatChat_Accent_Green,
         AccentColor.AMBER to org.matchat.core.ui.R.style.Theme_MatChat_Accent_Amber,
         AccentColor.BLUE to org.matchat.core.ui.R.style.Theme_MatChat_Accent_Blue,
