@@ -99,7 +99,11 @@
     <string name="update_downloading">Downloading…</string>
     <string name="update_downloading_pct">Downloading… %1$d%%</string>
     <string name="update_ready">Downloaded. Ready to install.</string>
-    <string name="update_failed">Couldn\'t check for updates. Check your connection and try again.</string>
+    <string name="update_failed_network">Couldn\'t reach the update server. Check your connection and try again.</string>
+    <string name="update_failed_no_release">No published release found yet.</string>
+    <string name="update_failed_no_asset">The latest release has no download that fits this phone.</string>
+    <string name="update_failed_download">Download didn\'t finish. Try again.</string>
+    <string name="update_failed_install">Couldn\'t start the installer.</string>
     <string name="update_versions_format">Installed %1$s · Latest %2$s</string>
     <string name="update_version_current_format">Installed %1$s</string>
     <string name="update_action_check">Check again</string>

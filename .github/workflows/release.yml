@@ -10,7 +10,10 @@
 #   RELEASE_KEYSTORE_PASSWORD
 #   RELEASE_KEY_ALIAS
 #   RELEASE_KEY_PASSWORD
-# Without those secrets the job still runs and attaches the *unsigned* APKs.
+# These are REQUIRED: the job fails fast if any is missing, and only signed,
+# verified APKs are published. An unsigned APK can't be installed, and the
+# in-app updater (Settings > Software update) can only install signed builds
+# whose key matches the running app.
 name: Release
 
 on:
@@ -69,8 +72,29 @@ jobs:
         if: steps.guard.outputs.new == 'true'
         run: ./gradlew :app:assembleRelease
 
+      - name: Require signing secrets
+        if: steps.guard.outputs.new == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "${KEYSTORE_BASE64:-}" ]   || missing+=("RELEASE_KEYSTORE_BASE64")
+          [ -n "${KEYSTORE_PASSWORD:-}" ] || missing+=("RELEASE_KEYSTORE_PASSWORD")
+          [ -n "${KEY_ALIAS:-}" ]         || missing+=("RELEASE_KEY_ALIAS")
+          [ -n "${KEY_PASSWORD:-}" ]      || missing+=("RELEASE_KEY_PASSWORD")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing release signing secrets: ${missing[*]}. Set them under" \
+              "Settings > Secrets and variables > Actions. Unsigned APKs can't be installed" \
+              "and the in-app updater refuses them, so the release is not published."
+            exit 1
+          fi
+
       - name: Sign APKs
-        if: steps.guard.outputs.new == 'true' && env.KEYSTORE_BASE64 != ''
+        if: steps.guard.outputs.new == 'true'
         env:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
@@ -93,6 +117,27 @@ jobs:
           done
           rm -f "$RUNNER_TEMP/release.jks"
 
+      - name: Verify APKs are signed
+        if: steps.guard.outputs.new == 'true'
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          BUILD_TOOLS=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -1)
+          leftover=(app/build/outputs/apk/release/*-unsigned.apk)
+          if [ ${#leftover[@]} -ne 0 ]; then
+            echo "::error::Unsigned APKs still present (signing failed): ${leftover[*]}"
+            exit 1
+          fi
+          apks=(app/build/outputs/apk/release/*.apk)
+          if [ ${#apks[@]} -eq 0 ]; then
+            echo "::error::No APKs found to publish."
+            exit 1
+          fi
+          for apk in "${apks[@]}"; do
+            echo "Verifying $apk"
+            "$BUILD_TOOLS/apksigner" verify --print-certs "$apk"
+          done
+
       - name: Publish release
         if: steps.guard.outputs.new == 'true'
         uses: softprops/action-gh-release@v2
@@ -100,4 +145,5 @@ jobs:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: MatChat ${{ steps.ver.outputs.version }}
           generate_release_notes: true
+          fail_on_unmatched_files: true
           files: app/build/outputs/apk/release/*.apk

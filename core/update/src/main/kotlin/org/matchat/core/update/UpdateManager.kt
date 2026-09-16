@@ -63,12 +63,16 @@ class UpdateManager @Inject constructor(
         markChecked()
         result
             .onFailure {
-                Log.w(TAG, "update check failed: ${it.message}")
-                _state.value = UpdateStatus.Failed(UpdateError.NETWORK)
+                val error = if (it is NoCompatibleAssetException) UpdateError.NO_ASSET else UpdateError.NETWORK
+                Log.w(TAG, "update check failed ($error): ${it.message}")
+                _state.value = UpdateStatus.Failed(error)
             }
             .onSuccess { info ->
                 _state.value = when {
-                    info == null -> UpdateStatus.Failed(UpdateError.NO_RELEASE)
+                    info == null -> {
+                        Log.i(TAG, "no published release found")
+                        UpdateStatus.Failed(UpdateError.NO_RELEASE)
+                    }
                     VersionCompare.isNewer(info.latestVersion, info.currentVersion) ->
                         UpdateStatus.Available(info)
                     else -> UpdateStatus.UpToDate
@@ -76,7 +80,9 @@ class UpdateManager @Inject constructor(
             }
     }
 
-    /** GET releases/latest; null when there's no release or no universal APK. */
+    /** GET releases/latest. Returns null when GitHub reports no release (404);
+     *  throws [NoCompatibleAssetException] when a release exists but carries no
+     *  APK this device can install; other failures propagate (→ NETWORK). */
     private fun fetchLatest(): UpdateInfo? {
         val url = URL("https://api.github.com/repos/$OWNER/$REPO/releases/latest")
         val conn = (url.openConnection() as HttpURLConnection).apply {
@@ -87,35 +93,51 @@ class UpdateManager @Inject constructor(
             setRequestProperty("User-Agent", "MatChat-Updater")
         }
         return try {
-            if (conn.responseCode !in 200..299) {
-                Log.w(TAG, "releases/latest ${conn.responseCode}")
-                return null
-            }
+            val code = conn.responseCode
+            if (code == HttpURLConnection.HTTP_NOT_FOUND) return null
+            if (code !in 200..299) error("releases/latest HTTP $code")
             val json = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
             val tag = json.optString("tag_name").ifBlank { return null }
-            val asset = universalApk(json.optJSONArray("assets")) ?: return null
+            val asset = pickApk(json.optJSONArray("assets")) ?: run {
+                Log.w(TAG, "release $tag has no installable APK for ${Build.SUPPORTED_ABIS.joinToString()}")
+                throw NoCompatibleAssetException()
+            }
             UpdateInfo(
                 currentVersion = currentVersion(),
                 latestVersion = tag,
                 downloadUrl = asset.optString("browser_download_url"),
                 notes = json.optString("body").trim(),
                 sizeBytes = asset.optLong("size"),
-            ).takeIf { it.downloadUrl.isNotBlank() }
+            )
         } finally {
             conn.disconnect()
         }
     }
 
-    /** The universal-APK asset (release.yml publishes app-universal-release.apk);
-     *  falls back to the sole .apk when only one is attached. */
-    private fun universalApk(assets: JSONArray?): JSONObject? {
+    /**
+     * Picks the APK asset to install: a universal APK if the release has one
+     * (installs on any ABI — release.yml publishes app-universal-release.apk),
+     * else the split matching this device's ABI (most-preferred first), else the
+     * sole APK when only one is attached. Null when nothing fits, so releases
+     * that predate the universal APK still install via their per-ABI split.
+     */
+    private fun pickApk(assets: JSONArray?): JSONObject? {
         if (assets == null) return null
         val apks = (0 until assets.length())
             .map { assets.getJSONObject(it) }
             .filter { it.optString("name").endsWith(".apk", ignoreCase = true) }
-        return apks.firstOrNull { it.optString("name").contains("universal", ignoreCase = true) }
-            ?: apks.singleOrNull()
+        if (apks.isEmpty()) return null
+        apks.firstOrNull { it.optString("name").contains("universal", ignoreCase = true) }
+            ?.let { return it }
+        for (abi in Build.SUPPORTED_ABIS) {
+            apks.firstOrNull { it.optString("name").contains(abi, ignoreCase = true) }
+                ?.let { return it }
+        }
+        return apks.singleOrNull()
     }
+
+    /** A release exists but has no APK installable on this device's ABI. */
+    private class NoCompatibleAssetException : Exception()
 
     /**
      * Downloads the [UpdateInfo.downloadUrl] APK to cache, streaming progress
