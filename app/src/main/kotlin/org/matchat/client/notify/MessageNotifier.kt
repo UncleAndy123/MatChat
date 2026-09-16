@@ -40,6 +40,7 @@ object MessageNotifier {
     private const val REQ_REPLY = 1_000
     private const val REQ_READ = 2_000
     private const val CHANNEL_PREFIX = "matchat.messages.s"
+
     /** A fixed, always-default-sound fallback channel — never versioned, never
      *  deleted — used only when posting against the user's chosen channel
      *  throws (see [show]'s retry). Exists so a broken stored sound
@@ -154,7 +155,11 @@ object MessageNotifier {
         // preference degrades to "wrong sound" rather than "no notification."
         val posted = runCatching { manager(context).notify(id, notification) }
         if (posted.isFailure) {
-            Log.w(TAG, "notify() failed on channel ${channelId(channelVersion)}; retrying with the default sound", posted.exceptionOrNull())
+            Log.w(
+                TAG,
+                "notify() failed on channel ${channelId(channelVersion)}; retrying with the default sound",
+                posted.exceptionOrNull(),
+            )
             ensureSafeChannel(context)
             val fallback = buildNotification(context, roomId, id, title, unread, SAFE_CHANNEL_ID, soundUri = null)
             runCatching { manager(context).notify(id, fallback) }

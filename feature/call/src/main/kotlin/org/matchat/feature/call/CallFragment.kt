@@ -28,8 +28,13 @@ class CallFragment : SoftkeyFragment() {
         get() = viewModel.session.value.let { s ->
             // The label names the route the key switches to: "Speaker" while on
             // the earpiece, "Earpiece" once the loudspeaker is on.
-            if (s.phase != CallPhase.CONNECTED) ""
-            else if (s.speakerOn) getString(R.string.call_earpiece) else getString(R.string.call_speaker)
+            if (s.phase != CallPhase.CONNECTED) {
+                ""
+            } else if (s.speakerOn) {
+                getString(R.string.call_earpiece)
+            } else {
+                getString(R.string.call_speaker)
+            }
         }
     override val centerLabel: CharSequence
         get() = when (viewModel.session.value.phase) {

@@ -39,11 +39,10 @@ class UpdateManager @Inject constructor(
     val state: StateFlow<UpdateStatus> = _state.asStateFlow()
 
     /** The running app's versionName (BuildConfig is disabled app-wide). */
-    fun currentVersion(): String =
-        runCatching {
-            @Suppress("DEPRECATION")
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        }.getOrNull().orEmpty()
+    fun currentVersion(): String = runCatching {
+        @Suppress("DEPRECATION")
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+    }.getOrNull().orEmpty()
 
     /**
      * Checks GitHub for a newer release. Auto-checks (launch) pass
@@ -221,7 +220,10 @@ class UpdateManager @Inject constructor(
             setDataAndType(uri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        return runCatching { context.startActivity(install); true }
+        return runCatching {
+            context.startActivity(install)
+            true
+        }
             .getOrElse {
                 Log.w(TAG, "install intent failed: ${it.message}")
                 _state.value = UpdateStatus.Failed(UpdateError.INSTALL)
@@ -232,8 +234,7 @@ class UpdateManager @Inject constructor(
     private fun prefs() = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private fun dueForAutoCheck(): Boolean =
         System.currentTimeMillis() - prefs().getLong(KEY_LAST_CHECK, 0L) >= CHECK_THROTTLE_MS
-    private fun markChecked() =
-        prefs().edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
+    private fun markChecked() = prefs().edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply()
 
     private companion object {
         // The published repo the release workflow tags and uploads APKs to.

@@ -159,7 +159,9 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         b.pinnedBand.isVisible = state.pinnedCount > 0
         if (state.pinnedCount > 0) {
             b.pinnedBand.text = resources.getQuantityString(
-                R.plurals.timeline_pinned_band, state.pinnedCount, state.pinnedCount,
+                R.plurals.timeline_pinned_band,
+                state.pinnedCount,
+                state.pinnedCount,
             )
         }
         b.unencryptedBand.isVisible = state.showUnencryptedBand
@@ -652,7 +654,13 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
      *  (AvatarFallback round). */
     private fun loadAvatarInto(url: String?, name: String, id: String, image: android.widget.ImageView) {
         viewLifecycleOwner.lifecycleScope.launch {
-            org.matchat.core.ui.media.AvatarBinder.bind(image, url, name, id, avatarMaxPx()) { viewModel.loadAvatar(it) }
+            org.matchat.core.ui.media.AvatarBinder.bind(
+                image,
+                url,
+                name,
+                id,
+                avatarMaxPx(),
+            ) { viewModel.loadAvatar(it) }
         }
     }
 

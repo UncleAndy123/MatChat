@@ -134,6 +134,7 @@ class VerificationFragment : SoftkeyFragment() {
 
     private companion object {
         const val EMOJIS_PER_ROW = 4
+
         // Deliberately excluded from Text size scaling — a decorative icon,
         // not read text (item_attachment.xml's glyph, same reasoning).
         const val EMOJI_SP = 28f

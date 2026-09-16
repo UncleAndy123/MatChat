@@ -16,13 +16,11 @@ internal object PinnedEventsContent {
 
     /** [current] with [eventId] added (if [pinned]) or removed, de-duplicated
      *  and order-preserving. */
-    fun withEvent(current: List<String>, eventId: String, pinned: Boolean): List<String> =
-        if (pinned) {
-            if (eventId in current) current else current + eventId
-        } else {
-            current - eventId
-        }
+    fun withEvent(current: List<String>, eventId: String, pinned: Boolean): List<String> = if (pinned) {
+        if (eventId in current) current else current + eventId
+    } else {
+        current - eventId
+    }
 
-    fun toJson(eventIds: List<String>): String =
-        JSONObject().put(KEY, JSONArray(eventIds)).toString()
+    fun toJson(eventIds: List<String>): String = JSONObject().put(KEY, JSONArray(eventIds)).toString()
 }

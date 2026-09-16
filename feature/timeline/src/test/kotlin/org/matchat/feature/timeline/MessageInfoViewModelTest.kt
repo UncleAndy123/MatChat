@@ -32,6 +32,7 @@ class MessageInfoViewModelTest {
     )
 
     @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+
     @AfterEach fun tearDown() = Dispatchers.resetMain()
 
     @Test
@@ -39,7 +40,12 @@ class MessageInfoViewModelTest {
         val fake = session.timeline(roomId) as org.matchat.core.testing.FakeTimeline
         fake.emit(
             listOf(
-                message(eventId, reactions = listOf(ReactionSummary("👍", 2, reactedByMe = true, senderNames = listOf("Wayne", "Merv")))),
+                message(
+                    eventId,
+                    reactions = listOf(
+                        ReactionSummary("👍", 2, reactedByMe = true, senderNames = listOf("Wayne", "Merv")),
+                    ),
+                ),
                 message(EventId("other"), reactions = listOf(ReactionSummary("😀", 1, reactedByMe = false))),
             ),
         )
@@ -60,8 +66,13 @@ class MessageInfoViewModelTest {
     }
 
     private fun message(id: EventId, reactions: List<ReactionSummary> = emptyList()) = TimelineItem.Message(
-        eventId = id, sender = UserId("@wayne:s"), senderName = "Wayne",
-        body = "hi", timestampEpochMs = 0L, isOwn = false, sendState = SendState.SENT,
+        eventId = id,
+        sender = UserId("@wayne:s"),
+        senderName = "Wayne",
+        body = "hi",
+        timestampEpochMs = 0L,
+        isOwn = false,
+        sendState = SendState.SENT,
         reactions = reactions,
     )
 }

@@ -65,18 +65,17 @@ internal class RustMatrixSession @Inject constructor(
     override suspend fun deviceId(): String? =
         withContext(Dispatchers.IO) { runCatching { holder.requireClient().deviceId() }.getOrNull() }
 
-    override suspend fun openIdToken(): org.matchat.core.model.MatrixOpenIdToken? =
-        withContext(Dispatchers.IO) {
-            runCatching {
-                val t = holder.requireClient().requestOpenidToken()
-                org.matchat.core.model.MatrixOpenIdToken(
-                    accessToken = t.accessToken,
-                    tokenType = t.tokenType,
-                    matrixServerName = t.matrixServerName,
-                    expiresInSeconds = t.expiresInSeconds.toLong(),
-                )
-            }.getOrNull()
-        }
+    override suspend fun openIdToken(): org.matchat.core.model.MatrixOpenIdToken? = withContext(Dispatchers.IO) {
+        runCatching {
+            val t = holder.requireClient().requestOpenidToken()
+            org.matchat.core.model.MatrixOpenIdToken(
+                accessToken = t.accessToken,
+                tokenType = t.tokenType,
+                matrixServerName = t.matrixServerName,
+                expiresInSeconds = t.expiresInSeconds.toLong(),
+            )
+        }.getOrNull()
+    }
 
     override suspend fun lookupProfile(address: UserId): Result<Profile> = runCatching {
         // A lookup of a known address, never a search (AGENTS.md §0).

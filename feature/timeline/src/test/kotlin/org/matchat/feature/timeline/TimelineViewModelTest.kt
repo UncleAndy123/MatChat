@@ -106,7 +106,10 @@ class TimelineViewModelTest {
         assertEquals(
             listOf(
                 org.matchat.core.testing.FakeTimeline.SentMedia(
-                    "/cache/photo.jpg", "image/jpeg", MediaKind.IMAGE, "look at this",
+                    "/cache/photo.jpg",
+                    "image/jpeg",
+                    MediaKind.IMAGE,
+                    "look at this",
                 ),
             ),
             fake.sentMediaCalls,
@@ -299,17 +302,13 @@ class TimelineViewModelTest {
         senderAvatarUrl = senderAvatarUrl, seenBy = seenBy, reactions = reactions, isPinned = isPinned,
     )
 
-    private fun mediaItem(
-        id: String,
-        kind: MediaKind,
-        durationMs: Long? = null,
-        waveform: List<Float>? = null,
-    ) = TimelineItem.Media(
-        eventId = EventId(id), sender = UserId("@wayne:s"), senderName = "Wayne",
-        body = "voice.m4a", timestampEpochMs = 0L, isOwn = false, sendState = SendState.SENT,
-        kind = kind, filename = "voice.m4a", caption = null, mimeType = "audio/mp4",
-        sizeBytes = null, durationMs = durationMs, waveform = waveform,
-    )
+    private fun mediaItem(id: String, kind: MediaKind, durationMs: Long? = null, waveform: List<Float>? = null) =
+        TimelineItem.Media(
+            eventId = EventId(id), sender = UserId("@wayne:s"), senderName = "Wayne",
+            body = "voice.m4a", timestampEpochMs = 0L, isOwn = false, sendState = SendState.SENT,
+            kind = kind, filename = "voice.m4a", caption = null, mimeType = "audio/mp4",
+            sizeBytes = null, durationMs = durationMs, waveform = waveform,
+        )
 
     @Test
     fun `a VOICE item with a waveform renders as a VoiceBubble row carrying it through`() = runTest {
@@ -340,8 +339,12 @@ class TimelineViewModelTest {
         val fake = session.timeline(roomId) as org.matchat.core.testing.FakeTimeline
         val vm = subject()
         val attachment = PendingAttachment(
-            "/cache/voice.m4a", "audio/mp4", MediaKind.VOICE, "Voice message (0:05)",
-            durationMs = 5_000L, waveform = listOf(0.2f, 0.4f),
+            "/cache/voice.m4a",
+            "audio/mp4",
+            MediaKind.VOICE,
+            "Voice message (0:05)",
+            durationMs = 5_000L,
+            waveform = listOf(0.2f, 0.4f),
         )
         vm.onAction(TimelineAction.StageAttachment(attachment))
         vm.onAction(TimelineAction.Send("   ")) // no caption typed
@@ -358,8 +361,12 @@ class TimelineViewModelTest {
         val fake = session.timeline(roomId) as org.matchat.core.testing.FakeTimeline
         val vm = subject()
         val attachment = PendingAttachment(
-            "/cache/voice.m4a", "audio/mp4", MediaKind.VOICE, "Voice message (0:05)",
-            durationMs = 5_000L, waveform = listOf(0.2f, 0.4f),
+            "/cache/voice.m4a",
+            "audio/mp4",
+            MediaKind.VOICE,
+            "Voice message (0:05)",
+            durationMs = 5_000L,
+            waveform = listOf(0.2f, 0.4f),
         )
         vm.onAction(TimelineAction.StageAttachment(attachment))
         vm.onAction(TimelineAction.Send("also this"))
