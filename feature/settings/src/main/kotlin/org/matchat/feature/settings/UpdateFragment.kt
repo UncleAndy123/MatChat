@@ -59,7 +59,7 @@ class UpdateFragment : SoftkeyFragment() {
                 if (state.percent < 0) getString(R.string.update_downloading)
                 else getString(R.string.update_downloading_pct, state.percent)
             UpdatePhase.READY -> getString(R.string.update_ready)
-            UpdatePhase.FAILED -> getString(R.string.update_failed)
+            UpdatePhase.FAILED -> getString(failureMessage(state.error))
         }
 
         b.updateVersions.text = if (state.latestVersion.isNotBlank()) {
@@ -87,6 +87,14 @@ class UpdateFragment : SoftkeyFragment() {
         val busy = state.phase == UpdatePhase.CHECKING || state.phase == UpdatePhase.DOWNLOADING
         b.updateAction.isEnabled = !busy
         b.updateAction.isFocusable = !busy
+    }
+
+    private fun failureMessage(error: org.matchat.core.update.UpdateError?): Int = when (error) {
+        org.matchat.core.update.UpdateError.NO_RELEASE -> R.string.update_failed_no_release
+        org.matchat.core.update.UpdateError.NO_ASSET -> R.string.update_failed_no_asset
+        org.matchat.core.update.UpdateError.INSTALL -> R.string.update_failed_install
+        org.matchat.core.update.UpdateError.DOWNLOAD -> R.string.update_failed_download
+        org.matchat.core.update.UpdateError.NETWORK, null -> R.string.update_failed_network
     }
 
     override fun onDestroyView() {
