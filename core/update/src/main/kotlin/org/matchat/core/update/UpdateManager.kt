@@ -114,11 +114,11 @@ class UpdateManager @Inject constructor(
     }
 
     /**
-     * Picks the APK asset to install: a universal APK if the release has one
-     * (installs on any ABI — release.yml publishes app-universal-release.apk),
-     * else the split matching this device's ABI (most-preferred first), else the
-     * sole APK when only one is attached. Null when nothing fits, so releases
-     * that predate the universal APK still install via their per-ABI split.
+     * Picks the APK asset to install: the split matching this device's ABI first
+     * (most-preferred ABI first) — that is the smallest download that runs here,
+     * far smaller than the all-ABI universal APK — then the universal APK as a
+     * fallback (installs on any ABI, e.g. an odd ABI with no split), then the sole
+     * APK when only one is attached. Null when nothing fits.
      */
     private fun pickApk(assets: JSONArray?): JSONObject? {
         if (assets == null) return null
@@ -126,12 +126,12 @@ class UpdateManager @Inject constructor(
             .map { assets.getJSONObject(it) }
             .filter { it.optString("name").endsWith(".apk", ignoreCase = true) }
         if (apks.isEmpty()) return null
-        apks.firstOrNull { it.optString("name").contains("universal", ignoreCase = true) }
-            ?.let { return it }
         for (abi in Build.SUPPORTED_ABIS) {
             apks.firstOrNull { it.optString("name").contains(abi, ignoreCase = true) }
                 ?.let { return it }
         }
+        apks.firstOrNull { it.optString("name").contains("universal", ignoreCase = true) }
+            ?.let { return it }
         return apks.singleOrNull()
     }
 
