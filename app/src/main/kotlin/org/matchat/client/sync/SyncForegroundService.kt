@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.getSystemService
 import androidx.lifecycle.LifecycleService
@@ -14,7 +15,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.matchat.client.R
 import org.matchat.client.notify.CallNotifier
-import org.matchat.client.notify.MessageNotifier
 import org.matchat.core.matrix.MatrixAuth
 import org.matchat.core.matrix.MatrixSession
 import org.matchat.core.matrix.MatrixSessionStore
@@ -22,7 +22,6 @@ import org.matchat.core.model.RoomSummary
 import org.matchat.core.rtc.CallController
 import org.matchat.core.rtc.CallPhase
 import org.matchat.core.rtc.IncomingCall
-import org.matchat.core.ui.prefs.UserPreferences
 import javax.inject.Inject
 
 /**
@@ -37,8 +36,10 @@ import javax.inject.Inject
  * START_STICKY brings just this service back, no Activity involved) restarts
  * sync too, rather than leaving the "MatChat is running" notification up over
  * a dead sync loop.
- * The Android 15 dataSync 6h/24h cap fallback to WorkManager is still tracked
- * in docs/adr/0004 — not a silent gap.
+ *
+ * Android 15 caps a dataSync FGS at ~6h/24h; [onTimeout] hands sync off to the
+ * [SyncWorker] WorkManager fallback when that ceiling is hit, and [onStartCommand]
+ * reclaims it (cancelling the worker) once the app is foregrounded (docs/adr/0004).
  */
 @AndroidEntryPoint
 class SyncForegroundService : LifecycleService() {
@@ -49,11 +50,10 @@ class SyncForegroundService : LifecycleService() {
 
     @Inject lateinit var sessionStore: MatrixSessionStore
 
-    @Inject lateinit var userPreferences: UserPreferences
-
     @Inject lateinit var callController: CallController
 
-    private val lastUnread = HashMap<String, Int>()
+    @Inject lateinit var messageNotifications: MessageNotifications
+
     private val lastCall = HashMap<String, Boolean>()
     /** Rooms we raised a ring for, roomId -> caller; cleared on answer or end. */
     private val ringingRooms = HashMap<String, String>()
@@ -66,9 +66,39 @@ class SyncForegroundService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         startForeground(NOTIFICATION_ID, buildNotification())
+        // We are the foreground service again: reclaim sync from the WorkManager
+        // fallback (ADR 0004) so the two never sync in parallel. Foregrounding
+        // resets the Android 15 dataSync budget, so the loop gets a fresh window.
+        SyncWorker.cancel(this)
         ensureSessionRestored()
         observeRoomsForNotifications()
         return START_STICKY
+    }
+
+    /**
+     * Android 15 caps a `dataSync` foreground service at ~6h per 24h; when we
+     * cross it the OS calls this and we must stop promptly (ADR 0004). Pause the
+     * loop (keeping the client alive for a fast foreground resume) and hand off
+     * to the [SyncWorker] fallback so messages keep arriving, delayed, until the
+     * app is foregrounded and [onStartCommand] reclaims sync. Both `onTimeout`
+     * overloads route here: API 34 calls the one-arg form, API 35+ the two-arg.
+     */
+    override fun onTimeout(startId: Int) = handleTimeout()
+
+    override fun onTimeout(startId: Int, fgsType: Int) = handleTimeout()
+
+    private fun handleTimeout() {
+        Log.i(TAG, "dataSync FGS timed out; handing sync off to the WorkManager fallback")
+        SyncWorker.enqueue(applicationContext)
+        // Pause before stopSelf(): stopSelf() ends the service and cancels
+        // lifecycleScope, so ordering the pause first (svc.stop() is quick)
+        // guarantees the loop is actually paused rather than left running in the
+        // background until the worker's first catch-up. Well within the few
+        // seconds the OS allows after onTimeout.
+        lifecycleScope.launch {
+            runCatching { session.pauseSync() }
+            stopSelf()
+        }
     }
 
     /**
@@ -87,8 +117,13 @@ class SyncForegroundService : LifecycleService() {
      * it tears down and reconnects).
      */
     private fun ensureSessionRestored() {
-        if (session.isActive() || !sessionStore.hasSession()) return
-        lifecycleScope.launch { auth.restoreSession() }
+        if (!sessionStore.hasSession()) return
+        lifecycleScope.launch {
+            // Active client but the loop may have been paused by the WorkManager
+            // fallback's last catch-up — ensureSyncing() restarts it (idempotent
+            // if already running). No client at all → restore (which starts sync).
+            if (session.isActive()) session.ensureSyncing() else auth.restoreSession()
+        }
     }
 
     /** Watch joined-room unread counts and raise a per-room notification when one
@@ -111,13 +146,16 @@ class SyncForegroundService : LifecycleService() {
     }
 
     private suspend fun onRooms(rooms: List<RoomSummary>) {
+        // Message notifications go through the shared, @Singleton
+        // MessageNotifications so the unread baseline survives the hand-off to
+        // the WorkManager fallback (ADR 0004). Call ringing stays here — a
+        // delayed background job can't usefully ring a live call.
+        messageNotifications.onRooms(rooms)
+
         if (!seeded) {
-            // Seed both baselines so existing unread history and an already-ongoing
-            // call (app just launched into it) never alert.
-            rooms.forEach {
-                lastUnread[it.id.value] = it.unreadCount
-                lastCall[it.id.value] = it.hasActiveCall
-            }
+            // Seed the call baseline so an already-ongoing call (app just launched
+            // into it) never rings.
+            rooms.forEach { lastCall[it.id.value] = it.hasActiveCall }
             seeded = true
             return
         }
@@ -128,22 +166,6 @@ class SyncForegroundService : LifecycleService() {
                 !room.hasActiveCall && hadCall -> onCallDisappeared(room)
             }
             lastCall[room.id.value] = room.hasActiveCall
-            val prev = lastUnread[room.id.value] ?: 0
-            val now = room.unreadCount
-            when {
-                now > prev && now > 0 -> if (userPreferences.notificationsEnabled.value) {
-                    MessageNotifier.show(
-                        this,
-                        room.id,
-                        room.name.ifBlank { room.id.value },
-                        now,
-                        channelVersion = userPreferences.notificationChannelVersion.value,
-                        soundUri = userPreferences.notificationSoundUri.value,
-                    )
-                }
-                now == 0 && prev > 0 -> MessageNotifier.cancel(this, room.id)
-            }
-            lastUnread[room.id.value] = now
         }
     }
 
@@ -200,6 +222,7 @@ class SyncForegroundService : LifecycleService() {
         // without a reinstall.
         private const val CHANNEL_ID = "matchat.sync.v2"
         private const val NOTIFICATION_ID = 1
+        private const val TAG = "SyncForegroundService"
 
         fun start(context: Context) {
             val intent = Intent(context, SyncForegroundService::class.java)

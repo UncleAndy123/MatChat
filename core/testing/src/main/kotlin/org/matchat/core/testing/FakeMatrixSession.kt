@@ -37,6 +37,14 @@ class FakeMatrixSession(
     var active: Boolean = true
     override fun isActive(): Boolean = active
 
+    override suspend fun ensureSyncing() {
+        syncFlow.value = SyncState.SYNCING
+    }
+
+    override suspend fun pauseSync() = Unit
+
+    override suspend fun catchUpSync(windowMillis: Long) = Unit
+
     val timelines = mutableMapOf<RoomId, FakeTimeline>()
     var profileResult: (UserId) -> Result<Profile> = { Result.success(Profile(it, null)) }
     var startDirectChatResult: (UserId) -> Result<RoomId> = { Result.success(RoomId("!new:local")) }

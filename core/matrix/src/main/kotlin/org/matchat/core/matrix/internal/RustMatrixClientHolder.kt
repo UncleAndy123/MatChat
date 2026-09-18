@@ -7,6 +7,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -149,11 +150,25 @@ internal class RustMatrixClientHolder @Inject constructor(
         }
     }
 
-    /** Start the sync loop and begin observing the room list. */
+    /**
+     * Start the sync loop and begin observing the room list. If a [SyncService]
+     * already exists it is *resumed* rather than rebuilt: [SyncService.start] and
+     * [stopSync]'s [SyncService.stop] are designed to be cycled (the room-list
+     * stream stays subscribed across a pause), which is how the WorkManager
+     * fallback (ADR 0004) and a foreground resume re-arm sync without touching
+     * the crypto store. Idempotent for an already-running loop.
+     */
     suspend fun startSync() = withContext(Dispatchers.IO) {
-        if (syncService != null) return@withContext
-        syncState.value = SyncState.SYNCING
         observeConnectivity()
+        val existing = syncService
+        if (existing != null) {
+            // Resume a paused (or already-running) loop — start() is safe to
+            // re-issue and the entriesWithDynamicAdapters stream is still live.
+            runCatching { existing.start() }
+            syncState.value = SyncState.SYNCING
+            return@withContext
+        }
+        syncState.value = SyncState.SYNCING
         val svc = requireClient().syncService().finish()
         svc.start()
         syncService = svc
@@ -171,6 +186,34 @@ internal class RustMatrixClientHolder @Inject constructor(
         // Joined = the user's joined rooms (no args); All takes a filter list.
         result.controller().setFilter(RoomListEntriesDynamicFilterKind.Joined)
         entriesResult = result // keep alive so the stream is not dropped
+    }
+
+    /**
+     * Pause the sync loop, keeping the [SyncService], room-list stream, and
+     * [client] alive so [startSync] resumes it with a plain [SyncService.start]
+     * — no rebuild, no crypto-store churn. Used when the foreground service hits
+     * the Android 15 `dataSync` runtime cap (ADR 0004) and between the fallback
+     * worker's bounded catch-up windows. Leaves [syncState] and the last [rooms]
+     * snapshot untouched (SYNCING still means "session active" here — see its
+     * doc) for a fast foreground resume. Idempotent — no-op when nothing is
+     * running. Full teardown remains [logout]'s job via [teardownClient].
+     */
+    suspend fun stopSync() = withContext(Dispatchers.IO) {
+        val svc = syncService ?: return@withContext
+        runCatching { svc.stop() }
+    }
+
+    /**
+     * Run the sync loop for [windowMillis] then pause it — one bounded catch-up
+     * for the WorkManager fallback (ADR 0004). No-op when no client is built
+     * (the caller restores first). Successive worker runs just cycle
+     * [startSync]/[stopSync] on the same live service.
+     */
+    suspend fun catchUpSync(windowMillis: Long) = withContext(Dispatchers.IO) {
+        if (client == null) return@withContext
+        startSync()
+        delay(windowMillis)
+        stopSync()
     }
 
     private fun observeConnectivity() {

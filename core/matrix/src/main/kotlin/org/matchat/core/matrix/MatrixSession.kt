@@ -36,6 +36,24 @@ interface MatrixSession : SyncStateSource {
      *  know sync needs re-establishing, not just observing. */
     fun isActive(): Boolean
 
+    /** Ensure the sync loop is running (idempotent). The foreground service
+     *  calls this whenever it (re)starts, so a loop the WorkManager fallback
+     *  left stopped — or one restored but not yet syncing — resumes. No-op when
+     *  there is no live client. */
+    suspend fun ensureSyncing()
+
+    /** Stop the sync loop but keep the client (and its crypto store) alive, so a
+     *  later [ensureSyncing] resumes without a full restore. Used when the
+     *  foreground service hits the Android 15 `dataSync` runtime cap (ADR 0004)
+     *  and hands sync off to WorkManager. */
+    suspend fun pauseSync()
+
+    /** Run the sync loop for [windowMillis] to catch up, then stop it. The
+     *  WorkManager fallback worker uses this to deliver (delayed) messages while
+     *  the foreground service is barred from running (ADR 0004). Restores nothing
+     *  — the caller ensures the session is active first. */
+    suspend fun catchUpSync(windowMillis: Long)
+
     fun timeline(roomId: RoomId): RoomTimeline
 
     suspend fun acceptInvite(roomId: RoomId): Result<Unit>

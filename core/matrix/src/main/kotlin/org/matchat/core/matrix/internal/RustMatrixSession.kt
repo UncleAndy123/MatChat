@@ -45,6 +45,12 @@ internal class RustMatrixSession @Inject constructor(
 
     override fun isActive(): Boolean = holder.isActive()
 
+    override suspend fun ensureSyncing() = holder.startSync()
+
+    override suspend fun pauseSync() = holder.stopSync()
+
+    override suspend fun catchUpSync(windowMillis: Long) = holder.catchUpSync(windowMillis)
+
     // FFI follow-up: invites = rooms filtered by Invited membership; device trust
     // arrives with the M4 verification wiring.
     override val invites: Flow<List<InviteSummary>> = flowOf(emptyList())
