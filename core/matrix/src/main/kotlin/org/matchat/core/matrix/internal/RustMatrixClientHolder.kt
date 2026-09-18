@@ -198,9 +198,10 @@ internal class RustMatrixClientHolder @Inject constructor(
      * doc) for a fast foreground resume. Idempotent — no-op when nothing is
      * running. Full teardown remains [logout]'s job via [teardownClient].
      */
-    suspend fun stopSync() = withContext(Dispatchers.IO) {
+    suspend fun stopSync(): Unit = withContext(Dispatchers.IO) {
         val svc = syncService ?: return@withContext
         runCatching { svc.stop() }
+        Unit
     }
 
     /**
