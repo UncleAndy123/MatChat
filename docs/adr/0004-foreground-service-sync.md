@@ -26,7 +26,14 @@ locally from the sync stream.
   24 h**; on any device running API 35 the service hits that ceiling and must
   hand off to a periodic `WorkManager` sync, with the user-visible cost of
   delayed messages. Most target flips run older AOSP builds where the cap does
-  not apply — verify per SKU rather than assuming, and build the fallback at M1.
+  not apply — verify per SKU rather than assuming.
+  **Built (M1):** `SyncForegroundService.onTimeout()` pauses the loop (keeping
+  the client alive) and enqueues `SyncWorker`, a unique periodic (15 min,
+  network-constrained) job exempt from the FGS cap. Each run restores the session
+  if the process was reclaimed, runs a bounded catch-up sync, and posts
+  notifications via the shared `MessageNotifications`. Foregrounding the app
+  resets the budget and reclaims the service, which cancels the worker so the two
+  never sync in parallel.
 - Battery is the primary risk of the whole project. We request a battery
   optimization exemption during onboarding and **measure idle drain on hardware
   at M1**, not at M5. Budget: < 2 %/hour idle-connected.

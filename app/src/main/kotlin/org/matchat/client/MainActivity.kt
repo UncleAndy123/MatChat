@@ -186,7 +186,15 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun onResume() {
         super.onResume()
         activeInstance = this
-        if (sessionStore.hasSession()) lifecycleScope.launch { session.setPresence(online = true) }
+        if (sessionStore.hasSession()) {
+            // Reclaim the foreground sync service on every foreground. Being in the
+            // foreground resets the Android 15 dataSync runtime budget, so this both
+            // recovers from a WorkManager-fallback handoff (ADR 0004) and cancels
+            // that fallback (SyncForegroundService.onStartCommand). Idempotent when
+            // the service is already the live sync owner.
+            SyncForegroundService.start(this)
+            lifecycleScope.launch { session.setPresence(online = true) }
+        }
     }
 
     override fun onPause() {

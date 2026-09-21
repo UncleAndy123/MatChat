@@ -96,5 +96,19 @@
         <meta-data
             android:name="android.content.APP_RESTRICTIONS"
             android:resource="@xml/app_restrictions" />
+
+        <!-- On-demand WorkManager init: MatChatApp is the Configuration.Provider
+             (Hilt supplies the worker factory for SyncWorker), so the default
+             startup initializer must be removed (ADR 0004 fallback). -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 </manifest>

@@ -1,6 +1,8 @@
 package org.matchat.client
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -11,14 +13,21 @@ import org.matchat.core.ui.prefs.UserPreferences
 import javax.inject.Inject
 
 /** Hilt graph root. The sync foreground service (not this class) owns the SDK
- *  client; the app just constructs the graph (ARCHITECTURE.md "Sync lifecycle"). */
+ *  client; the app just constructs the graph (ARCHITECTURE.md "Sync lifecycle").
+ *  Also supplies WorkManager's [Configuration] so the Hilt-injected [SyncWorker]
+ *  fallback (ADR 0004) can be constructed. */
 @HiltAndroidApp
-class MatChatApp : Application() {
+class MatChatApp : Application(), Configuration.Provider {
 
     // Populated by Hilt during super.onCreate() (SyncForegroundService's
     // @Inject session field is the same pattern for a non-Activity class) —
     // safe to read right after that call returns, below.
     @Inject lateinit var userPreferences: UserPreferences
+
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
         super.onCreate()
