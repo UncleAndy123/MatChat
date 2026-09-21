@@ -19,8 +19,8 @@ android {
         applicationId = appId
         minSdk = 24
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.1.6-M0"
+        versionCode = 7
+        versionName = "0.1.7-M1"
         testInstrumentationRunner = "org.matchat.client.HiltTestRunner"
     }
 
