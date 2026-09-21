@@ -54,15 +54,20 @@ object CallNotifier {
         ensureChannel(context)
         val open = activityIntent(context, roomId, caller, answer = false)
         val fullScreen = PendingIntent.getActivity(
-            context, REQ_FULLSCREEN, open,
+            context,
+            REQ_FULLSCREEN,
+            open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val answer = PendingIntent.getActivity(
-            context, REQ_ANSWER, activityIntent(context, roomId, caller, answer = true),
+            context,
+            REQ_ANSWER,
+            activityIntent(context, roomId, caller, answer = true),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val decline = PendingIntent.getBroadcast(
-            context, REQ_DECLINE,
+            context,
+            REQ_DECLINE,
             Intent(context, CallActionReceiver::class.java).apply {
                 action = ACTION_DECLINE
                 putExtra(EXTRA_CALL_ROOM, roomId.value)
@@ -90,7 +95,9 @@ object CallNotifier {
     fun showMissed(context: Context, roomId: RoomId, caller: String) {
         cancel(context)
         val open = PendingIntent.getActivity(
-            context, REQ_FULLSCREEN, activityIntent(context, roomId, caller, answer = false),
+            context,
+            REQ_FULLSCREEN,
+            activityIntent(context, roomId, caller, answer = false),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_CALLS)

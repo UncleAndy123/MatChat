@@ -24,10 +24,10 @@ class PinnedMessagesViewModelTest {
     private val session = FakeMatrixSession()
     private val roomId = RoomId("!room:server")
 
-    private fun subject() =
-        PinnedMessagesViewModel(session, SavedStateHandle(mapOf("roomId" to roomId.value)))
+    private fun subject() = PinnedMessagesViewModel(session, SavedStateHandle(mapOf("roomId" to roomId.value)))
 
     @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+
     @AfterEach fun tearDown() = Dispatchers.resetMain()
 
     @Test
@@ -63,8 +63,13 @@ class PinnedMessagesViewModelTest {
     }
 
     private fun message(id: String, body: String, isPinned: Boolean) = TimelineItem.Message(
-        eventId = EventId(id), sender = UserId("@wayne:s"), senderName = "Wayne",
-        body = body, timestampEpochMs = 0L, isOwn = false, sendState = SendState.SENT,
+        eventId = EventId(id),
+        sender = UserId("@wayne:s"),
+        senderName = "Wayne",
+        body = body,
+        timestampEpochMs = 0L,
+        isOwn = false,
+        sendState = SendState.SENT,
         isPinned = isPinned,
     )
 }

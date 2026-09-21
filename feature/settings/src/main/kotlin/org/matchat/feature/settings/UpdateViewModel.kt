@@ -67,8 +67,11 @@ class UpdateViewModel @Inject constructor(
             latestVersion = status.info.latestVersion,
             notes = status.info.notes,
         )
-        is UpdateStatus.Failed ->
-            UpdateState(phase = UpdatePhase.FAILED, currentVersion = updateManager.currentVersion())
+        is UpdateStatus.Failed -> UpdateState(
+            phase = UpdatePhase.FAILED,
+            currentVersion = updateManager.currentVersion(),
+            error = status.error,
+        )
     }
 
     private companion object {

@@ -10,6 +10,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.matchat.core.model.ErrorText
 import org.matchat.core.ui.focus.FocusEngine
+import org.matchat.core.ui.menu.MenuItem
+import org.matchat.core.ui.menu.MenuSheet
 import org.matchat.core.ui.nav.Navigator
 import org.matchat.core.ui.softkey.SoftkeyFragment
 import org.matchat.feature.onboarding.databinding.FragmentSignInBinding
@@ -71,8 +73,22 @@ class SignInFragment : SoftkeyFragment() {
         else -> getString(R.string.signin_error_generic, error.args.firstOrNull().orEmpty())
     }
 
+    /** LEFT softkey (also tappable on an emulator via the softkey bar): the only
+     *  option before sign-in is checking for a newer app version. */
+    override fun onOptions(): Boolean {
+        val items = listOf(MenuItem(OPT_UPDATE, getString(R.string.signin_opt_update)))
+        MenuSheet.show(requireContext(), items) { selected ->
+            if (selected.id == OPT_UPDATE) navigator.toUpdate()
+        }
+        return true
+    }
+
     override fun onDestroyView() {
         binding = null
         super.onDestroyView()
+    }
+
+    private companion object {
+        const val OPT_UPDATE = "update"
     }
 }

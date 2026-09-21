@@ -43,7 +43,13 @@ class RoomInfoFragment : org.matchat.core.ui.softkey.SoftkeyFragment() {
      *  source (AvatarFallback round). */
     private fun loadAvatarInto(url: String?, name: String, id: String, image: android.widget.ImageView) {
         viewLifecycleOwner.lifecycleScope.launch {
-            org.matchat.core.ui.media.AvatarBinder.bind(image, url, name, id, avatarMaxPx()) { viewModel.loadAvatar(it) }
+            org.matchat.core.ui.media.AvatarBinder.bind(
+                image,
+                url,
+                name,
+                id,
+                avatarMaxPx(),
+            ) { viewModel.loadAvatar(it) }
         }
     }
 

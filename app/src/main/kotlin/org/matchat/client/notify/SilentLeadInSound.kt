@@ -168,7 +168,12 @@ object SilentLeadInSound {
      *  a total data chunk of [dataSize] bytes (silence + decoded audio
      *  together) — computed upfront (both lengths are already known once
      *  decoding finishes) rather than written then patched. */
-    internal fun wavHeader(dataSize: Long, sampleRate: Int, channelCount: Int, bitsPerSample: Int = BITS_PER_SAMPLE): ByteArray {
+    internal fun wavHeader(
+        dataSize: Long,
+        sampleRate: Int,
+        channelCount: Int,
+        bitsPerSample: Int = BITS_PER_SAMPLE,
+    ): ByteArray {
         val blockAlign = channelCount * bitsPerSample / 8
         val byteRate = sampleRate * blockAlign
         val out = ByteArrayOutputStream(44)

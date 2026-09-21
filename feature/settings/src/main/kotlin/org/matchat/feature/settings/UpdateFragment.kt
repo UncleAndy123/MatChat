@@ -56,10 +56,13 @@ class UpdateFragment : SoftkeyFragment() {
             UpdatePhase.UP_TO_DATE -> getString(R.string.update_up_to_date)
             UpdatePhase.AVAILABLE -> getString(R.string.update_available)
             UpdatePhase.DOWNLOADING ->
-                if (state.percent < 0) getString(R.string.update_downloading)
-                else getString(R.string.update_downloading_pct, state.percent)
+                if (state.percent < 0) {
+                    getString(R.string.update_downloading)
+                } else {
+                    getString(R.string.update_downloading_pct, state.percent)
+                }
             UpdatePhase.READY -> getString(R.string.update_ready)
-            UpdatePhase.FAILED -> getString(R.string.update_failed)
+            UpdatePhase.FAILED -> getString(failureMessage(state.error))
         }
 
         b.updateVersions.text = if (state.latestVersion.isNotBlank()) {
@@ -71,10 +74,16 @@ class UpdateFragment : SoftkeyFragment() {
         b.updateNotes.text = state.notes
         b.updateNotes.visibility =
             if (state.notes.isNotBlank() &&
-                (state.phase == UpdatePhase.AVAILABLE ||
-                    state.phase == UpdatePhase.DOWNLOADING ||
-                    state.phase == UpdatePhase.READY)
-            ) View.VISIBLE else View.GONE
+                (
+                    state.phase == UpdatePhase.AVAILABLE ||
+                        state.phase == UpdatePhase.DOWNLOADING ||
+                        state.phase == UpdatePhase.READY
+                    )
+            ) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
 
         val actionLabel = when (state.phase) {
             UpdatePhase.AVAILABLE -> getString(R.string.update_action_download)
@@ -87,6 +96,14 @@ class UpdateFragment : SoftkeyFragment() {
         val busy = state.phase == UpdatePhase.CHECKING || state.phase == UpdatePhase.DOWNLOADING
         b.updateAction.isEnabled = !busy
         b.updateAction.isFocusable = !busy
+    }
+
+    private fun failureMessage(error: org.matchat.core.update.UpdateError?): Int = when (error) {
+        org.matchat.core.update.UpdateError.NO_RELEASE -> R.string.update_failed_no_release
+        org.matchat.core.update.UpdateError.NO_ASSET -> R.string.update_failed_no_asset
+        org.matchat.core.update.UpdateError.INSTALL -> R.string.update_failed_install
+        org.matchat.core.update.UpdateError.DOWNLOAD -> R.string.update_failed_download
+        org.matchat.core.update.UpdateError.NETWORK, null -> R.string.update_failed_network
     }
 
     override fun onDestroyView() {

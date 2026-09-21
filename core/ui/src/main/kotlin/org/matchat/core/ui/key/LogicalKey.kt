@@ -27,6 +27,7 @@ enum class LogicalKey {
     DIGIT_9,
     HASH_HOLD, // next unread room
     STAR_HOLD, // toggle large-text mode
+
     /** A held CENTER/ENTER (~500ms). Unlike HASH_HOLD/STAR_HOLD, plain CENTER
      *  still fires immediately too — this is opt-in, used only where a screen
      *  wants CENTER itself to require a hold (Timeline: sending a compose

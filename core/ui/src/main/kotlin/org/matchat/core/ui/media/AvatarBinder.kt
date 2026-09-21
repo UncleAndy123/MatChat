@@ -33,7 +33,10 @@ object AvatarBinder {
         image.tag = url
         image.setImageBitmap(AvatarCache.fallback(userId, name))
         if (url == null) return
-        AvatarCache.get(url)?.let { image.setImageBitmap(it); return }
+        AvatarCache.get(url)?.let {
+            image.setImageBitmap(it)
+            return
+        }
         val bytes = withContext(Dispatchers.IO) { loadBytes(url) } ?: return
         val bitmap = withContext(Dispatchers.Default) { AvatarCache.decodeAndCache(url, bytes, maxPx) }
         if (bitmap != null && image.tag == url) image.setImageBitmap(bitmap)

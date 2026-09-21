@@ -1,6 +1,30 @@
-# R8 full mode (PLAN.md §4). Keep the Matrix Rust SDK's JNI surface intact when
-# it is wired in M1 — the native layer looks up these by name.
-# -keep class org.matrix.rustcomponents.sdk.** { *; }   # uncomment at M1
+# R8 full mode (PLAN.md §4). The Matrix Rust SDK reaches its native .so through
+# uniffi + JNA, resolving classes and members by name/reflection, so a minified
+# release (isMinifyEnabled) must not rename or strip them — otherwise sign-in
+# fails at runtime with `com.sun.jna.Native`. Keep the SDK's public surface and
+# its uniffi bindings whole.
+-keep class org.matrix.rustcomponents.sdk.** { *; }
+-keep class uniffi.** { *; }
+
+# JNA itself: com.sun.jna.Native has JNI-registered native methods, and
+# Library/Structure/Callback subtypes are instantiated reflectively — renaming
+# any of them breaks the binding. JNA also references desktop java.awt types
+# that don't exist on Android, so silence those warnings.
+-keep class com.sun.jna.** { *; }
+-keepclassmembers class com.sun.jna.** { *; }
+-keep class * implements com.sun.jna.Library { *; }
+-keep class * extends com.sun.jna.Structure { *; }
+-keep class * implements com.sun.jna.Callback { *; }
+-dontwarn com.sun.jna.**
+-dontwarn java.awt.**
+
+# The SDK validates TLS with rustls-platform-verifier. Its native layer calls
+# these Java classes by name over JNI (verifyCertificateChain) — invisible to R8,
+# so without a keep rule they are stripped/renamed and sign-in fails with "Expect
+# rustls-platform-verifier to be initialized". The classes are vendored in
+# app/libs (see :app build.gradle.kts) and the runtime is started by initPlatform()
+# in :core:matrix. Keep rule per the crate's docs.
+-keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
 
 # Hilt/Dagger generate their own keep rules. Navigation needs Fragment names,
 # which are referenced from nav_graph.xml and kept by AGP's resource shrinker.

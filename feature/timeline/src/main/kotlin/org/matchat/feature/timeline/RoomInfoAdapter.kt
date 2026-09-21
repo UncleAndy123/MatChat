@@ -59,8 +59,12 @@ internal class RoomInfoAdapter(
                     itemView.setOnClickListener(null)
                 }
                 is RoomInfoRow.Member -> two(
-                    row.name, row.sub, showAvatar = true, avatarUrl = row.avatarUrl,
-                    avatarName = row.name, avatarUserId = row.userId.value,
+                    row.name,
+                    row.sub,
+                    showAvatar = true,
+                    avatarUrl = row.avatarUrl,
+                    avatarName = row.name,
+                    avatarUserId = row.userId.value,
                 ) {
                     itemView.setOnClickListener { onMemberActivated(row) }
                 }

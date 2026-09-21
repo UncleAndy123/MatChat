@@ -21,9 +21,12 @@ enum class UpdateError {
      *  so a PKIX failure surfaces here; see gradle.properties / PLAN.md §11). */
     NETWORK,
 
-    /** Reached GitHub but there's no published release, or it carries no
-     *  universal APK asset to install. */
+    /** Reached GitHub but there's no published release yet. */
     NO_RELEASE,
+
+    /** There's a release, but it carries no APK this phone can install
+     *  (no universal APK and no split matching the device ABI). */
+    NO_ASSET,
 
     /** The download did not complete. */
     DOWNLOAD,

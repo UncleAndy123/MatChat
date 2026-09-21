@@ -12,8 +12,22 @@ enum class ThemeMode { LIGHT, DARK }
  * not user-driven, so they keep meaning what they mean regardless of taste.
  */
 enum class AccentColor {
-    GREEN, AMBER, BLUE, PLUM,
-    TEAL, CYAN, INDIGO, VIOLET, ORCHID, ROSE, RUST, OCHRE, OLIVE, FOREST, SLATE, WINE,
+    GREEN,
+    AMBER,
+    BLUE,
+    PLUM,
+    TEAL,
+    CYAN,
+    INDIGO,
+    VIOLET,
+    ORCHID,
+    ROSE,
+    RUST,
+    OCHRE,
+    OLIVE,
+    FOREST,
+    SLATE,
+    WINE,
 }
 
 /** Settings > Text size (UX-SPEC §S16): scales text, avatars, and row heights
