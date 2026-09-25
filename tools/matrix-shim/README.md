@@ -77,8 +77,9 @@ locally). Flow:
 1. Run the **matrix-shim AAR** GitHub Action (Actions tab → Run workflow, or it
    auto-runs when `tools/matrix-shim/**` changes on the dev branch).
 2. Download its `sdk-android-matchat-shim` artifact and unzip it — it contains an
-   `m2/` tree. **Merge `m2/` into your `~/.m2/repository/`** (so you get
-   `~/.m2/repository/org/matrix/rustcomponents/sdk-android/<ver>/…`).
+   `m2/` tree. **Copy the contents of `m2/` into `tools/matrix-shim/local-maven/`**
+   (the version folder is pre-created — see that folder's README). `~/.m2` also
+   works if you prefer, but the project-local folder needs no home-dir changes.
 3. In `gradle.properties` (or `-P`):
    ```properties
    matchat.useShimSdk=true
