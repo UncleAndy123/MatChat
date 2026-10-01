@@ -52,6 +52,43 @@ These phones have no app store: MatChat is **sideloaded** (ADB / WebADB) and
 kept in sync by a foreground service, since there is no Google push. An in-app
 updater pulls signed releases over GitHub Releases.
 
+## Pictures of the app:
+<div align="center">
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/32d07ded-3cb0-4e9b-acf4-a959e93b69c8"
+           width="220"
+           alt="MatChat screenshot — room list" />
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/561182c5-82dd-4510-9d9c-9a208379db77"
+           width="220"
+           alt="MatChat screenshot — conversation" />
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/364a5ec9-b371-49cc-b9b6-fa0777c0e6a9"
+           width="220"
+           alt="MatChat screenshot — messaging" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/a9fb7e69-09b6-4800-9d79-0292971bc311"
+           width="220"
+           alt="MatChat screenshot — contacts" />
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/927209b9-fdcb-422a-bdc4-037d6b992b75"
+           width="220"
+           alt="MatChat screenshot — settings" />
+    </td>
+    <td></td>
+  </tr>
+</table>
+
+
 ## Where we are
 
 Actively developed, pre-release (`0.1.0-M0`). The module graph, build, and CI
