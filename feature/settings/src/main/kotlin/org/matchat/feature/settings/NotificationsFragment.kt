@@ -5,6 +5,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -61,14 +62,29 @@ class NotificationsFragment : SoftkeyFragment() {
         b.notificationsEnabled.setOnClickListener {
             viewModel.onAction(NotificationsAction.ToggleEnabled)
         }
-        b.notificationsSound.setOnClickListener { launchPicker() }
+        b.notificationsSound.setOnClickListener { viewModel.onAction(NotificationsAction.OpenSoundPicker) }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.state.collect(::render)
+                launch { viewModel.state.collect(::render) }
+                launch { viewModel.navEvents.collect(::navigate) }
             }
         }
         FocusEngine.requestInitialFocus(b.notificationsEnabled)
+    }
+
+    /** Android 7–9 only: storage access to copy MatChat's bundled sounds into
+     *  the phone's Notifications folder before the picker opens. */
+    private val storagePermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> viewModel.onAction(NotificationsAction.StoragePermissionResult(granted)) }
+
+    private fun navigate(nav: NotificationsNav) {
+        when (nav) {
+            NotificationsNav.RequestStoragePermission ->
+                storagePermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            NotificationsNav.OpenPicker -> launchPicker()
+        }
     }
 
     private fun launchPicker() {
@@ -98,6 +114,7 @@ class NotificationsFragment : SoftkeyFragment() {
         b.notificationsEnabled.text =
             if (state.enabled) getString(R.string.theme_row_selected_format, label) else label
         b.notificationsSoundSub.text = soundLabel(state.sound)
+        b.notificationsBundledAccess.isVisible = state.bundledSoundsNeedAccess
     }
 
     /** Resolving a Custom choice's display name needs RingtoneManager +

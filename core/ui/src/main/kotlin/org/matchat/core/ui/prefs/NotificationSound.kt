@@ -9,4 +9,4 @@ package org.matchat.core.ui.prefs
  * `:feature:settings` (NotificationsViewModel, which reads the picker
  * result), neither of which can depend on the other.
  */
-const val SILENT_NOTIFICATION_SOUND: String = "matchat:silent"
+const val SILENT_NOTIFICATION_SOUND: String = org.matchat.core.model.notify.SILENT_SOUND

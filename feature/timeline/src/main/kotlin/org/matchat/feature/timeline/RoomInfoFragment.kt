@@ -1,5 +1,8 @@
 package org.matchat.feature.timeline
 
+import android.media.RingtoneManager
+import android.net.Uri
+import android.provider.Settings
 import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.viewModels
@@ -34,6 +37,7 @@ class RoomInfoFragment : org.matchat.core.ui.softkey.SoftkeyFragment() {
         onFieldActivated = { editField(it) },
         onMemberActivated = { memberMenu(it) },
         onActionActivated = { onAction(it) },
+        onSoundActivated = { viewModel.openSoundPicker() },
         onAvatarBind = { url, name, id, image -> loadAvatarInto(url, name, id, image) },
     )
 
@@ -80,10 +84,59 @@ class RoomInfoFragment : org.matchat.core.ui.softkey.SoftkeyFragment() {
                 val res = when (nav.key) {
                     ToastKey.BAD_ADDRESS -> R.string.roominfo_bad_address
                     ToastKey.EDIT_FAILED -> R.string.roominfo_edit_failed
+                    ToastKey.SOUNDS_NEED_ACCESS -> R.string.roominfo_sounds_need_access
                 }
                 Toast.makeText(requireContext(), res, Toast.LENGTH_SHORT).show()
             }
+            RoomInfoNav.RequestStoragePermission ->
+                storagePermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            is RoomInfoNav.OpenSoundPicker -> launchSoundPicker(nav.currentUri)
         }
+    }
+
+    /** Android 7–9 only: storage access to copy MatChat's bundled sounds out
+     *  (docs/SOUNDS.md) before the picker opens. */
+    private val storagePermission = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { granted -> viewModel.onStoragePermissionResult(granted) }
+
+    private val pickSound = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val picked = result.data?.getParcelableExtra<Uri>(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+        // Best-effort persistable grant, as in NotificationsFragment: most
+        // MediaStore sound URIs need none, and notify() survives without it.
+        picked?.let {
+            runCatching {
+                requireContext().contentResolver
+                    .takePersistableUriPermission(it, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        }
+        viewModel.onSoundPicked(
+            pickedUri = picked?.toString(),
+            cancelled = result.resultCode != android.app.Activity.RESULT_OK,
+            systemDefaultUri = Settings.System.DEFAULT_NOTIFICATION_URI.toString(),
+        )
+    }
+
+    /** The system sound picker for this room. Its "Default" entry means the
+     *  app's own sound (Settings > Notifications), not the phone's. */
+    private fun launchSoundPicker(currentUri: String?) {
+        val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, getString(R.string.roominfo_sound_caption))
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, Settings.System.DEFAULT_NOTIFICATION_URI)
+            val existing = when (currentUri) {
+                null -> Settings.System.DEFAULT_NOTIFICATION_URI
+                org.matchat.core.model.notify.SILENT_SOUND -> null
+                else -> runCatching { Uri.parse(currentUri) }.getOrNull()
+            }
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, existing)
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { pickSound.launch(intent) }
     }
 
     private fun editField(field: RoomInfoRow.Field) {

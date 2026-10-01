@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.Network
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -29,6 +30,9 @@ import org.matrix.rustcomponents.sdk.RoomListEntriesUpdate
 import org.matrix.rustcomponents.sdk.RoomListEntriesWithDynamicAdaptersResult
 import org.matrix.rustcomponents.sdk.SlidingSyncVersionBuilder
 import org.matrix.rustcomponents.sdk.SyncService
+import org.matrix.rustcomponents.sdk.SyncServiceState
+import org.matrix.rustcomponents.sdk.SyncServiceStateObserver
+import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.TracingConfiguration
 import org.matrix.rustcomponents.sdk.initPlatform
 import java.util.concurrent.atomic.AtomicBoolean
@@ -71,6 +75,16 @@ internal class RustMatrixClientHolder @Inject constructor(
     val syncState = MutableStateFlow(SyncState.IDLE)
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    // Sync-loop watchdog (docs/adr/0004, "always-on" amendment): the SDK reports
+    // its loop state through syncStateHandle; SyncRestartPolicy decides when a
+    // dead loop (ERROR/TERMINATED) is restarted. [paused] marks an intentional
+    // stop — stopSync()/logout() — which must never be "recovered".
+    private var syncStateHandle: TaskHandle? = null // held so the state stream is not dropped
+    private val restartPolicy = SyncRestartPolicy()
+    private var restartJob: Job? = null
+
+    @Volatile private var paused = false
 
     // Serializes restore so two callers (MainActivity's cold-start restore and the
     // sync service's ensureSessionRestored) can't build two clients against the
@@ -201,6 +215,7 @@ internal class RustMatrixClientHolder @Inject constructor(
      * the crypto store. Idempotent for an already-running loop.
      */
     suspend fun startSync() = withContext(Dispatchers.IO) {
+        paused = false
         observeConnectivity()
         val existing = syncService
         if (existing != null) {
@@ -211,7 +226,15 @@ internal class RustMatrixClientHolder @Inject constructor(
             return@withContext
         }
         syncState.value = SyncState.SYNCING
-        val svc = requireClient().syncService().finish()
+        // withOfflineMode: on a network error the SDK enters OFFLINE, probes the
+        // server itself and resumes once it answers, instead of ending in ERROR.
+        // The state observer below restarts anything that still dies.
+        val svc = requireClient().syncService().withOfflineMode().finish()
+        syncStateHandle = svc.state(
+            object : SyncServiceStateObserver {
+                override fun onUpdate(state: SyncServiceState) = onSyncServiceState(svc, state)
+            },
+        )
         svc.start()
         syncService = svc
 
@@ -241,6 +264,8 @@ internal class RustMatrixClientHolder @Inject constructor(
      * running. Full teardown remains [logout]'s job via [teardownClient].
      */
     suspend fun stopSync(): Unit = withContext(Dispatchers.IO) {
+        paused = true
+        restartJob?.cancel()
         val svc = syncService ?: return@withContext
         runCatching { svc.stop() }
         Unit
@@ -265,6 +290,11 @@ internal class RustMatrixClientHolder @Inject constructor(
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 if (syncState.value == SyncState.OFFLINE) syncState.value = SyncState.SYNCING
+                // A loop that died while the network was down would otherwise wait
+                // out its backoff; kick it now. start() is safe on a running loop.
+                restartPolicy.onNetworkAvailable()
+                val svc = syncService
+                if (svc != null && !paused) scope.launch { runCatching { svc.start() } }
             }
 
             override fun onLost(network: Network) {
@@ -285,6 +315,8 @@ internal class RustMatrixClientHolder @Inject constructor(
     }
 
     suspend fun logout() = withContext(Dispatchers.IO) {
+        paused = true
+        restartJob?.cancel()
         runCatching { syncService?.stop() }
         runCatching { requireClient().logout() }
         networkCallback?.let { cb ->
@@ -307,6 +339,11 @@ internal class RustMatrixClientHolder @Inject constructor(
      * Idempotent — safe to call when nothing is built.
      */
     private fun teardownClient() {
+        restartJob?.cancel()
+        restartJob = null
+        runCatching { syncStateHandle?.cancel() }
+        runCatching { syncStateHandle?.destroy() }
+        syncStateHandle = null
         runCatching { entriesResult?.destroy() }
         runCatching { roomList?.destroy() }
         runCatching { syncService?.destroy() }
@@ -315,6 +352,38 @@ internal class RustMatrixClientHolder @Inject constructor(
         roomList = null
         syncService = null
         client = null
+    }
+
+    /**
+     * SDK loop state → the app's [SyncState] plus, when the loop died without us
+     * asking, a delayed restart. Runs on an SDK callback thread; the restart is
+     * scheduled on [scope] and skipped if the loop was paused or replaced in the
+     * meantime. While [paused], [syncState] is left alone (see [stopSync]).
+     */
+    private fun onSyncServiceState(svc: SyncService, state: SyncServiceState) {
+        val loopState = when (state) {
+            SyncServiceState.IDLE -> SyncRestartPolicy.LoopState.IDLE
+            SyncServiceState.RUNNING -> SyncRestartPolicy.LoopState.RUNNING
+            SyncServiceState.OFFLINE -> SyncRestartPolicy.LoopState.OFFLINE
+            SyncServiceState.TERMINATED -> SyncRestartPolicy.LoopState.TERMINATED
+            SyncServiceState.ERROR -> SyncRestartPolicy.LoopState.ERROR
+        }
+        if (!paused) {
+            when (loopState) {
+                SyncRestartPolicy.LoopState.RUNNING -> syncState.value = SyncState.SYNCING
+                SyncRestartPolicy.LoopState.OFFLINE -> syncState.value = SyncState.OFFLINE
+                SyncRestartPolicy.LoopState.ERROR,
+                SyncRestartPolicy.LoopState.TERMINATED,
+                -> syncState.value = SyncState.ERROR
+                SyncRestartPolicy.LoopState.IDLE -> Unit
+            }
+        }
+        val delayMillis = restartPolicy.onState(loopState, paused) ?: return
+        restartJob?.cancel()
+        restartJob = scope.launch {
+            delay(delayMillis)
+            if (!paused && syncService === svc) runCatching { svc.start() }
+        }
     }
 
     private fun applyUpdates(updates: List<RoomListEntriesUpdate>) = synchronized(entries) {

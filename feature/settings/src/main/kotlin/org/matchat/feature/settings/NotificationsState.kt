@@ -8,6 +8,9 @@ package org.matchat.feature.settings
 data class NotificationsState(
     val enabled: Boolean = true,
     val sound: SoundChoice = SoundChoice.Default,
+    /** Android 7–9: storage access was refused, so MatChat's bundled sounds
+     *  (docs/SOUNDS.md) are missing from the picker. Shows a note. */
+    val bundledSoundsNeedAccess: Boolean = false,
 )
 
 sealed interface SoundChoice {
@@ -19,4 +22,17 @@ sealed interface SoundChoice {
 sealed interface NotificationsAction {
     data object ToggleEnabled : NotificationsAction
     data class SelectSound(val uri: String?) : NotificationsAction
+
+    /** CENTER on the Sound row. */
+    data object OpenSoundPicker : NotificationsAction
+
+    /** The answer to the storage-permission request (Android 7–9). */
+    data class StoragePermissionResult(val granted: Boolean) : NotificationsAction
+}
+
+/** One-shot navigation out of S26. */
+sealed interface NotificationsNav {
+    /** Ask for storage access first, to copy the bundled sounds out. */
+    data object RequestStoragePermission : NotificationsNav
+    data object OpenPicker : NotificationsNav
 }

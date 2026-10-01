@@ -2,12 +2,14 @@
 <!-- Settings > Advanced (Phase 6, UI improvement plan; docs/adr/0007). The
      swap toggle: CENTER (or a tap) flips it. The selected state is a
      trailing checkmark on the label (theme_row_selected_format, shared with
-     S24 Theme), never color alone (AGENTS.md). Below it, a second row opens
-     system Accessibility settings for MatChatKeyAccessibilityService — a
-     workaround for a predictive-text keyboard that captures the right
-     softkey while composing; see that class's own doc comment. This is a
-     system setting, not one of ours, so it's a plain link/action row, not a
-     toggle we render state for. -->
+     S24 Theme), never color alone (AGENTS.md). Then "Run in background"
+     (opens the system battery-optimization dialog) and the background helper
+     (opens system Accessibility settings for MatChatKeyAccessibilityService —
+     the softkey workaround while composing, and the host that lets sync run
+     without the "MatChat is running" notification, docs/adr/0008). Both are
+     system settings, not ours, so they are action rows with a read-only
+     status line under each, not toggles. Focus order = XML order:
+     swap → run in background → helper. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -40,6 +42,27 @@
             android:text="@string/advanced_swap_softkeys_sub" />
 
         <TextView
+            android:id="@+id/advanced_battery_row"
+            style="@style/Widget.MatChat.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/advanced_battery_row"
+            android:textSize="?attr/textSizeLabel"
+            android:textColor="?attr/colorTextOnFocus" />
+
+        <TextView
+            android:id="@+id/advanced_battery_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:textSize="?attr/textSizeMeta"
+            android:textColor="?attr/colorTextSecondary"
+            android:paddingStart="@dimen/content_pad"
+            android:paddingEnd="@dimen/content_pad"
+            android:paddingTop="2dp"
+            android:paddingBottom="8dp" />
+
+        <TextView
             android:id="@+id/advanced_accessibility_row"
             style="@style/Widget.MatChat.Row"
             android:layout_width="match_parent"
@@ -58,5 +81,16 @@
             android:paddingEnd="@dimen/content_pad"
             android:paddingTop="2dp"
             android:text="@string/advanced_accessibility_row_sub" />
+
+        <TextView
+            android:id="@+id/advanced_accessibility_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:textSize="?attr/textSizeMeta"
+            android:textColor="?attr/colorTextSecondary"
+            android:paddingStart="@dimen/content_pad"
+            android:paddingEnd="@dimen/content_pad"
+            android:paddingTop="2dp" />
     </LinearLayout>
 </ScrollView>

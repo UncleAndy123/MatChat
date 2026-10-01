@@ -62,10 +62,22 @@
     <string name="advanced_title">Advanced</string>
     <string name="advanced_swap_softkeys">Swap Left/Right keys</string>
     <string name="advanced_swap_softkeys_sub">On: Options on the right, Back on the left. Turn off for Options on the left.</string>
-    <string name="advanced_accessibility_row">Softkey helper (system setting)</string>
-    <string name="advanced_accessibility_row_sub">On some phones the predictive-text keyboard captures
-        the right softkey while typing a message. Opens system Accessibility settings to turn on the
-        MatChat softkey helper, if you need it.</string>
+    <!-- "Run in background": opens the system battery-optimization dialog.
+         MatChat has no push service, so this keeps it connected while the
+         phone is idle (docs/adr/0008). -->
+    <string name="advanced_battery_row">Run in background (system setting)</string>
+    <string name="advanced_battery_allowed">Allowed.</string>
+    <string name="advanced_battery_not_allowed">Not allowed. New messages may be late while the phone is idle.</string>
+    <!-- "Background helper" = MatChat's accessibility service. Keep the name
+         identical to S27's title. -->
+    <string name="advanced_accessibility_row">Background helper (system setting)</string>
+    <string name="advanced_accessibility_row_sub">Opens Accessibility settings. Turn on MatChat there to
+        stay connected without the \"MatChat is running\" notification. It also fixes the right softkey
+        on phones whose keyboard captures it while typing.</string>
+    <!-- Status line under the helper row. -->
+    <string name="advanced_helper_status_on">On. No notification needed.</string>
+    <string name="advanced_helper_status_needs_battery">On, but Run in background is not allowed. The notification stays.</string>
+    <string name="advanced_helper_status_off">Off. MatChat shows a notification.</string>
 
     <!-- S26 Notifications (reached from S13 Settings > Notifications). -->
     <string name="notifications_title">Notifications</string>
@@ -74,6 +86,12 @@
     <string name="notifications_sound">Sound</string>
     <string name="notifications_sound_default">Default</string>
     <string name="notifications_sound_silent">Silent</string>
+    <!-- Note under the Sound row: each room can have its own sound, set from
+         that room's Room info screen. Wording requested by the product owner. -->
+    <string name="notifications_room_sound_note">You can set a custom room notification by going to the room info.</string>
+    <!-- Shown on Android 7–9 when storage access was refused: MatChat's own
+         bundled sounds can't be added to the phone's sound list. -->
+    <string name="notifications_bundled_access">MatChat\'s own sounds need storage access. Open Sound again to allow it.</string>
 
     <!-- S23 Policy. -->
     <string name="policy_title">Policy</string>
@@ -122,4 +140,6 @@
     <string name="help_back_swapped">Left key or Back returns to the previous screen.</string>
     <string name="help_unread">Hold # to jump to the next unread group.</string>
     <string name="help_text_size">Hold * to change text size.</string>
+    <!-- Explains the persistent sync notification (docs/adr/0004, 0008). -->
+    <string name="help_running">\"MatChat is running\" keeps new messages coming. To hide it, turn on the Background helper in Settings > Advanced.</string>
 </resources>

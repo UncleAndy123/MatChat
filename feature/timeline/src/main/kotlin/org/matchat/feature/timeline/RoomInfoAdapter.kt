@@ -1,5 +1,7 @@
 package org.matchat.feature.timeline
 
+import android.media.RingtoneManager
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +11,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import org.matchat.core.model.notify.RoomSoundChoice
 
 /**
  * Room Info rows (S12): editable fields, read-only info, section headers, members,
@@ -18,6 +21,8 @@ internal class RoomInfoAdapter(
     private val onFieldActivated: (RoomInfoRow.Field) -> Unit,
     private val onMemberActivated: (RoomInfoRow.Member) -> Unit,
     private val onActionActivated: (RoomInfoRow.Action) -> Unit,
+    /** CENTER on the Notification sound row (S12 only). */
+    private val onSoundActivated: () -> Unit = {},
     /** Binds a member avatar (Avatars round): url, name, user id, target —
      *  the name/id are the no-avatar-fallback's color+initial source
      *  (AvatarFallback round). Never called for Field/Info rows, so screens
@@ -29,6 +34,7 @@ internal class RoomInfoAdapter(
     override fun getItemViewType(position: Int): Int = when (getItem(position)) {
         is RoomInfoRow.Field -> TYPE_FIELD
         is RoomInfoRow.Info -> TYPE_INFO
+        is RoomInfoRow.Sound -> TYPE_FIELD // a focusable two-line row, like Field
         is RoomInfoRow.Section -> TYPE_SECTION
         is RoomInfoRow.Member -> TYPE_MEMBER
         is RoomInfoRow.Action -> TYPE_ACTION
@@ -57,6 +63,12 @@ internal class RoomInfoAdapter(
                 }
                 is RoomInfoRow.Info -> two(row.value, row.label) {
                     itemView.setOnClickListener(null)
+                }
+                is RoomInfoRow.Sound -> two(
+                    soundLabel(row.choice),
+                    itemView.context.getString(R.string.roominfo_sound_caption),
+                ) {
+                    itemView.setOnClickListener { onSoundActivated() }
                 }
                 is RoomInfoRow.Member -> two(
                     row.name,
@@ -99,6 +111,19 @@ internal class RoomInfoAdapter(
                 if (showAvatar) onAvatarBind(avatarUrl, avatarName, avatarUserId, avatar)
             }
             wire()
+        }
+
+        /** Resolving a custom sound's title needs RingtoneManager + Context,
+         *  so it happens here (same as NotificationsFragment.soundLabel). */
+        private fun soundLabel(choice: RoomSoundChoice): String {
+            val context = itemView.context
+            return when (choice) {
+                RoomSoundChoice.AppDefault -> context.getString(R.string.roominfo_sound_app_default)
+                RoomSoundChoice.Silent -> context.getString(R.string.roominfo_sound_silent)
+                is RoomSoundChoice.Custom -> runCatching {
+                    RingtoneManager.getRingtone(context, Uri.parse(choice.uri))?.getTitle(context)
+                }.getOrNull() ?: context.getString(R.string.roominfo_sound_custom)
+            }
         }
 
         private fun single(text: String, wire: (() -> Unit)? = null) {

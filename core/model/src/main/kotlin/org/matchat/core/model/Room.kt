@@ -22,6 +22,14 @@ data class RoomSummary(
     /** True when a MatrixRTC call is active in this room — the ring pipeline's
      *  signal (docs/VOICE.md §5), read from RoomInfo.hasRoomCall. */
     val hasActiveCall: Boolean = false,
+    /** Display name of whoever sent [lastMessage] (raw Matrix ID when no name
+     *  is known), or null when there is no latest message. */
+    val lastMessageSender: String? = null,
+    /** True when the latest message is our own (never notified). */
+    val lastMessageIsOwn: Boolean = false,
+    /** Set when the latest message is media; [lastMessage] is then null and the
+     *  UI shows a label for the kind ("Photo", "Voice message"…). */
+    val lastMessageMedia: MediaKind? = null,
 )
 
 /** An invitation (a room whose membership state is Invited). See S18/S19. */

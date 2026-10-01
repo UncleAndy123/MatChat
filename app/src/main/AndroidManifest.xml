@@ -7,8 +7,18 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- Sync runs as a dataSync foreground service (PLAN.md §6.6). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Restart sync after a reboot / app update without the user opening the
+         app (SyncBootReceiver, docs/adr/0004 "always-on" amendment). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Runtime notification permission on API 33+. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 7–9 only: copy the notification sounds bundled in res/raw into
+         the phone's public Notifications folder so the sound picker lists them
+         (BundledSounds, docs/SOUNDS.md). Requested when a sound picker is first
+         opened. Android 10+ needs no permission for this. -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <!-- Recording voice notes (S9); the mic is optional hardware. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Call audio routing (earpiece/speaker) for LiveKit voice calls (ADR 0006). -->
@@ -83,10 +93,21 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- Optional, user-enabled workaround for a device whose predictive-text
-             keyboard consumes the right softkey before this app sees it while
-             composing — see MatChatKeyAccessibilityService's own doc comment.
-             Enabled manually in Settings > Accessibility; inert otherwise.
+        <receiver
+            android:name=".sync.SyncBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Optional, user-enabled "background helper": works around a device
+             whose predictive-text keyboard consumes the right softkey while
+             composing, and hosts sync without the "MatChat is running"
+             notification (docs/adr/0008) — see MatChatKeyAccessibilityService's
+             own doc comment. Enabled manually in Settings > Accessibility;
+             inert otherwise.
              exported="true" matches a confirmed-working sibling app's own
              accessibility service on this hardware family (TurboText) — the
              android.permission.BIND_ACCESSIBILITY_SERVICE requirement below

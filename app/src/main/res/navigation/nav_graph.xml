@@ -24,6 +24,11 @@
         android:label="MatChat" />
 
     <fragment
+        android:id="@+id/backgroundHelperFragment"
+        android:name="org.matchat.feature.onboarding.BackgroundHelperFragment"
+        android:label="Background helper" />
+
+    <fragment
         android:id="@+id/timelineFragment"
         android:name="org.matchat.feature.timeline.TimelineFragment"
         android:label="Timeline">

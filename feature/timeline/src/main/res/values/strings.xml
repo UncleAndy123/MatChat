@@ -74,6 +74,15 @@
     <string name="roominfo_remove_member">Remove from room</string>
     <string name="roominfo_bad_address">Enter a full address, e.g. @sam:example.org</string>
     <string name="roominfo_edit_failed">That change didn\'t go through.</string>
+    <!-- S12 Notification sound row: caption, and the sound name shown above it.
+         "App sound" = the one chosen in Settings > Notifications. -->
+    <string name="roominfo_sound_caption">Notification sound</string>
+    <string name="roominfo_sound_app_default">Default (app sound)</string>
+    <string name="roominfo_sound_silent">Silent</string>
+    <!-- A custom sound whose name can't be read any more. -->
+    <string name="roominfo_sound_custom">Custom sound</string>
+    <!-- Android 7–9, storage access refused before opening the sound picker. -->
+    <string name="roominfo_sounds_need_access">MatChat\'s own sounds need storage access.</string>
     <string name="timeline_edit_title">Edit message</string>
 
     <!-- Pinned messages (reached from Room info > Pinned messages). -->

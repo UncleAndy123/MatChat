@@ -279,8 +279,13 @@ No Play Services ⇒ no FCM. Therefore:
   a later fix. Most flips in scope run older AOSP builds where the cap does not
   apply; verify per SKU rather than assuming.
 - On app background, sync continues; on device idle, we request battery
-  optimization exemption once during onboarding (documented; some carrier builds
-  refuse it — measure).
+  optimization exemption once after sign-in (documented; some carrier builds
+  refuse it — measure). **Built:** the exemption dialog plus S27, and Settings >
+  Advanced rows for both. Sync also restarts after a reboot, restarts a dead SDK
+  loop, and a 15-minute watchdog restarts a killed host (ADR 0004 amendment).
+- With the exemption and the optional Background helper (accessibility service)
+  both on, the helper hosts sync and the "MatChat is running" notification goes
+  away (ADR 0008). It is never on by default: only the user can enable it.
 - Notification per room, collapsed, with the room name and a count. Selecting it
   deep-links into that room's timeline.
 - Target: < 2 % battery/hour idle-connected on the reference device. **Measure on

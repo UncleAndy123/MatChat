@@ -1,6 +1,7 @@
 package org.matchat.feature.timeline
 
 import org.matchat.core.model.UserId
+import org.matchat.core.model.notify.RoomSoundChoice
 
 /** A display row on the Room Info screen (S12). Focusable rows are CENTER targets. */
 sealed interface RoomInfoRow {
@@ -9,6 +10,12 @@ sealed interface RoomInfoRow {
     /** An editable field (name/topic). CENTER opens a text prompt. */
     data class Field(val key: String, val label: String, val value: String) : RoomInfoRow {
         override val stableId: String get() = "field:$key"
+    }
+
+    /** This room's notification sound (UX-SPEC S12). CENTER opens the
+     *  system sound picker; [choice] AppDefault means the app-wide sound. */
+    data class Sound(val choice: RoomSoundChoice) : RoomInfoRow {
+        override val stableId: String get() = "sound"
     }
 
     /** A read-only line (e.g. encryption state). */

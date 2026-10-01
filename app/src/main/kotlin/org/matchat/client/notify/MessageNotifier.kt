@@ -18,7 +18,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.matchat.client.MainActivity
 import org.matchat.client.R
+import org.matchat.core.model.MediaKind
 import org.matchat.core.model.RoomId
+import org.matchat.core.model.notify.RoomSound
 import org.matchat.core.ui.prefs.SILENT_NOTIFICATION_SOUND
 
 /**
@@ -28,8 +30,17 @@ import org.matchat.core.ui.prefs.SILENT_NOTIFICATION_SOUND
  *   • Reply  → inline RemoteInput → [MessageReplyReceiver]
  *   • Read   → [MarkReadReceiver]
  *
- * No message body is shown yet (the latest-event preview is a follow-up), so the
- * text is a generic count — which doubles as lock-screen privacy.
+ * The text is the latest message ("Ann: see you at six"), or "2 new messages"
+ * when it can't be shown ([NotificationText]). The lock-screen version is the
+ * count only, so a phone set to hide sensitive content never shows the text.
+ * The LED is on for as long as the notification is up — MessageNotifications
+ * cancels it when the room is read (UX-SPEC S15).
+ *
+ * Channels (Android 8+; a channel's sound and lights can't change after it is
+ * created, hence the versions and the `l` = lights generation):
+ *   • `matchat.messages.l<version>` — the app-wide sound (Settings > Notifications)
+ *   • `matchat.messages.r.<room>.l<version>` — a room's own sound (Room info)
+ *   • [SAFE_CHANNEL_ID] — default sound, used only if posting on the others fails
  */
 object MessageNotifier {
 
@@ -39,14 +50,20 @@ object MessageNotifier {
 
     private const val REQ_REPLY = 1_000
     private const val REQ_READ = 2_000
-    private const val CHANNEL_PREFIX = "matchat.messages.s"
+    private const val CHANNEL_PREFIX = "matchat.messages.l"
+
+    /** The channels from before the LED change (no lights); deleted on the
+     *  first post so system Settings doesn't list stale duplicates. */
+    private const val OLD_CHANNEL_PREFIX = "matchat.messages.s"
+    private const val OLD_SAFE_CHANNEL_ID = "matchat.messages.safe"
+    private const val ROOM_CHANNEL_PREFIX = "matchat.messages.r."
 
     /** A fixed, always-default-sound fallback channel — never versioned, never
      *  deleted — used only when posting against the user's chosen channel
      *  throws (see [show]'s retry). Exists so a broken stored sound
      *  preference degrades to "wrong sound" rather than "no notification at
      *  all, forever." */
-    private const val SAFE_CHANNEL_ID = "matchat.messages.safe"
+    private const val SAFE_CHANNEL_ID = "matchat.messages.safe.l"
     private const val TAG = "MessageNotifier"
 
     fun notifId(roomId: RoomId): Int = roomId.value.hashCode()
@@ -70,17 +87,63 @@ object MessageNotifier {
         val id = channelId(version)
         if (manager.getNotificationChannel(id) != null) return
         manager.createNotificationChannel(
-            NotificationChannel(
-                id,
-                context.getString(R.string.messages_channel_name),
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                enableVibration(true)
-                setSound(leadInSoundUri(context, soundUri), notificationAudioAttributes())
-            },
+            messageChannel(context, id, context.getString(R.string.messages_channel_name), soundUri),
         )
         if (version > 0) runCatching { manager.deleteNotificationChannel(channelId(version - 1)) }
+        // Pre-LED channels: the same versions under the old prefix, and the old safe one.
+        runCatching { manager.deleteNotificationChannel("$OLD_CHANNEL_PREFIX$version") }
+        if (version > 0) runCatching { manager.deleteNotificationChannel("$OLD_CHANNEL_PREFIX${version - 1}") }
+        runCatching { manager.deleteNotificationChannel(OLD_SAFE_CHANNEL_ID) }
     }
+
+    /** All of one room's channels share this prefix, whatever the version. */
+    private fun roomChannelPrefix(roomId: RoomId): String =
+        "$ROOM_CHANNEL_PREFIX${Integer.toHexString(roomId.value.hashCode())}."
+
+    fun roomChannelId(roomId: RoomId, version: Int): String = "${roomChannelPrefix(roomId)}l$version"
+
+    /**
+     * A room's own channel, with its [sound] (UX-SPEC S12), named after the
+     * room so it reads sensibly in system Settings. Deletes the room's other
+     * channel versions. Idempotent.
+     */
+    suspend fun ensureRoomChannel(context: Context, roomId: RoomId, roomName: String, sound: RoomSound) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService<NotificationManager>() ?: return
+        val id = roomChannelId(roomId, sound.version)
+        if (manager.getNotificationChannel(id) == null) {
+            val name = context.getString(R.string.messages_room_channel_name, roomName)
+            manager.createNotificationChannel(messageChannel(context, id, name, sound.uri))
+        }
+        deleteRoomChannels(manager, roomId, keep = id)
+    }
+
+    /** The room went back to the app sound: drop its own channels. */
+    fun deleteRoomChannels(context: Context, roomId: RoomId) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = context.getSystemService<NotificationManager>() ?: return
+        deleteRoomChannels(manager, roomId, keep = null)
+    }
+
+    private fun deleteRoomChannels(manager: NotificationManager, roomId: RoomId, keep: String?) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val prefix = roomChannelPrefix(roomId)
+        runCatching {
+            manager.notificationChannels
+                .filter { it.id.startsWith(prefix) && it.id != keep }
+                .forEach { manager.deleteNotificationChannel(it.id) }
+        }
+    }
+
+    /** Every message channel: high importance, vibration, the LED (device
+     *  default color), and [soundUri] with the Bluetooth lead-in. */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun messageChannel(context: Context, id: String, name: String, soundUri: String?) =
+        NotificationChannel(id, name, NotificationManager.IMPORTANCE_HIGH).apply {
+            enableVibration(true)
+            enableLights(true)
+            setSound(leadInSoundUri(context, soundUri), notificationAudioAttributes())
+        }
 
     /** The [SAFE_CHANNEL_ID] fallback channel — always the system default
      *  sound, created once and never deleted/versioned. */
@@ -89,14 +152,7 @@ object MessageNotifier {
         val manager = context.getSystemService<NotificationManager>() ?: return
         if (manager.getNotificationChannel(SAFE_CHANNEL_ID) != null) return
         manager.createNotificationChannel(
-            NotificationChannel(
-                SAFE_CHANNEL_ID,
-                context.getString(R.string.messages_channel_name),
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                enableVibration(true)
-                setSound(leadInSoundUri(context, null), notificationAudioAttributes())
-            },
+            messageChannel(context, SAFE_CHANNEL_ID, context.getString(R.string.messages_channel_name), null),
         )
     }
 
@@ -125,17 +181,34 @@ object MessageNotifier {
         return withContext(Dispatchers.IO) { SilentLeadInSound.process(context, resolved) }
     }
 
+    /**
+     * Posts (or updates) [roomId]'s notification. With [roomSound] set, it goes
+     * on the room's own channel with that sound; otherwise on the app-wide
+     * channel ([channelVersion], [soundUri]).
+     */
+    @Suppress("LongParameterList")
     suspend fun show(
         context: Context,
         roomId: RoomId,
-        title: String,
-        unread: Int,
+        content: NotificationContent,
         channelVersion: Int = 0,
         soundUri: String? = null,
+        roomSound: RoomSound? = null,
     ) {
-        ensureChannel(context, channelVersion, soundUri)
+        val channel: String
+        val sound: String?
+        if (roomSound != null) {
+            ensureRoomChannel(context, roomId, content.roomName, roomSound)
+            channel = roomChannelId(roomId, roomSound.version)
+            sound = roomSound.uri
+        } else {
+            ensureChannel(context, channelVersion, soundUri)
+            deleteRoomChannels(context, roomId)
+            channel = channelId(channelVersion)
+            sound = soundUri
+        }
         val id = notifId(roomId)
-        val notification = buildNotification(context, roomId, id, title, unread, channelId(channelVersion), soundUri)
+        val notification = buildNotification(context, roomId, id, content, channel, sound)
 
         // Crash fix (kept): a notification whose sound URI the app no longer
         // holds a read grant for (observed on-device: a custom sound picked
@@ -157,22 +230,22 @@ object MessageNotifier {
         if (posted.isFailure) {
             Log.w(
                 TAG,
-                "notify() failed on channel ${channelId(channelVersion)}; retrying with the default sound",
+                "notify() failed on channel $channel; retrying with the default sound",
                 posted.exceptionOrNull(),
             )
             ensureSafeChannel(context)
-            val fallback = buildNotification(context, roomId, id, title, unread, SAFE_CHANNEL_ID, soundUri = null)
+            val fallback = buildNotification(context, roomId, id, content, SAFE_CHANNEL_ID, soundUri = null)
             runCatching { manager(context).notify(id, fallback) }
                 .onFailure { e -> Log.e(TAG, "fallback notify() also failed; giving up on this notification", e) }
         }
     }
 
+    @Suppress("LongMethod")
     private fun buildNotification(
         context: Context,
         roomId: RoomId,
         id: Int,
-        title: String,
-        unread: Int,
+        content: NotificationContent,
         channelId: String,
         soundUri: String?,
     ): Notification {
@@ -220,11 +293,29 @@ object MessageNotifier {
             readPI,
         )
 
-        val text = context.resources.getQuantityString(R.plurals.notif_new_messages, unread, unread)
+        val title = content.roomName
+        val count = context.resources.getQuantityString(R.plurals.notif_new_messages, content.unread, content.unread)
+        val text = messageText(context, content) ?: count
+
+        // What the lock screen / outer display shows when the phone hides
+        // sensitive content: the room and the count, never the text.
+        val publicVersion = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_stat_message)
+            .setContentTitle(title)
+            .setContentText(count)
+            .build()
+
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_stat_message)
             .setContentTitle(title)
             .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .apply { if (content.unread > 1 && text != count) setSubText(count) }
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicVersion)
+            // Below O the LED is set per notification (on O+ the channel's
+            // enableLights decides). Blinks until the notification is cleared.
+            .setDefaults(NotificationCompat.DEFAULT_LIGHTS)
             .setContentIntent(openPI)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
@@ -235,6 +326,26 @@ object MessageNotifier {
             .addAction(replyAction)
             .addAction(readAction)
             .build()
+    }
+
+    /** "Ann: see you at six", "Photo", or null when there's nothing to show
+     *  (the caller then uses the count). */
+    private fun messageText(context: Context, content: NotificationContent): String? {
+        val body = when (val b = NotificationText.body(content)) {
+            is NotificationText.Body.Text -> b.text
+            is NotificationText.Body.Media -> context.getString(mediaLabel(b.kind))
+            NotificationText.Body.CountOnly -> return null
+        }
+        val sender = NotificationText.senderPrefix(content) ?: return body
+        return context.getString(R.string.notif_sender_text, sender, body)
+    }
+
+    private fun mediaLabel(kind: MediaKind): Int = when (kind) {
+        MediaKind.IMAGE -> R.string.notif_media_photo
+        MediaKind.VIDEO -> R.string.notif_media_video
+        MediaKind.AUDIO -> R.string.notif_media_audio
+        MediaKind.VOICE -> R.string.notif_media_voice
+        MediaKind.FILE -> R.string.notif_media_file
     }
 
     fun cancel(context: Context, roomId: RoomId) = manager(context).cancel(notifId(roomId))

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.matchat.core.testing.FakeBundledSoundInstaller
 import org.matchat.core.testing.FakeUserPreferences
 import org.matchat.core.ui.prefs.SILENT_NOTIFICATION_SOUND
 
@@ -17,7 +18,9 @@ class NotificationsViewModelTest {
 
     private val prefs = FakeUserPreferences()
 
-    private fun subject() = NotificationsViewModel(prefs)
+    private val bundledSounds = FakeBundledSoundInstaller()
+
+    private fun subject() = NotificationsViewModel(prefs, bundledSounds)
 
     @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 
@@ -80,5 +83,52 @@ class NotificationsViewModelTest {
             SILENT_NOTIFICATION_SOUND,
             vm.ringtonePickResultToUri(pickedUri = null, wasCancelled = true),
         )
+    }
+
+    @Test
+    fun `opening the picker copies bundled sounds first`() = runTest {
+        val vm = subject()
+        vm.navEvents.test {
+            vm.onAction(NotificationsAction.OpenSoundPicker)
+            assertEquals(NotificationsNav.OpenPicker, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(true, bundledSounds.installed)
+    }
+
+    @Test
+    fun `without storage access it asks first`() = runTest {
+        bundledSounds.needsStoragePermission = true
+        val vm = subject()
+        vm.navEvents.test {
+            vm.onAction(NotificationsAction.OpenSoundPicker)
+            assertEquals(NotificationsNav.RequestStoragePermission, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `refused storage access still opens the picker and shows the note`() = runTest {
+        bundledSounds.needsStoragePermission = true
+        val vm = subject()
+        vm.navEvents.test {
+            vm.onAction(NotificationsAction.StoragePermissionResult(granted = false))
+            assertEquals(NotificationsNav.OpenPicker, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        vm.state.test {
+            assertEquals(true, expectMostRecentItem().bundledSoundsNeedAccess)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `granted storage access hides the note`() = runTest {
+        val vm = subject()
+        vm.onAction(NotificationsAction.StoragePermissionResult(granted = true))
+        vm.state.test {
+            assertEquals(false, expectMostRecentItem().bundledSoundsNeedAccess)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

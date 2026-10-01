@@ -52,6 +52,10 @@ interface Navigator {
     /** Settings > Advanced (Phase 6, UI improvement plan): softkey swap. */
     fun toAdvanced()
 
+    /** S27: the one-time "hide the running notification" prompt after sign-in
+     *  (docs/adr/0008). */
+    fun toBackgroundHelper()
+
     /** Settings > Notifications: on/off + sound. */
     fun toNotifications()
     fun toPolicy()

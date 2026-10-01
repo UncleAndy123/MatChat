@@ -20,16 +20,20 @@ import org.matchat.core.matrix.MatrixSessionStore
 import java.util.concurrent.TimeUnit
 
 /**
- * The WorkManager fallback for the Android 15 `dataSync` foreground-service
- * runtime cap (ADR 0004). Once [SyncForegroundService] hits the ~6h/24h ceiling
- * the OS bars it from running, so this periodic job takes over: each run restores
- * the session if the process was reclaimed, runs a bounded catch-up sync, and
- * lets [MessageNotifications] post any new-message notifications. WorkManager
- * jobs are exempt from the FGS cap, so this keeps messages flowing (delayed by
- * the interval) until the app is foregrounded and the service reclaims sync.
+ * The sync watchdog and the Android 15 fallback (docs/adr/0004, "always-on"
+ * amendment). Scheduled whenever a session exists — by [SyncHosts.ensureRunning],
+ * the boot receiver and sign-in — and cancelled only at sign-out. Every run:
  *
- * Enqueued from [SyncForegroundService.onTimeout]; cancelled when the service
- * (re)starts and reclaims ownership, so the two never sync in parallel.
+ * - a host already owns sync → nudge the loop (restarts a paused/dead one) and stop;
+ * - no host (the process was killed and START_STICKY didn't bring it back, or
+ *   the helper went away) → start one through [SyncHosts];
+ * - the foreground service was timed out by the OS (Android 15's ~6h/24h
+ *   `dataSync` cap) or refused to start → restore the session if needed, run a
+ *   bounded catch-up sync and let [MessageNotifications] post anything new.
+ *   WorkManager jobs are exempt from the FGS cap, so messages keep flowing,
+ *   delayed by the interval, until the app is foregrounded again.
+ *
+ * The decision is [SyncWatchdog.decide], a pure function.
  */
 @HiltWorker
 class SyncWorker @AssistedInject constructor(
@@ -39,31 +43,48 @@ class SyncWorker @AssistedInject constructor(
     private val session: MatrixSession,
     private val sessionStore: MatrixSessionStore,
     private val messageNotifications: MessageNotifications,
+    private val owner: SyncOwner,
+    private val hosts: SyncHosts,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        // Signed out since the fallback was scheduled — stop the periodic chain
-        // rather than waking every interval to do nothing.
-        if (!sessionStore.hasSession()) {
-            cancel(applicationContext)
-            return Result.success()
-        }
-        return runCatching {
-            if (!session.isActive()) auth.restoreSession()
-            if (!session.isActive()) {
-                Log.w(TAG, "fallback sync: session not restorable; will retry")
-                return@runCatching Result.retry()
+        val decision = SyncWatchdog.decide(
+            signedIn = sessionStore.hasSession(),
+            hostActive = owner.activeHost.value != null,
+            fgsTimedOut = SyncForegroundService.timedOut,
+        )
+        return when (decision) {
+            // Signed out since this was scheduled — stop the periodic chain
+            // rather than waking every interval to do nothing.
+            SyncWatchdog.Decision.CANCEL -> {
+                cancel(applicationContext)
+                Result.success()
             }
-            coroutineScope {
-                val observer = launch { session.rooms.collect { messageNotifications.onRooms(it) } }
-                session.catchUpSync(WINDOW_MILLIS)
-                observer.cancel()
+            SyncWatchdog.Decision.NUDGE -> {
+                runCatching { if (session.isActive()) session.ensureSyncing() }
+                Result.success()
             }
-            Result.success()
-        }.getOrElse {
-            Log.w(TAG, "fallback sync failed; will retry: ${it.message}")
-            Result.retry()
+            SyncWatchdog.Decision.START_HOST ->
+                if (hosts.ensureRunning()) Result.success() else catchUp()
+            SyncWatchdog.Decision.CATCH_UP -> catchUp()
         }
+    }
+
+    private suspend fun catchUp(): Result = runCatching {
+        if (!session.isActive()) auth.restoreSession()
+        if (!session.isActive()) {
+            Log.w(TAG, "fallback sync: session not restorable; will retry")
+            return@runCatching Result.retry()
+        }
+        coroutineScope {
+            val observer = launch { session.rooms.collect { messageNotifications.onRooms(it) } }
+            session.catchUpSync(WINDOW_MILLIS)
+            observer.cancel()
+        }
+        Result.success()
+    }.getOrElse {
+        Log.w(TAG, "fallback sync failed; will retry: ${it.message}")
+        Result.retry()
     }
 
     companion object {
@@ -79,9 +100,9 @@ class SyncWorker @AssistedInject constructor(
          *  request is silently clamped to it, so this is the real cadence. */
         private const val INTERVAL_MINUTES = 15L
 
-        /** Start the periodic fallback (keeping any existing schedule). Called
-         *  when the foreground service is timed out by the OS. */
-        fun enqueue(context: Context) {
+        /** Schedule the periodic watchdog, keeping any existing schedule (so
+         *  calling it on every resume doesn't push the next run back). */
+        fun schedule(context: Context) {
             val request = PeriodicWorkRequestBuilder<SyncWorker>(INTERVAL_MINUTES, TimeUnit.MINUTES)
                 .setConstraints(
                     Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),
@@ -91,7 +112,7 @@ class SyncWorker @AssistedInject constructor(
                 .enqueueUniquePeriodicWork(UNIQUE_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
         }
 
-        /** Stop the periodic fallback — the foreground service owns sync again. */
+        /** Stop the watchdog — only at sign-out. */
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_NAME)
         }

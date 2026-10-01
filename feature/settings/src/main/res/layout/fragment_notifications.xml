@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Settings > Notifications. Two focusable rows: a toggle (checkmark on its
      label, same convention as Advanced/Theme) and a Sound row that launches
-     the system ringtone picker, its subtitle showing the current choice. -->
+     the system ringtone picker, its subtitle showing the current choice.
+     Then a note pointing to per-room sounds in Room info (S12). -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -51,5 +52,32 @@
             android:paddingStart="@dimen/content_pad"
             android:paddingEnd="@dimen/content_pad"
             android:paddingTop="2dp" />
+
+        <!-- Per-room sounds live in Room info (S12); this says where. -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:textSize="?attr/textSizeMeta"
+            android:textColor="?attr/colorTextSecondary"
+            android:paddingStart="@dimen/content_pad"
+            android:paddingEnd="@dimen/content_pad"
+            android:paddingTop="8dp"
+            android:text="@string/notifications_room_sound_note" />
+
+        <!-- Android 7–9, storage access refused: MatChat's own sounds are
+             missing from the picker (docs/SOUNDS.md). -->
+        <TextView
+            android:id="@+id/notifications_bundled_access"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:visibility="gone"
+            android:textSize="?attr/textSizeMeta"
+            android:textColor="?attr/colorTextSecondary"
+            android:paddingStart="@dimen/content_pad"
+            android:paddingEnd="@dimen/content_pad"
+            android:paddingTop="8dp"
+            android:text="@string/notifications_bundled_access" />
     </LinearLayout>
 </ScrollView>

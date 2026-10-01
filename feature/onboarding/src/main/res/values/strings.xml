@@ -22,4 +22,16 @@
 
     <!-- Sign in > Options (LEFT softkey) menu. -->
     <string name="signin_opt_update">Software update</string>
+
+    <!-- S27 "Hide the running notification?" — shown once after sign-in
+         (docs/adr/0008). "Background helper" is MatChat's accessibility service;
+         keep the name identical to the Settings > Advanced row. -->
+    <string name="background_helper_title">Background helper</string>
+    <string name="background_helper_body">MatChat can stay connected without the \"MatChat is running\" notification. Turn on MatChat in Accessibility settings.</string>
+    <!-- The one focusable row; opens the phone's Accessibility settings. -->
+    <string name="background_helper_open">Open Accessibility settings</string>
+    <!-- Status line under the row. -->
+    <string name="background_helper_status_on">On. No notification needed.</string>
+    <string name="background_helper_status_needs_battery">On, but Run in background is not allowed. The notification stays.</string>
+    <string name="background_helper_status_off">Off. MatChat shows a notification.</string>
 </resources>

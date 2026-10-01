@@ -18,12 +18,18 @@ import org.matchat.core.model.RoomDetails
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomMemberSummary
 import org.matchat.core.model.UserId
+import org.matchat.core.model.notify.BundledSoundInstaller
+import org.matchat.core.model.notify.RoomNotificationSounds
+import org.matchat.core.model.notify.RoomSoundChoice
+import org.matchat.core.model.notify.RoomSoundPick
 import javax.inject.Inject
 
 /** S12 Room Info: shows name/topic/encryption/members and applies basic edits. */
 @HiltViewModel
 class RoomInfoViewModel @Inject constructor(
     private val session: MatrixSession,
+    private val roomSounds: RoomNotificationSounds,
+    private val bundledSounds: BundledSoundInstaller,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -35,16 +41,59 @@ class RoomInfoViewModel @Inject constructor(
     private val navChannel = Channel<RoomInfoNav>(Channel.BUFFERED)
     val navEvents: Flow<RoomInfoNav> = navChannel.receiveAsFlow()
 
+    // Last loaded room data, so a sound change re-renders without a reload.
+    private var details: RoomDetails? = null
+    private var members: List<RoomMemberSummary> = emptyList()
+
     init {
         reload()
+        viewModelScope.launch {
+            roomSounds.overrides.collect { _state.update { it.copy(rows = rows(details, members)) } }
+        }
     }
 
     fun reload() {
         viewModelScope.launch {
-            val details = session.roomDetails(roomId)
-            val members = session.roomMembers(roomId)
+            details = session.roomDetails(roomId)
+            members = session.roomMembers(roomId)
             _state.update { it.copy(title = details?.name.orEmpty(), rows = rows(details, members)) }
         }
+    }
+
+    /** CENTER on the Notification sound row: copy MatChat's bundled sounds
+     *  out first (asking for storage access on Android 7–9), then the picker. */
+    fun openSoundPicker() {
+        viewModelScope.launch {
+            if (bundledSounds.needsStoragePermission) {
+                navChannel.send(RoomInfoNav.RequestStoragePermission)
+            } else {
+                launchPicker()
+            }
+        }
+    }
+
+    /** The storage-permission answer. Refused: say so, open the picker anyway. */
+    fun onStoragePermissionResult(granted: Boolean) {
+        viewModelScope.launch {
+            if (!granted) navChannel.send(RoomInfoNav.Toast(ToastKey.SOUNDS_NEED_ACCESS))
+            launchPicker()
+        }
+    }
+
+    private suspend fun launchPicker() {
+        bundledSounds.install()
+        navChannel.send(RoomInfoNav.OpenSoundPicker(currentSoundUri()))
+    }
+
+    /** This room's own sound uri, for pre-selecting the picker; null = app sound. */
+    private fun currentSoundUri(): String? = roomSounds.overrides.value[roomId]?.uri
+
+    /** The picker's answer ([pickedUri] null = Silent), see [RoomSoundPick]. */
+    fun onSoundPicked(pickedUri: String?, cancelled: Boolean, systemDefaultUri: String) {
+        val current = currentSoundUri()
+        val next = RoomSoundPick.resolve(pickedUri, cancelled, current, systemDefaultUri)
+        if (cancelled || next == current) return
+        viewModelScope.launch { roomSounds.set(roomId, next) }
     }
 
     fun setName(name: String) = edit { session.setRoomName(roomId, name.trim()) }
@@ -93,6 +142,7 @@ class RoomInfoViewModel @Inject constructor(
         rows += RoomInfoRow.Field(KEY_NAME, "Name", details?.name.orEmpty())
         rows += RoomInfoRow.Field(KEY_TOPIC, "Topic", details?.topic.orEmpty())
         rows += RoomInfoRow.Info("Encryption", if (details?.isEncrypted == true) "On" else "Off")
+        rows += RoomInfoRow.Sound(RoomSoundChoice.of(roomSounds.overrides.value[roomId]))
         rows += RoomInfoRow.Section("Members (${members.count { it.membership == Membership.JOINED }})")
         members.filter { it.membership == Membership.JOINED || it.membership == Membership.INVITED }
             .sortedBy { it.label.lowercase() }
@@ -122,6 +172,12 @@ class RoomInfoViewModel @Inject constructor(
 sealed interface RoomInfoNav {
     data object Left : RoomInfoNav
     data class Toast(val key: ToastKey) : RoomInfoNav
+
+    /** Android 7–9: ask for storage access to copy the bundled sounds out. */
+    data object RequestStoragePermission : RoomInfoNav
+
+    /** Open the system sound picker, preselecting [currentUri] (null = app sound). */
+    data class OpenSoundPicker(val currentUri: String?) : RoomInfoNav
 }
 
-enum class ToastKey { BAD_ADDRESS, EDIT_FAILED }
+enum class ToastKey { BAD_ADDRESS, EDIT_FAILED, SOUNDS_NEED_ACCESS }

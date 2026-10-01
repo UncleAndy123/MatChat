@@ -182,6 +182,12 @@ The full key map is in `docs/UX-SPEC.md §2`. What you must obey in code:
 - Lists: `android:descendantFocusability="afterDescendants"`, focus lives on the
   row, the row is the click target.
 - **Never** add `android:clickable="true"` to something that is not focusable.
+- **Named exception: the Background helper hosts sync** (docs/adr/0008).
+  `MatChatKeyAccessibilityService` also lends its lifetime to `SyncOwner` so sync
+  can run without the "MatChat is running" notification, when the user has
+  enabled it and allowed "Run in background". It still reads only the right
+  softkey, never the screen. Do not give it any other job without the same
+  kind of explicit direction, and update this line again if so.
 - **Never build a custom T9/predictive-text input engine to replace the
   system IME**, even to work around a device's own IME bugs (e.g. a
   `getShowingNowFlag`/`InputMethodManager` `NoSuchElementException` some
