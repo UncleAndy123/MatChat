@@ -210,6 +210,12 @@ Special rows:
 - **Unsent** — red `!`, Options on that row offers Retry / Delete.
 Empty: "No messages yet. Say hello."
 
+**Full-screen image viewer** (reached from an image message's `Open`): the
+image fills the screen; `*` zooms in, `#` zooms out, the D-pad / 2468 pan, `0`
+resets, Back returns. Softkeys: Options | | Back — Options offers `Save to
+gallery` and `Save to files` (same destinations and permission behaviour as
+the S11 items above), acting on the image already on screen.
+
 ### S10 — Compose (input focused)
 The input strip expands to 5 lines max as text grows; the timeline shrinks.
 System IME (T9 / multi-tap) provides text entry — we never draw a keyboard.
@@ -221,7 +227,14 @@ Sending an empty message is a no-op, not an error.
 Opened with CENTER on a message row. A bottom-anchored list, typically ~5
 rows, each 26 dp, dismiss with RIGHT softkey.
 Items: `Reply` · `Edit` (own messages only) · `React` · `Pin message` /
-`Unpin message` · `Copy text` · `Message info`.
+`Unpin message` · `Copy text` · `Save to gallery` (image messages only) ·
+`Save to files` (any image/video/file/voice attachment) · `Message info`.
+`Save to gallery` writes the image to the public Pictures folder (Pictures/
+MatChat); `Save to files` writes any attachment to Downloads (Downloads/
+MatChat). On Android 8.1 and older the first save prompts once for storage
+permission; newer releases need none. A one-line result confirms ("Saved to
+Pictures." / "Saved to Downloads.") or reports failure. Text messages show
+neither item.
 `React` (Reactions round) opens a second MenuSheet list of 10 choices
 (thumbs up/down + 8 common smileys, each row "<emoji> <label>", a trailing
 ✓ on one already reacted with) — this list doesn't fit one screen, so
