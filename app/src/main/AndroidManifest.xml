@@ -23,6 +23,13 @@
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
+    <!-- Recover a just-taken photo from the gallery when the camera app ignores
+         our EXTRA_OUTPUT file (Take photo, S9; findLatestCameraImage). Media-read
+         is READ_MEDIA_IMAGES on API 33+, READ_EXTERNAL_STORAGE below that. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
     <!-- Install a downloaded update APK from Settings > Software update
          (:core:update). The user still confirms each install, and on API 26+
          must grant "install unknown apps" to MatChat first. -->

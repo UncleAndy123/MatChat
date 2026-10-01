@@ -1,5 +1,9 @@
 package org.matchat.feature.timeline
 
+import android.content.ContentUris
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.util.TypedValue
 import android.view.View
 import android.widget.Toast
@@ -110,8 +114,9 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         ) { success ->
             val file = pendingCameraFile
             pendingCameraFile = null
-            if (success && file != null && file.length() > 0) {
-                stageAttachment(
+            when {
+                !success -> file?.delete()
+                file != null && file.length() > 0L -> stageAttachment(
                     PendingAttachment(
                         file.absolutePath,
                         "image/jpeg",
@@ -119,8 +124,31 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
                         getString(R.string.timeline_attachment_camera_name),
                     ),
                 )
+                else -> {
+                    // The camera app ignored EXTRA_OUTPUT and saved to its own
+                    // gallery instead of our file (common on AOSP/OEM camera apps) —
+                    // recover the just-taken photo from the media store, the same
+                    // fallback DPAD-Messaging uses. Routed through sendPicked, which
+                    // copies the content URI into our cache and stages it.
+                    file?.delete()
+                    val latest = findLatestCameraImage()
+                    if (latest != null) {
+                        sendPicked(latest)
+                    } else {
+                        Toast.makeText(requireContext(), R.string.timeline_camera_failed, Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
+
+    // The EXTRA_OUTPUT fallback above reads the captured photo back from the media
+    // store, which needs media-read access. Request it before capturing; the
+    // camera still launches either way (many camera apps honour EXTRA_OUTPUT and
+    // need no fallback), so a denial only disables the recovery path.
+    private val cameraReadPermission =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        ) { launchCameraNow() }
 
     override fun onContentViewCreated(content: View) {
         val b = FragmentTimelineBinding.bind(content)
@@ -471,7 +499,27 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }
     }
 
+    /** Ensure media-read access (for the EXTRA_OUTPUT fallback) is requested,
+     *  then capture. The camera opens whether or not it is granted. */
     private fun launchCamera() {
+        val perm = readImagesPermission()
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), perm) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            launchCameraNow()
+        } else {
+            cameraReadPermission.launch(perm)
+        }
+    }
+
+    private fun readImagesPermission(): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            android.Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+    private fun launchCameraNow() {
         val ctx = requireContext()
         val file = MediaFiles.newCameraFile(ctx)
         val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
@@ -480,6 +528,38 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
             pendingCameraFile = null
             Toast.makeText(ctx, R.string.timeline_media_no_app, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /** Fallback for camera apps that ignore EXTRA_OUTPUT: the most recent gallery
+     *  image added in the last few minutes, so an unrelated older photo isn't
+     *  grabbed (ported from DPAD-Messaging). Null when none matches or media-read
+     *  access was denied. */
+    private fun findLatestCameraImage(): Uri? {
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            @Suppress("DEPRECATION")
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        val cutoff = System.currentTimeMillis() / 1000L - CAMERA_LOOKBACK_SECONDS
+        return runCatching {
+            requireContext().contentResolver.query(
+                collection,
+                arrayOf(MediaStore.Images.Media._ID),
+                "${MediaStore.Images.Media.DATE_ADDED} >= ?",
+                arrayOf(cutoff.toString()),
+                "${MediaStore.Images.Media.DATE_ADDED} DESC",
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    ContentUris.withAppendedId(
+                        collection,
+                        cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)),
+                    )
+                } else {
+                    null
+                }
+            }
+        }.getOrNull()
     }
 
     /** Copy the picked content to the cache (the SDK uploads from a file path)
@@ -943,6 +1023,9 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         const val OPT_CALL = "call"
         const val OPT_SEND_PHOTO = "send_photo"
         const val OPT_TAKE_PHOTO = "take_photo"
+
+        // How far back findLatestCameraImage looks for the just-captured photo.
+        const val CAMERA_LOOKBACK_SECONDS = 5L * 60
         const val OPT_RECORD_VOICE = "record_voice"
         const val OPT_SEND_FILE = "send_file"
         const val OPT_REMOVE_ATTACHMENT = "remove_attachment"
