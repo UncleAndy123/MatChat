@@ -52,6 +52,14 @@
     <string name="timeline_msg_unpin">Unpin message</string>
     <string name="timeline_pin_failed">Couldn\'t pin — you may not have permission in this room.</string>
     <string name="timeline_msg_copy">Copy text</string>
+    <!-- Message menu (S11) + image viewer (S9): save media off the chat. -->
+    <string name="timeline_msg_save_gallery">Save to gallery</string>
+    <string name="timeline_msg_save_files">Save to files</string>
+    <!-- Shown after a save completes. -->
+    <string name="timeline_saved_gallery">Saved to Pictures.</string>
+    <string name="timeline_saved_downloads">Saved to Downloads.</string>
+    <string name="timeline_save_failed">Could not save this file.</string>
+    <string name="timeline_save_denied">Storage permission is needed to save files.</string>
     <string name="timeline_msg_info">Message info</string>
     <!-- Marks a row already selected/active — a local copy of the same
          "%1$s ✓" idiom feature/settings' theme_row_selected_format uses
@@ -85,6 +93,9 @@
     <!-- Media. -->
     <string name="timeline_image">Image</string>
     <string name="timeline_media_failed">Could not download this attachment.</string>
+    <!-- Shown when a captured photo can't be recovered (camera ignored our
+         output file and media access was not granted). -->
+    <string name="timeline_camera_failed">Couldn\'t get the photo. Allow media access and try again.</string>
     <string name="timeline_media_no_app">No app on this phone can open this file.</string>
     <string name="timeline_audio_failed">Can\'t play this audio on this phone.</string>
 

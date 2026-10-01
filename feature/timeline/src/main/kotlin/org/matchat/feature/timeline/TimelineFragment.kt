@@ -1,5 +1,9 @@
 package org.matchat.feature.timeline
 
+import android.content.ContentUris
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
 import android.util.TypedValue
 import android.view.View
 import android.widget.Toast
@@ -58,6 +62,23 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
             }
         }
 
+    // Save-to-gallery / save-to-files needs WRITE_EXTERNAL_STORAGE only on API
+    // 24–28 (scoped storage on 29+ needs none). The pending save runs once the
+    // grant comes back; a denial gets one plain message.
+    private var pendingSave: (() -> Unit)? = null
+    private val storagePermission =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        ) { granted ->
+            val save = pendingSave
+            pendingSave = null
+            if (granted) {
+                save?.invoke()
+            } else {
+                Toast.makeText(requireContext(), R.string.timeline_save_denied, Toast.LENGTH_SHORT).show()
+            }
+        }
+
     private val adapter = TimelineAdapter(
         onMessageFocused = { viewModel.onAction(TimelineAction.MessageFocused(it)) },
         onFixEncryption = { viewModel.onAction(TimelineAction.FixEncryption(it)) },
@@ -93,8 +114,9 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         ) { success ->
             val file = pendingCameraFile
             pendingCameraFile = null
-            if (success && file != null && file.length() > 0) {
-                stageAttachment(
+            when {
+                !success -> file?.delete()
+                file != null && file.length() > 0L -> stageAttachment(
                     PendingAttachment(
                         file.absolutePath,
                         "image/jpeg",
@@ -102,8 +124,31 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
                         getString(R.string.timeline_attachment_camera_name),
                     ),
                 )
+                else -> {
+                    // The camera app ignored EXTRA_OUTPUT and saved to its own
+                    // gallery instead of our file (common on AOSP/OEM camera apps) —
+                    // recover the just-taken photo from the media store, the same
+                    // fallback DPAD-Messaging uses. Routed through sendPicked, which
+                    // copies the content URI into our cache and stages it.
+                    file?.delete()
+                    val latest = findLatestCameraImage()
+                    if (latest != null) {
+                        sendPicked(latest)
+                    } else {
+                        Toast.makeText(requireContext(), R.string.timeline_camera_failed, Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
+
+    // The EXTRA_OUTPUT fallback above reads the captured photo back from the media
+    // store, which needs media-read access. Request it before capturing; the
+    // camera still launches either way (many camera apps honour EXTRA_OUTPUT and
+    // need no fallback), so a denial only disables the recovery path.
+    private val cameraReadPermission =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+        ) { launchCameraNow() }
 
     override fun onContentViewCreated(content: View) {
         val b = FragmentTimelineBinding.bind(content)
@@ -454,7 +499,27 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }
     }
 
+    /** Ensure media-read access (for the EXTRA_OUTPUT fallback) is requested,
+     *  then capture. The camera opens whether or not it is granted. */
     private fun launchCamera() {
+        val perm = readImagesPermission()
+        if (androidx.core.content.ContextCompat.checkSelfPermission(requireContext(), perm) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            launchCameraNow()
+        } else {
+            cameraReadPermission.launch(perm)
+        }
+    }
+
+    private fun readImagesPermission(): String =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            android.Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+    private fun launchCameraNow() {
         val ctx = requireContext()
         val file = MediaFiles.newCameraFile(ctx)
         val uri = androidx.core.content.FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
@@ -463,6 +528,38 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
             pendingCameraFile = null
             Toast.makeText(ctx, R.string.timeline_media_no_app, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /** Fallback for camera apps that ignore EXTRA_OUTPUT: the most recent gallery
+     *  image added in the last few minutes, so an unrelated older photo isn't
+     *  grabbed (ported from DPAD-Messaging). Null when none matches or media-read
+     *  access was denied. */
+    private fun findLatestCameraImage(): Uri? {
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            @Suppress("DEPRECATION")
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        val cutoff = System.currentTimeMillis() / 1000L - CAMERA_LOOKBACK_SECONDS
+        return runCatching {
+            requireContext().contentResolver.query(
+                collection,
+                arrayOf(MediaStore.Images.Media._ID),
+                "${MediaStore.Images.Media.DATE_ADDED} >= ?",
+                arrayOf(cutoff.toString()),
+                "${MediaStore.Images.Media.DATE_ADDED} DESC",
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    ContentUris.withAppendedId(
+                        collection,
+                        cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)),
+                    )
+                } else {
+                    null
+                }
+            }
+        }.getOrNull()
     }
 
     /** Copy the picked content to the cache (the SDK uploads from a file path)
@@ -534,6 +631,10 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
             )
             if (ctx.isOwn && ctx.editAction != null) add(MenuItem(MSG_EDIT, getString(R.string.timeline_msg_edit)))
             if (ctx.copyText != null) add(MenuItem(MSG_COPY, getString(R.string.timeline_msg_copy)))
+            if (ctx.saveToGallery != null) {
+                add(MenuItem(MSG_SAVE_GALLERY, getString(R.string.timeline_msg_save_gallery)))
+            }
+            if (ctx.saveToFiles != null) add(MenuItem(MSG_SAVE_FILES, getString(R.string.timeline_msg_save_files)))
             add(MenuItem(MSG_INFO, getString(R.string.timeline_msg_info)))
         }
         val menu = MenuSheet.show(requireContext(), items) { selected ->
@@ -543,6 +644,8 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
                 MSG_EDIT -> ctx.editAction?.invoke()
                 MSG_PIN -> viewModel.setPinned(ctx.eventId, !ctx.isPinned)
                 MSG_COPY -> ctx.copyText?.let { copyText(it) }
+                MSG_SAVE_GALLERY -> ctx.saveToGallery?.invoke()
+                MSG_SAVE_FILES -> ctx.saveToFiles?.invoke()
                 MSG_INFO -> navigator.toMessageInfo(
                     roomId(),
                     ctx.eventId,
@@ -569,6 +672,10 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         val copyText: String?,
         val openAction: (() -> Unit)?,
         val editAction: (() -> Unit)?,
+        /** Images only: write to the gallery (Pictures). Null hides the item. */
+        val saveToGallery: (() -> Unit)? = null,
+        /** Any media: write to Downloads. Null hides the item (text messages). */
+        val saveToFiles: (() -> Unit)? = null,
     )
 
     private fun menuContextFor(row: TimelineRow.Message) = MessageMenuContext(
@@ -601,6 +708,8 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         copyText = row.caption?.takeIf { it.isNotBlank() },
         openAction = { navigator.toImageViewer(row.eventId) },
         editAction = null,
+        saveToGallery = { saveImageToGallery(row.eventId) },
+        saveToFiles = { saveMediaToFiles(row.eventId, label = null, mimeType = null) },
     )
 
     private fun menuContextFor(row: TimelineRow.Attachment) = MessageMenuContext(
@@ -613,6 +722,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         copyText = null,
         openAction = { openAttachment(row) },
         editAction = null,
+        saveToFiles = { saveMediaToFiles(row.eventId, row.label, row.mimeType) },
     )
 
     private fun menuContextFor(row: TimelineRow.VoiceBubble) = MessageMenuContext(
@@ -625,6 +735,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         copyText = null,
         openAction = { openVoiceBubble(row) },
         editAction = null,
+        saveToFiles = { saveMediaToFiles(row.eventId, row.label, row.mimeType) },
     )
 
     private fun copyText(text: String) {
@@ -766,6 +877,78 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }.setOnDismissListener { binding?.composeInput?.requestFocus() }
     }
 
+    /** Download the image (if needed) and write it to the gallery (Pictures). */
+    private fun saveImageToGallery(eventId: org.matchat.core.model.EventId) = withStoragePermission {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = requireContext()
+            val bytes = viewModel.loadMedia(eventId) ?: run {
+                Toast.makeText(ctx, R.string.timeline_media_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val mime = MediaSaver.imageMime(bytes)
+                val name = imageFileName(eventId, mime)
+                MediaSaver.save(ctx, MediaSaver.Target.GALLERY, name, mime, bytes)
+            }
+            Toast.makeText(
+                ctx,
+                if (ok) R.string.timeline_saved_gallery else R.string.timeline_save_failed,
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    /** Download the media (if needed) and write it to Downloads. [label]/[mimeType]
+     *  are null for images (no filename carried) — a name is then synthesized. */
+    private fun saveMediaToFiles(
+        eventId: org.matchat.core.model.EventId,
+        label: String?,
+        mimeType: String?,
+    ) = withStoragePermission {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ctx = requireContext()
+            val bytes = viewModel.loadMedia(eventId) ?: run {
+                Toast.makeText(ctx, R.string.timeline_media_failed, Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val mime = mimeType ?: MediaSaver.imageMime(bytes)
+                val name = label?.let { MediaFiles.ensureExtension(it, mime) } ?: imageFileName(eventId, mime)
+                MediaSaver.save(ctx, MediaSaver.Target.DOWNLOADS, name, mime, bytes)
+            }
+            Toast.makeText(
+                ctx,
+                if (ok) R.string.timeline_saved_downloads else R.string.timeline_save_failed,
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    /** A stable gallery filename for an image row, which carries no filename of
+     *  its own: the event id (slashes/colons stripped) plus a type extension. */
+    private fun imageFileName(eventId: org.matchat.core.model.EventId, mime: String): String {
+        val ext = android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(mime) ?: "jpg"
+        val stem = eventId.value.filter { it.isLetterOrDigit() }.takeLast(16).ifBlank { "image" }
+        return "MatChat_$stem.$ext"
+    }
+
+    /** Runs [block] once storage is writable: immediately on API 29+ (scoped
+     *  storage) or when WRITE_EXTERNAL_STORAGE is already granted, otherwise
+     *  after requesting it. */
+    private fun withStoragePermission(block: () -> Unit) {
+        if (!MediaSaver.needsLegacyPermission() ||
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            block()
+        } else {
+            pendingSave = block
+            storagePermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+    }
+
     /** Attachment rows are video/file only now (VOICE/AUDIO get
      *  [openVoiceBubble] instead), so this always opens externally. */
     private fun openAttachment(row: TimelineRow.Attachment) {
@@ -840,6 +1023,9 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         const val OPT_CALL = "call"
         const val OPT_SEND_PHOTO = "send_photo"
         const val OPT_TAKE_PHOTO = "take_photo"
+
+        // How far back findLatestCameraImage looks for the just-captured photo.
+        const val CAMERA_LOOKBACK_SECONDS = 5L * 60
         const val OPT_RECORD_VOICE = "record_voice"
         const val OPT_SEND_FILE = "send_file"
         const val OPT_REMOVE_ATTACHMENT = "remove_attachment"
@@ -852,6 +1038,8 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         const val MSG_REACT = "react"
         const val MSG_PIN = "pin"
         const val MSG_COPY = "copy"
+        const val MSG_SAVE_GALLERY = "save_gallery"
+        const val MSG_SAVE_FILES = "save_files"
         const val MSG_INFO = "msg_info"
         const val MAX_IMAGE_PX = 480 // ~2x the 240 px screen; Coil-free downsample
         const val SEEN_BY_MAX = 4 // beyond this, show "+N" instead of more circles
