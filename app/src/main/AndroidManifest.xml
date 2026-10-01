@@ -40,6 +40,24 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
+    <!-- Apps we hand an implicit intent to. On Android 11+ (targetSdk 30+)
+         package visibility hides other apps unless declared here, so without
+         this the camera can't resolve and "Take photo" (S9) fails with
+         ActivityNotFoundException ("No app on this phone can open this file").
+         A default SMS app like DPAD-Messaging gets this visibility from its
+         role; MatChat, a normal app, must declare it. -->
+    <queries>
+        <!-- Take photo: launch the device camera (ACTION_IMAGE_CAPTURE). -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <!-- Open a downloaded/saved attachment in the system viewer. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="*/*" />
+        </intent>
+    </queries>
+
     <application
         android:name=".MatChatApp"
         android:allowBackup="false"
