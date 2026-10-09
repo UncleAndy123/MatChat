@@ -107,6 +107,10 @@
     <string name="timeline_camera_failed">Couldn\'t get the photo. Allow media access and try again.</string>
     <string name="timeline_media_no_app">No app on this phone can open this file.</string>
     <string name="timeline_audio_failed">Can\'t play this audio on this phone.</string>
+    <!-- Voice playback round: the voice note's own play/pause button content
+         descriptions (the glyph itself is ▶/⏸). -->
+    <string name="timeline_voice_play">Play voice message</string>
+    <string name="timeline_voice_pause">Pause voice message</string>
 
     <!-- Image viewer (S9). -->
     <string name="viewer_title">Image</string>

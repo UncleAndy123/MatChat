@@ -181,6 +181,18 @@ The full key map is in `docs/UX-SPEC.md §2`. What you must obey in code:
   focus after configuration change and after returning from a child screen.
 - Lists: `android:descendantFocusability="afterDescendants"`, focus lives on the
   row, the row is the click target.
+  - **Named exception: S9 voice bubbles** (`item_voice_bubble.xml`). Per
+    explicit user direction, a voice message has **two** focus stops: its own
+    play/pause button (CENTER = play/pause, glyph flips ▶/⏸ — see
+    `TimelineFragment`'s playback wiring and `AudioPlayback`) and the bubble
+    itself (CENTER = the React/Pin/Message-info menu, no "Open"). They are
+    siblings (the bubble `blocksDescendants`), moved between with D-pad
+    LEFT/RIGHT; the play button wears the shared `@drawable/focus_selector`,
+    the bubble keeps S9's border-focus style. This is the only row with more
+    than one focus stop — do not extend the pattern elsewhere without the same
+    kind of explicit direction. Because RIGHT doubles as the pinned-jump
+    shortcut here, `TimelineFragment.onDirectionalKey` lets RIGHT move focus
+    within the row first and only jumps to pinned at the row's right edge.
 - **Never** add `android:clickable="true"` to something that is not focusable.
 - **Named exception: the Background helper hosts sync** (docs/adr/0008).
   `MatChatKeyAccessibilityService` also lends its lifetime to `SyncOwner` so sync

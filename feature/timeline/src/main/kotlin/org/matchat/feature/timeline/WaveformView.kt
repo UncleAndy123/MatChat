@@ -17,6 +17,12 @@ import android.view.View
  * [values] are normalized 0f..1f (Mappers.normalizeWaveform /
  * VoiceRecorder.buildWaveform already produce this range) — this view does
  * no scaling of its own beyond mapping 0f..1f onto its measured height.
+ *
+ * Voice playback round: it doubles as the message's progress bar. Bars left
+ * of the [progress] playhead draw in [progressColor] (the accent), the rest
+ * in [barColor] — so a glance shows how far along the clip is, with no extra
+ * widget. [progress] is 0f when idle, so a not-yet-played clip looks exactly
+ * as it did before this round.
  */
 class WaveformView @JvmOverloads constructor(
     context: Context,
@@ -25,18 +31,34 @@ class WaveformView @JvmOverloads constructor(
 ) : View(context, attrs, defStyle) {
 
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val playedPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var values: List<Float> = emptyList()
+    private var progress = 0f // 0f..1f fraction of the clip already played
 
-    /** The color bars are drawn in — set once per bind, since it depends on
-     *  isOwn (own vs. received bubble) via ?attr/colorTextOnFocus, same as
-     *  the rest of the bubble's text. */
+    /** The color un-played bars are drawn in — set once per bind, since it
+     *  depends on isOwn (own vs. received bubble) via ?attr/colorTextOnFocus,
+     *  same as the rest of the bubble's text. */
     fun setBarColor(color: Int) {
         barPaint.color = color
         invalidate()
     }
 
+    /** The color of bars left of the playhead (the accent). */
+    fun setProgressColor(color: Int) {
+        playedPaint.color = color
+        invalidate()
+    }
+
     fun setValues(values: List<Float>) {
         this.values = values
+        invalidate()
+    }
+
+    /** [fraction] of the clip already played (0f..1f); 0f shows no fill. */
+    fun setProgress(fraction: Float) {
+        val clamped = fraction.coerceIn(0f, 1f)
+        if (clamped == progress) return
+        progress = clamped
         invalidate()
     }
 
@@ -47,11 +69,14 @@ class WaveformView @JvmOverloads constructor(
         val barWidth = (width - gap * (values.size - 1)) / values.size
         if (barWidth <= 0f) return
         val minBarHeight = MIN_BAR_HEIGHT_DP * resources.displayMetrics.density
+        val playedWidth = width * progress
         values.forEachIndexed { i, v ->
             val barHeight = (height * v.coerceIn(0f, 1f)).coerceAtLeast(minBarHeight)
             val left = i * (barWidth + gap)
             val top = (height - barHeight) / 2f
-            canvas.drawRect(left, top, left + barWidth, top + barHeight, barPaint)
+            // A bar counts as "played" once its centre is behind the playhead.
+            val paint = if (left + barWidth / 2f <= playedWidth) playedPaint else barPaint
+            canvas.drawRect(left, top, left + barWidth, top + barHeight, paint)
         }
     }
 

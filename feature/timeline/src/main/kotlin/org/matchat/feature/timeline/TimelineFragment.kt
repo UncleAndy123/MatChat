@@ -47,6 +47,14 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
     private var binding: FragmentTimelineBinding? = null
     private var lastMarkedStableId: String? = null
     private val audio = AudioPlayback()
+    /** The voice row currently loaded in [audio] (playing or paused), plus its
+     *  live position — Fragment-local because it's an ephemeral, high-frequency
+     *  media concern tied to the MediaPlayer the Fragment owns, exactly like
+     *  [loadImageInto]/[loadAvatarInto]'s async view updates (Voice playback
+     *  round). Never threaded through TimelineState: a 5 Hz progress tick must
+     *  not re-run the whole message-list diff. */
+    private var voicePlay: VoicePlayState? = null
+    private var voiceProgressJob: kotlinx.coroutines.Job? = null
     private var recorder: VoiceRecorder? = null
     private var isRecording = false
     private val navigator: Navigator get() = requireActivity() as Navigator
@@ -87,6 +95,8 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         onImageActivated = { openMessageMenu(menuContextFor(it)) },
         onAttachmentActivated = { openMessageMenu(menuContextFor(it)) },
         onVoiceBubbleActivated = { openMessageMenu(menuContextFor(it)) },
+        onVoicePlayToggled = { toggleVoicePlayback(it) },
+        voicePlaybackFor = { eventId -> currentVoiceUi(eventId) },
         onAvatarBind = { url, name, id, image -> loadAvatarInto(url, name, id, image) },
         onSeenByBind = { seenBy, container -> bindSeenBy(seenBy, container) },
         onReactionsBind = { reactions, container -> bindReactions(reactions, container) },
@@ -233,10 +243,24 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
      *  composing (RIGHT stays with the EditText's own caret movement there,
      *  per the user's own explicit ask), and only when there's something to
      *  jump to. See DirectionalKeyReceiver's doc comment for why this
-     *  narrow exception exists at all. */
+     *  narrow exception exists at all.
+     *
+     *  Voice playback round: RIGHT first defers to normal focus movement when
+     *  the focused view has a focusable neighbour to its right — so RIGHT
+     *  steps from a voice row's play button to its bubble before ever jumping
+     *  to pinned. Only at the right edge of a row (nothing further right) does
+     *  the pinned-jump take over, exactly as before for every single-focusable
+     *  row. */
     override fun onDirectionalKey(key: LogicalKey): Boolean {
         if (key != LogicalKey.RIGHT) return false
         if (binding?.composeInput?.isFocused == true) return false
+        val list = binding?.timelineList
+        val focused = list?.findFocus()
+        if (list != null && focused != null &&
+            android.view.FocusFinder.getInstance().findNextFocus(list, focused, View.FOCUS_RIGHT) != null
+        ) {
+            return false // let the platform move focus right within the row
+        }
         if (viewModel.state.value.pinnedCount == 0) return false
         navigator.toPinnedMessages(roomId())
         return true
@@ -725,6 +749,9 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         saveToFiles = { saveMediaToFiles(row.eventId, row.label, row.mimeType) },
     )
 
+    // No `openAction`: playback moved off this menu onto the bubble's own
+    // play/pause button (Voice playback round), so the menu is React/Pin/
+    // Message info only — reached by activating the bubble, not the button.
     private fun menuContextFor(row: TimelineRow.VoiceBubble) = MessageMenuContext(
         eventId = row.eventId,
         senderId = row.senderId,
@@ -733,7 +760,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         isPinned = row.isPinned,
         reactions = row.reactions,
         copyText = null,
-        openAction = { openVoiceBubble(row) },
+        openAction = null,
         editAction = null,
         saveToFiles = { saveMediaToFiles(row.eventId, row.label, row.mimeType) },
     )
@@ -949,8 +976,9 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }
     }
 
-    /** Attachment rows are video/file only now (VOICE/AUDIO get
-     *  [openVoiceBubble] instead), so this always opens externally. */
+    /** Attachment rows are video/file only now (VOICE/AUDIO play in-app via
+     *  the voice bubble's own play/pause button — [toggleVoicePlayback]), so
+     *  this always opens externally. */
     private fun openAttachment(row: TimelineRow.Attachment) {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = requireContext()
@@ -966,9 +994,27 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }
     }
 
-    /** Every VoiceBubble row is playable in-app (unlike Attachment, which also
-     *  covers video/file — those open externally instead). */
-    private fun openVoiceBubble(row: TimelineRow.VoiceBubble) {
+    /** The voice note's own play/pause button (Voice playback round). A fresh
+     *  row starts playback; the row already loaded in [audio] toggles between
+     *  pause and resume in place, keeping its position. The phone has no
+     *  media-player app, so everything plays in-app. */
+    private fun toggleVoicePlayback(row: TimelineRow.VoiceBubble) {
+        val current = voicePlay
+        if (current != null && current.eventId == row.eventId) {
+            if (current.isPlaying) {
+                audio.pause()
+                voicePlay = current.copy(isPlaying = false)
+            } else {
+                audio.resume()
+                voicePlay = current.copy(isPlaying = true)
+            }
+            refreshVoiceRow(row.eventId)
+            return
+        }
+        startVoicePlayback(row, previous = current?.eventId)
+    }
+
+    private fun startVoicePlayback(row: TimelineRow.VoiceBubble, previous: org.matchat.core.model.EventId?) {
         viewLifecycleOwner.lifecycleScope.launch {
             val ctx = requireContext()
             val bytes = viewModel.loadMedia(row.eventId)
@@ -979,26 +1025,69 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
             val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 MediaFiles.writeToCache(ctx, MediaFiles.ensureExtension(row.label, row.mimeType), bytes)
             }
-            playAudio(file)
-        }
-    }
-
-    /** Voice/audio: play in-app (the phone has no media-player app). CENTER on a
-     *  track that is already playing stops it. */
-    private fun playAudio(file: java.io.File) {
-        val ctx = requireContext()
-        if (audio.isPlaying(file.absolutePath)) {
-            audio.stop()
-            return
-        }
-        viewLifecycleOwner.lifecycleScope.launch {
             val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { audio.prepare(file) }
             if (!ok) {
                 Toast.makeText(ctx, R.string.timeline_audio_failed, Toast.LENGTH_SHORT).show()
                 return@launch
             }
-            audio.start { /* completion: nothing to update yet */ }
+            voicePlay = VoicePlayState(row.eventId, isPlaying = true, positionMs = 0, durationMs = audio.durationMs)
+            previous?.let { refreshVoiceRow(it) } // reset the previously-playing row to ▶
+            refreshVoiceRow(row.eventId)
+            startVoiceProgressTicker()
+            audio.start { onVoicePlaybackComplete(row.eventId) }
         }
+    }
+
+    /** Fires ~5x/second while a clip plays, advancing the stored position and
+     *  re-rendering just the playing row's progress fill + time readout. */
+    private fun startVoiceProgressTicker() {
+        voiceProgressJob?.cancel()
+        voiceProgressJob = viewLifecycleOwner.lifecycleScope.launch {
+            while (true) {
+                val st = voicePlay ?: break
+                if (st.isPlaying) {
+                    voicePlay = st.copy(
+                        positionMs = audio.positionMs,
+                        durationMs = audio.durationMs.takeIf { it > 0 } ?: st.durationMs,
+                    )
+                    refreshVoiceRow(st.eventId)
+                }
+                kotlinx.coroutines.delay(PLAYBACK_TICK_MS)
+            }
+        }
+    }
+
+    private fun onVoicePlaybackComplete(eventId: org.matchat.core.model.EventId) {
+        // AudioPlayback.start already released the player on completion/error.
+        voiceProgressJob?.cancel()
+        voiceProgressJob = null
+        voicePlay = null
+        refreshVoiceRow(eventId) // back to ▶, progress cleared
+    }
+
+    /** The playback UI for [eventId], or null when it isn't the active track —
+     *  fed to the adapter at bind time and read here on every tick. */
+    private fun currentVoiceUi(eventId: org.matchat.core.model.EventId): VoicePlaybackUi? {
+        val st = voicePlay?.takeIf { it.eventId == eventId } ?: return null
+        val fraction = if (st.durationMs > 0) st.positionMs.toFloat() / st.durationMs else 0f
+        return VoicePlaybackUi(st.isPlaying, fraction, formatPlaybackTime(st.positionMs))
+    }
+
+    /** Re-renders only the currently-visible voice row for [eventId] (if any),
+     *  avoiding a full list re-submit for a per-tick progress change. */
+    private fun refreshVoiceRow(eventId: org.matchat.core.model.EventId) {
+        val rv = binding?.timelineList ?: return
+        for (i in 0 until rv.childCount) {
+            val vh = rv.getChildViewHolder(rv.getChildAt(i)) as? TimelineAdapter.VoiceBubbleVH ?: continue
+            if (vh.boundRow?.eventId == eventId) vh.renderPlayback(currentVoiceUi(eventId))
+        }
+    }
+
+    private fun stopVoicePlayback() {
+        voiceProgressJob?.cancel()
+        voiceProgressJob = null
+        voicePlay = null
+        audio.stop()
     }
 
     private fun openExternally(file: java.io.File, mimeType: String?) {
@@ -1008,7 +1097,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
     }
 
     override fun onDestroyView() {
-        audio.stop()
+        stopVoicePlayback()
         if (isRecording) cancelRecording()
         binding?.timelineList?.adapter = null
         binding = null
@@ -1030,6 +1119,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         const val OPT_SEND_FILE = "send_file"
         const val OPT_REMOVE_ATTACHMENT = "remove_attachment"
         const val RECORD_TICK_MS = 200L
+        const val PLAYBACK_TICK_MS = 200L // ~5 Hz progress updates while playing
         const val MIN_VOICE_MS = 1_000L // ignore accidental sub-second taps
         const val ARG_ROOM_ID = "roomId"
         const val MSG_OPEN = "open"
@@ -1064,3 +1154,14 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         )
     }
 }
+
+/** The voice clip currently loaded in the Fragment's [AudioPlayback] (Voice
+ *  playback round) — which row, whether it's playing or paused, and the live
+ *  position/duration the progress fill and "elapsed / total" readout derive
+ *  from. Fragment-local on purpose (see [TimelineFragment.voicePlay]). */
+private data class VoicePlayState(
+    val eventId: org.matchat.core.model.EventId,
+    val isPlaying: Boolean,
+    val positionMs: Int,
+    val durationMs: Int,
+)

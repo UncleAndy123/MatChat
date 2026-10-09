@@ -38,6 +38,17 @@ internal fun bindBubbleSide(bubble: LinearLayout, time: TextView, isOwn: Boolean
  *  its own on a 240dp-wide screen. */
 internal fun withPinPrefix(isPinned: Boolean, text: String): String = if (isPinned) "📌 $text" else text
 
+/** Live playback state for a single voice row (Voice playback round), supplied
+ *  by the Fragment (which owns the MediaPlayer) at bind time and on each tick.
+ *  Null means "not the playing track" — the row renders idle (▶, no fill). */
+internal data class VoicePlaybackUi(
+    val isPlaying: Boolean,
+    /** 0f..1f of the clip already played — drives the waveform's progress fill. */
+    val fraction: Float,
+    /** Pre-formatted elapsed time ("0:03"), shown as "elapsed / total". */
+    val positionText: String,
+)
+
 /**
  * Timeline rows: text messages, images, attachments, day/state separators.
  * Focusable rows are the CENTER target; separators are not. DiffUtil keeps scroll
@@ -50,7 +61,13 @@ internal class TimelineAdapter(
     private val onImageBind: (EventId, ImageView) -> Unit,
     private val onImageActivated: (TimelineRow.Image) -> Unit,
     private val onAttachmentActivated: (TimelineRow.Attachment) -> Unit,
+    /** Bubble (not the play button) activated — opens the message menu. */
     private val onVoiceBubbleActivated: (TimelineRow.VoiceBubble) -> Unit,
+    /** The play/pause button activated — starts, pauses, or resumes the clip. */
+    private val onVoicePlayToggled: (TimelineRow.VoiceBubble) -> Unit,
+    /** Current playback state for a voice row at bind time, or null when it
+     *  isn't the playing track (Voice playback round). */
+    private val voicePlaybackFor: (EventId) -> VoicePlaybackUi?,
     /** Binds a sender avatar (Avatars round): url, name, user id, target —
      *  the name/id are the no-avatar-fallback's color+initial source
      *  (AvatarFallback round). */
@@ -228,6 +245,8 @@ internal class TimelineAdapter(
     }
 
     inner class VoiceBubbleVH(view: View) : RecyclerView.ViewHolder(view) {
+        private val voiceRow: LinearLayout = view.findViewById(R.id.voice_row)
+        private val play: TextView = view.findViewById(R.id.voice_play)
         private val bubble: LinearLayout = view.findViewById(R.id.voice_bubble)
         private val senderRow: View = view.findViewById(R.id.voice_sender_row)
         private val senderAvatar: ImageView = view.findViewById(R.id.voice_sender_avatar)
@@ -237,7 +256,14 @@ internal class TimelineAdapter(
         private val time: TextView = view.findViewById(R.id.voice_time)
         private val reactions: LinearLayout = view.findViewById(R.id.voice_reactions)
 
+        /** The row currently bound here — the Fragment's live playback ticker
+         *  uses it to find and refresh just the playing row (Voice playback
+         *  round) without a full list re-submit. */
+        var boundRow: TimelineRow.VoiceBubble? = null
+            private set
+
         fun bind(row: TimelineRow.VoiceBubble) {
+            boundRow = row
             senderRow.isVisible = row.senderName != null
             sender.text = row.senderName.orEmpty()
             sender.setTextColor(org.matchat.core.ui.media.AvatarFallback.colorFor(row.senderId))
@@ -246,13 +272,41 @@ internal class TimelineAdapter(
             }
             waveform.setValues(row.waveform)
             waveform.setBarColor(itemView.context.themeColor(UiR.attr.colorTextOnFocus))
-            duration.text = row.duration
+            waveform.setProgressColor(itemView.context.themeColor(UiR.attr.colorFocusAccent))
             val timeText = if (row.sendGlyph.isEmpty()) row.time else "${row.time} ${row.sendGlyph}"
             time.text = withPinPrefix(row.isPinned, timeText)
-            bindBubbleSide(bubble, time, row.isOwn)
+            // The whole [play]+[bubble] cluster and the time below it flip
+            // sides together (own trails, received leads) — same idea as
+            // bindBubbleSide, but applied to the cluster since the bubble is
+            // no longer the row's outermost element.
+            bubble.setBackgroundResource(
+                if (row.isOwn) UiR.drawable.bubble_own else UiR.drawable.bubble_received,
+            )
+            val gravity = if (row.isOwn) Gravity.END else Gravity.START
+            (voiceRow.layoutParams as LinearLayout.LayoutParams).gravity = gravity
+            (time.layoutParams as LinearLayout.LayoutParams).gravity = gravity
             reactions.isVisible = row.reactions.isNotEmpty()
             if (reactions.isVisible) onReactionsBind(row.reactions, reactions)
-            itemView.setOnClickListener { onVoiceBubbleActivated(row) }
+            play.setOnClickListener { onVoicePlayToggled(row) }
+            bubble.setOnClickListener { onVoiceBubbleActivated(row) }
+            renderPlayback(voicePlaybackFor(row.eventId))
+        }
+
+        /** Applies [ui] (null = idle) to the play glyph, progress fill, and
+         *  the "elapsed / total" readout. Pure function of [ui] + the bound
+         *  row, called both at bind time and on each playback tick. */
+        fun renderPlayback(ui: VoicePlaybackUi?) {
+            val row = boundRow ?: return
+            play.text = if (ui?.isPlaying == true) "⏸" else "▶"
+            play.contentDescription = itemView.context.getString(
+                if (ui?.isPlaying == true) R.string.timeline_voice_pause else R.string.timeline_voice_play,
+            )
+            waveform.setProgress(ui?.fraction ?: 0f)
+            duration.text = when {
+                ui == null -> row.duration
+                row.duration.isEmpty() -> ui.positionText
+                else -> "${ui.positionText} / ${row.duration}"
+            }
         }
     }
 

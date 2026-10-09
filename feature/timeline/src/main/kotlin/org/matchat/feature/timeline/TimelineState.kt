@@ -89,9 +89,11 @@ sealed interface TimelineRow {
 
     /** A voice/audio message rendered as a proper chat bubble (waveform +
      *  duration), not the plain glyph row [Attachment] still uses for
-     *  video/file (Voice bubble round). CENTER opens the same message menu
-     *  Attachment rows do — see [Attachment]'s own doc — "Open" plays it
-     *  in-app via AudioPlayback, same as before. */
+     *  video/file (Voice bubble round). The row has its own focusable
+     *  play/pause button (Voice playback round): CENTER on it plays/pauses
+     *  in-app via AudioPlayback and the waveform doubles as a progress bar.
+     *  CENTER on the bubble itself opens the message menu (React/Pin/Message
+     *  info) — no "Open" item, since playback is the button now. */
     data class VoiceBubble(
         val eventId: EventId,
         val senderName: String?,

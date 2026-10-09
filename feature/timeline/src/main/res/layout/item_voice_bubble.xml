@@ -1,22 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A voice/audio message (Voice bubble round): a chat bubble like
-     item_message.xml (same bubble_own/bubble_received backgrounds, same
-     accent-stripe/focus-border behavior, bound via bindBubbleSide), but with
-     a play glyph + waveform + duration instead of body text. Purely a
-     re-render of the same VOICE/AUDIO data item_attachment.xml used to show
-     as a plain glyph row — CENTER still opens the same message menu
-     (React/Pin/Message info/"Open", which plays it in-app), per
-     TimelineAdapter.VoiceBubbleVH. The play glyph is decorative only (not a
-     separately focusable/tappable sub-widget) — this app's whole row is the
-     one focusable unit, same reasoning message_reactions' chips aren't
-     individually tappable either. -->
+<!-- A voice/audio message (Voice bubble round + Voice playback round): a chat
+     bubble like item_message.xml (same bubble_own/bubble_received backgrounds,
+     same accent-stripe/focus-border behavior, bound via bindBubbleSide), with
+     a waveform-that-doubles-as-a-progress-bar + duration instead of body text,
+     PLUS its own separately focusable play/pause button to its leading side.
+
+     Two focus stops per row (AGENTS.md §4 named exception, per explicit user
+     direction): the play/pause button (CENTER = play/pause, glyph flips
+     ▶/⏸ while playing) and the bubble itself (CENTER = the same message menu
+     Attachment rows open: React/Pin/Message info — no "Open", playback is the
+     button now). They are siblings, not nested, so D-pad LEFT/RIGHT moves
+     between them predictably; the bubble BLOCKS its own descendants from
+     focus so it stays a single stop. The play button wears the app's one
+     shared focus highlight (@drawable/focus_selector); the bubble keeps S9's
+     border-focus style (its own named exception). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:focusable="true"
-    android:focusableInTouchMode="false"
     android:minHeight="?attr/rowMinHeightCompact"
     android:paddingStart="@dimen/content_pad"
     android:paddingEnd="@dimen/content_pad"
@@ -24,80 +26,97 @@
     android:paddingBottom="3dp">
 
     <LinearLayout
-        android:id="@+id/voice_bubble"
+        android:id="@+id/voice_row"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="start"
-        android:orientation="vertical"
-        android:duplicateParentState="true"
-        android:background="@drawable/bubble_received"
-        android:paddingStart="@dimen/bubble_pad_h"
-        android:paddingEnd="@dimen/bubble_pad_h"
-        android:paddingTop="@dimen/bubble_pad_v"
-        android:paddingBottom="@dimen/bubble_pad_v">
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
-        <LinearLayout
-            android:id="@+id/voice_sender_row"
+        <TextView
+            android:id="@+id/voice_play"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="1dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:duplicateParentState="true"
-            android:visibility="gone"
-            tools:visibility="visible">
-
-            <ImageView
-                android:id="@+id/voice_sender_avatar"
-                android:layout_width="?attr/avatarSizeSender"
-                android:layout_height="?attr/avatarSizeSender"
-                android:layout_marginEnd="4dp"
-                android:src="@drawable/avatar_placeholder"
-                android:contentDescription="@null" />
-
-            <TextView
-                android:id="@+id/voice_sender"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:duplicateParentState="true"
-                android:maxWidth="@dimen/bubble_max_width"
-                android:textSize="?attr/textSizeSender"
-                android:textColor="?attr/colorEncrypted"
-                tools:text="Wayne" />
-        </LinearLayout>
+            android:minWidth="40dp"
+            android:minHeight="40dp"
+            android:layout_marginEnd="4dp"
+            android:gravity="center"
+            android:focusable="true"
+            android:focusableInTouchMode="false"
+            android:background="@drawable/focus_selector"
+            android:textSize="?attr/textSizeBody"
+            android:textColor="?attr/colorTextPrimary"
+            android:contentDescription="@string/timeline_voice_play"
+            android:text="▶"
+            tools:ignore="HardcodedText" />
 
         <LinearLayout
+            android:id="@+id/voice_bubble"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:duplicateParentState="true">
+            android:orientation="vertical"
+            android:focusable="true"
+            android:focusableInTouchMode="false"
+            android:descendantFocusability="blocksDescendants"
+            android:background="@drawable/bubble_received"
+            android:paddingStart="@dimen/bubble_pad_h"
+            android:paddingEnd="@dimen/bubble_pad_h"
+            android:paddingTop="@dimen/bubble_pad_v"
+            android:paddingBottom="@dimen/bubble_pad_v">
 
-            <TextView
-                android:id="@+id/voice_play_glyph"
+            <LinearLayout
+                android:id="@+id/voice_sender_row"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
+                android:layout_marginBottom="1dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:duplicateParentState="true"
-                android:textSize="?attr/textSizeBody"
-                android:textColor="?attr/colorTextOnFocus"
-                android:text="▶" />
+                android:visibility="gone"
+                tools:visibility="visible">
 
-            <org.matchat.feature.timeline.WaveformView
-                android:id="@+id/voice_waveform"
-                android:layout_width="120dp"
-                android:layout_height="20dp"
-                android:layout_marginEnd="6dp"
-                android:duplicateParentState="true" />
+                <ImageView
+                    android:id="@+id/voice_sender_avatar"
+                    android:layout_width="?attr/avatarSizeSender"
+                    android:layout_height="?attr/avatarSizeSender"
+                    android:layout_marginEnd="4dp"
+                    android:src="@drawable/avatar_placeholder"
+                    android:contentDescription="@null" />
 
-            <TextView
-                android:id="@+id/voice_duration"
+                <TextView
+                    android:id="@+id/voice_sender"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:duplicateParentState="true"
+                    android:maxWidth="@dimen/bubble_max_width"
+                    android:textSize="?attr/textSizeSender"
+                    android:textColor="?attr/colorEncrypted"
+                    tools:text="Wayne" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:duplicateParentState="true"
-                android:textSize="?attr/textSizeMeta"
-                android:textColor="?attr/colorTextMetaOnFocus"
-                tools:text="0:12" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:duplicateParentState="true">
+
+                <org.matchat.feature.timeline.WaveformView
+                    android:id="@+id/voice_waveform"
+                    android:layout_width="120dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="6dp"
+                    android:duplicateParentState="true" />
+
+                <TextView
+                    android:id="@+id/voice_duration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:duplicateParentState="true"
+                    android:textSize="?attr/textSizeMeta"
+                    android:textColor="?attr/colorTextMetaOnFocus"
+                    tools:text="0:12" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
@@ -107,7 +126,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="start"
         android:layout_marginTop="1dp"
-        android:duplicateParentState="true"
         android:textSize="?attr/textSizeMeta"
         android:textColor="?attr/colorTextMetaOnFocus"
         tools:text="3:42 PM" />

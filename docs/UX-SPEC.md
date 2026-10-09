@@ -182,6 +182,19 @@ sits flush, not a full rounded rect). A focused bubble's border recolors to
 the accent and thickens, in place of the app's usual flat-fill-plus-bar
 focus style (AGENTS.md §4's named exception) — the row itself has no
 background.
+**Voice messages** render as a bubble too (a waveform + duration), with their
+own **play/pause button** on the leading side of the bubble. That button is a
+*second* focus stop on the row (the only row in the app with two): CENTER on it
+plays the clip in-app (feature phones have no media-player app), and the glyph
+flips ▶ → ⏸ while playing; CENTER again pauses, then resumes from the same
+spot. The waveform doubles as a **progress bar** — bars left of the playhead
+fill with the accent — and the duration becomes an "elapsed / total" readout
+(`0:05 / 0:12`) while playing. D-pad LEFT/RIGHT moves between the play button
+and the rest of the bubble; CENTER on the bubble itself opens the message menu
+(S11) — React/Pin/Message info, no "Open" (playback is the button now). Only
+one clip plays at a time; starting another stops the first. (RIGHT still jumps
+to Pinned messages, but only once focus is at the right edge of a row — see the
+band below.)
 **Pinned-messages band** (Pinned messages quick-access round): when the room
 has ≥1 pinned message, a band reading "📌 N pinned message(s) ›" sits at the
 very top of the content, above the unencrypted-warning band — same row
@@ -226,9 +239,11 @@ Sending an empty message is a no-op, not an error.
 ### S11 — Message menu
 Opened with CENTER on a message row. A bottom-anchored list, typically ~5
 rows, each 26 dp, dismiss with RIGHT softkey.
-Items: `Reply` · `Edit` (own messages only) · `React` · `Pin message` /
 `Unpin message` · `Copy text` · `Save to gallery` (image messages only) ·
 `Save to files` (any image/video/file/voice attachment) · `Message info`.
+Image and other-attachment rows prepend an `Open` item (image viewer / external
+open). Voice messages do **not**: they play from their own in-bubble play/pause
+button (S9), so CENTER on a voice bubble opens this menu with no `Open`.
 `Save to gallery` writes the image to the public Pictures folder (Pictures/
 MatChat); `Save to files` writes any attachment to Downloads (Downloads/
 MatChat). On Android 8.1 and older the first save prompts once for storage
