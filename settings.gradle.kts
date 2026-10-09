@@ -25,8 +25,14 @@ dependencyResolutionManagement {
         }
         // Opt-in only (default off): consume the locally-built patched sdk-android
         // AAR from tools/matrix-shim (docs/VOICE.md §4.1). Off by default so the
-        // normal build resolves exactly as before.
+        // normal build resolves exactly as before. Reads from the project-local
+        // repo (drop the CI artifact into tools/matrix-shim/local-maven) and also
+        // mavenLocal (for local build-aar.sh runs); both scoped to just the SDK.
         if (providers.gradleProperty("matchat.useShimSdk").orNull.toBoolean()) {
+            maven {
+                url = File(rootDir, "tools/matrix-shim/local-maven").toURI()
+                content { includeModule("org.matrix.rustcomponents", "sdk-android") }
+            }
             mavenLocal {
                 content { includeModule("org.matrix.rustcomponents", "sdk-android") }
             }
