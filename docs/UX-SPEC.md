@@ -210,6 +210,12 @@ Special rows:
 - **Unsent** — red `!`, Options on that row offers Retry / Delete.
 Empty: "No messages yet. Say hello."
 
+**Full-screen image viewer** (reached from an image message's `Open`): the
+image fills the screen; `*` zooms in, `#` zooms out, the D-pad / 2468 pan, `0`
+resets, Back returns. Softkeys: Options | | Back — Options offers `Save to
+gallery` and `Save to files` (same destinations and permission behaviour as
+the S11 items above), acting on the image already on screen.
+
 ### S10 — Compose (input focused)
 The input strip expands to 5 lines max as text grows; the timeline shrinks.
 System IME (T9 / multi-tap) provides text entry — we never draw a keyboard.
@@ -221,7 +227,14 @@ Sending an empty message is a no-op, not an error.
 Opened with CENTER on a message row. A bottom-anchored list, typically ~5
 rows, each 26 dp, dismiss with RIGHT softkey.
 Items: `Reply` · `Edit` (own messages only) · `React` · `Pin message` /
-`Unpin message` · `Copy text` · `Message info`.
+`Unpin message` · `Copy text` · `Save to gallery` (image messages only) ·
+`Save to files` (any image/video/file/voice attachment) · `Message info`.
+`Save to gallery` writes the image to the public Pictures folder (Pictures/
+MatChat); `Save to files` writes any attachment to Downloads (Downloads/
+MatChat). On Android 8.1 and older the first save prompts once for storage
+permission; newer releases need none. A one-line result confirms ("Saved to
+Pictures." / "Saved to Downloads.") or reports failure. Text messages show
+neither item.
 `React` (Reactions round) opens a second MenuSheet list of 10 choices
 (thumbs up/down + 8 common smileys, each row "<emoji> <label>", a trailing
 ✓ on one already reacted with) — this list doesn't fit one screen, so
@@ -238,11 +251,19 @@ blank here.
 
 ### S12 — Room info
 Content: room name, member count, encryption state line ("Encrypted — only
-members can read this"), member list (a 16 dp avatar beside each name — same
+members can read this"), a **Notification sound** row (primary line: the
+sound's name — "Default (app sound)", "Silent", or the picked sound; caption
+"Notification sound"), member list (a 16 dp avatar beside each name — same
 placeholder-until-decoded treatment as S8/S9 — plus a power label), then two
 action rows: `Pinned messages` (Pinned messages round, below) and `Add
 member`/`Leave room`.
-Focus order: member rows, then the action rows.
+Focus order: name, topic, notification sound, member rows, then the action
+rows. CENTER on Notification sound opens Android's sound picker for this room
+only. Its "Default" entry means the app sound from S26 (removes the room's
+own sound); "Silent" silences this room. On Android 7–9 the first open may ask
+for storage access, to add MatChat's bundled sounds (docs/SOUNDS.md); if
+refused, a short message says MatChat's own sounds need storage access and the
+picker opens anyway.
 Softkeys: Options | Select | Back.
 Options: Mute this group · Leave group (confirm) · Help.
 
@@ -274,13 +295,26 @@ Softkeys: (blank) | Select | Back.
 ### S15 — Notification
 *Not a screen we draw — this is the system notification surface; the entries
 below are what we put into it.*
-Heads-up collapsed notification: room name + count ("Barn Crew · 3 new"), a
+Heads-up notification: title = room name; text = the latest message, with the
+sender's name in front in a group ("Ann: see you at six" — no name when it
+would repeat the title, as in a direct chat). Media shows "Photo", "Video",
+"Voice message", "Audio" or "File". When there's nothing to show (an encrypted
+message not yet decrypted), the text is the count ("3 new messages"); with
+more than one unread, the count is also the sub-text. Long text expands.
+Lock screen / outer display: if the phone is set to hide sensitive content,
+only the room name and count. The notification LED blinks for as long as the
+notification is up, i.e. while the room has unread messages. A
 message-bubble small icon. Selecting deep-links to S9 for that room, with the
 back stack rooted at S8. Whether it fires at all, and what sound it plays,
-are user-configurable — Settings → Notifications (S26).
+are user-configurable — Settings → Notifications (S26), and per room in Room
+info (S12), which overrides the app sound for that room.
 Persistent low-priority notification while the sync service runs:
-"MatChat is running." — always on, its own circular-arrows icon, not
-user-configurable (docs/adr/0004).
+"MatChat is running." — its own circular-arrows icon, not user-configurable
+(docs/adr/0004). Shown whenever the foreground service hosts sync; it goes
+away only when the Background helper hosts sync instead, which needs both
+the helper turned on and "Run in background" allowed (S25, S27,
+docs/adr/0008). Off by default is not possible: only the user can turn on an
+accessibility service.
 
 ### S16 — Text size (Small / Normal / Large)
 Normal is the default, the middle of three tiers: room name 21 sp, preview
@@ -403,15 +437,24 @@ on the left."). CENTER toggles it immediately, same as S24's rows — no
 separate confirm. The row carries a trailing checkmark when on; selection is
 never conveyed by color alone. Takes effect on the very next key press — no
 recreate, unlike S24 (there's no chrome to rebuild, just future key events
-reading the new preference). Second row: "Softkey helper (system setting)",
-with a subtitle explaining what it's for — a predictive-text keyboard on
-some phones that captures the right softkey while composing. CENTER opens
-the system Accessibility settings screen (`ACTION_ACCESSIBILITY_SETTINGS`)
-so the user can grant `MatChatKeyAccessibilityService` there; this is a
-system-level permission the app can neither read nor set for itself, so the
-row is a plain link, not a toggle rendered with its own checked/unchecked
-state. Focus order: swap row → helper row. Softkeys: (blank) | Select |
-Back.
+reading the new preference). Second row: "Run in background (system
+setting)". CENTER opens Android's own battery-optimization dialog
+(`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, falling back to the
+`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` list on builds without the
+dialog). An 11 sp status line under it reads "Allowed." or "Not allowed. New
+messages may be late while the phone is idle." Third row: "Background helper
+(system setting)", with a subtitle explaining its two jobs: stay connected
+without the "MatChat is running" notification (docs/adr/0008), and fix the
+right softkey on phones whose predictive-text keyboard captures it while
+composing. CENTER opens the system Accessibility settings screen
+(`ACTION_ACCESSIBILITY_SETTINGS`) so the user can turn on
+`MatChatKeyAccessibilityService` there. An 11 sp status line under it reads
+"On. No notification needed." / "On, but Run in background is not allowed.
+The notification stays." / "Off. MatChat shows a notification." Both are
+system-level permissions the app cannot set for itself, so these rows are
+action rows with a read-only status line, not toggles; the status lines
+refresh whenever the screen is shown again. Focus order: swap row → run in
+background → helper. Softkeys: (blank) | Select | Back.
 
 ### S26 — Notifications
 Reached from Settings → Notifications. Two focusable rows, in fixed order:
@@ -420,10 +463,32 @@ when on — same convention as S24/S25) then "Sound" (CENTER launches the
 system ringtone picker; its 11 sp subtitle shows the current choice —
 "Default", "Silent", or the picked ringtone's name). Turning notifications
 off silences only the incoming-message notification (S15); the persistent
-sync notification is unaffected. Per-room/per-thread sound is not offered
+sync notification is unaffected. Under Sound, an 11 sp note: "You can set a
+custom room notification by going to the room info." A room's own sound (S12) overrides
+this one for that room. On Android 7–9, opening Sound may first ask for
+storage access to add MatChat's bundled sounds (docs/SOUNDS.md); if refused,
+a second 11 sp note says they need storage access, and the picker opens
+anyway. Per-room/per-thread sound is not offered
 here — every room shares the one chosen sound (future work).
 Focus order: Notifications → Sound. Initial focus: Notifications.
 Softkeys: (blank) | Select | Back.
+
+### S27 — Background helper ("Hide the running notification?")
+Shown **once per install**, right after the room list first appears
+following sign-in (existing installs: once after updating), and only when
+the Background helper is not already on (docs/adr/0008). Before it, if
+"Run in background" is not yet allowed, the app launches Android's own
+battery-optimization dialog (see S25); S27 follows whatever the user chose
+there. Content: one short paragraph ("MatChat can stay connected without the
+'MatChat is running' notification. Turn on MatChat in Accessibility
+settings."), one focusable row "Open Accessibility settings" (CENTER opens
+`ACTION_ACCESSIBILITY_SETTINGS`), and the same 11 sp status line as S25's
+helper row, refreshed when the user comes back from system settings.
+Initial focus: the row. Softkeys: (blank) | Open | Back. RIGHT (Back)
+means "not now" and returns to the room list; the S25 rows remain the way
+back to this later. On Android 13+ a sideloaded app may need Settings > Apps
+> MatChat > ⋮ > "Allow restricted settings" before the switch takes effect;
+the helper's own system description says so.
 
 ## 4. Content voice
 

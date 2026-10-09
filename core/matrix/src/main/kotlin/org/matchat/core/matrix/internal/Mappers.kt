@@ -10,9 +10,11 @@ import org.matchat.core.model.SendState
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
 import org.matrix.rustcomponents.sdk.EventOrTransactionId
+import org.matrix.rustcomponents.sdk.LatestEventValue
 import org.matrix.rustcomponents.sdk.MediaSource
 import org.matrix.rustcomponents.sdk.MessageType
 import org.matrix.rustcomponents.sdk.MsgLikeKind
+import org.matrix.rustcomponents.sdk.ProfileDetails
 import org.matrix.rustcomponents.sdk.Room
 import org.matrix.rustcomponents.sdk.TimelineItemContent
 import org.matrix.rustcomponents.sdk.TimelineItem as RustTimelineItem
@@ -31,18 +33,88 @@ internal object Mappers {
     suspend fun toRoomSummary(room: Room): RoomSummary {
         val info = runCatching { room.roomInfo() }.getOrNull()
         val encrypted = runCatching { room.isEncrypted() }.getOrDefault(true)
+        val latest = latestPreview(room)
         return RoomSummary(
             id = RoomId(room.id()),
             name = info?.displayName ?: room.displayName() ?: room.id(),
-            // Last-message preview needs the latest-event API — a follow-up.
-            lastMessage = null,
-            lastActivityEpochMs = null,
+            lastMessage = latest?.text,
+            lastActivityEpochMs = latest?.timestampEpochMs,
             unreadCount = (info?.numUnreadMessages ?: 0uL).toInt(),
             isEncrypted = encrypted,
             avatarUrl = info?.avatarUrl ?: runCatching { room.avatarUrl() }.getOrNull(),
             hasActiveCall = runCatching { info?.hasRoomCall }.getOrNull() ?: false,
+            lastMessageSender = latest?.sender,
+            lastMessageIsOwn = latest?.isOwn ?: false,
+            lastMessageMedia = latest?.media,
         )
     }
+
+    /**
+     * The room's latest message for the room-list preview and the message
+     * notification (Room.latestEvent). Null when there is none we can show:
+     * no event yet, a non-message event, or an encrypted one not yet
+     * decrypted. Never throws — a preview is never worth failing the room row.
+     */
+    private suspend fun latestPreview(room: Room): LatestPreview? {
+        val value = runCatching { room.latestEvent() }.getOrNull() ?: return null
+        return try {
+            when (value) {
+                is LatestEventValue.Remote -> previewOf(
+                    value.content, value.sender, value.profile, value.isOwn, value.timestamp.toLong(),
+                )
+                is LatestEventValue.Local -> previewOf(
+                    value.content, value.sender, value.profile, isOwn = true, value.timestamp.toLong(),
+                )
+                else -> null
+            }
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            null
+        } finally {
+            runCatching { value.destroy() }
+        }
+    }
+
+    private fun previewOf(
+        content: TimelineItemContent,
+        sender: String,
+        profile: ProfileDetails,
+        isOwn: Boolean,
+        timestampEpochMs: Long,
+    ): LatestPreview? {
+        val msgLike = content as? TimelineItemContent.MsgLike ?: return null
+        val message = msgLike.content.kind as? MsgLikeKind.Message ?: return null
+        val name = (profile as? ProfileDetails.Ready)?.displayName
+        val (text, media) = when (val type = message.content.msgType) {
+            is MessageType.Text -> type.content.body to null
+            is MessageType.Notice -> type.content.body to null
+            is MessageType.Emote -> type.content.body to null
+            is MessageType.Image -> null to MediaKind.IMAGE
+            is MessageType.Video -> null to MediaKind.VIDEO
+            is MessageType.Audio -> null to (if (type.content.voice != null) MediaKind.VOICE else MediaKind.AUDIO)
+            is MessageType.File -> null to MediaKind.FILE
+            else -> return null
+        }
+        return LatestPreview(
+            text = text,
+            media = media,
+            sender = previewSenderName(name, sender),
+            isOwn = isOwn,
+            timestampEpochMs = timestampEpochMs,
+        )
+    }
+
+    /** A blank or missing display name falls back to the raw Matrix ID, the
+     *  same rule as [resolveSenderName]. */
+    internal fun previewSenderName(displayName: String?, rawSenderId: String): String =
+        displayName?.takeIf { it.isNotBlank() } ?: rawSenderId
+
+    private data class LatestPreview(
+        val text: String?,
+        val media: MediaKind?,
+        val sender: String,
+        val isOwn: Boolean,
+        val timestampEpochMs: Long,
+    )
 
     /**
      * Maps one SDK timeline item to a domain [TimelineItem], or null for items we

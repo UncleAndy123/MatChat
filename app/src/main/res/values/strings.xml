@@ -8,6 +8,9 @@
 
     <!-- Incoming-message notifications. -->
     <string name="messages_channel_name">Messages</string>
+    <!-- A room's own notification channel (Room info > Notification sound), as
+         listed in the phone's notification settings. %1$s is the room name. -->
+    <string name="messages_room_channel_name">Messages: %1$s</string>
 
     <!-- Incoming voice-call ring (docs/VOICE.md §5). -->
     <string name="call_channel_name">Calls</string>
@@ -18,6 +21,15 @@
     <string name="call_decline">Decline</string>
     <string name="notif_reply">Reply</string>
     <string name="notif_mark_read">Mark as read</string>
+    <!-- Message notification text in a group: %1$s is the sender's name,
+         %2$s the message (or a media label below). -->
+    <string name="notif_sender_text">%1$s: %2$s</string>
+    <!-- Notification text when the latest message is media, not text. -->
+    <string name="notif_media_photo">Photo</string>
+    <string name="notif_media_video">Video</string>
+    <string name="notif_media_audio">Audio</string>
+    <string name="notif_media_voice">Voice message</string>
+    <string name="notif_media_file">File</string>
     <plurals name="notif_new_messages">
         <item quantity="one">New message</item>
         <item quantity="other">%d new messages</item>
@@ -38,19 +50,21 @@
     <string name="policy_media_desc">When off, images cannot be sent.</string>
 
     <!-- Accessibility service (Settings > Accessibility > MatChat), shown by the
-         system on the enable/consent screen. Optional workaround for a
-         confirmed device conflict: some predictive-text keyboards consume
-         the right softkey before MatChat ever sees it while composing a
-         message. See MatChatKeyAccessibilityService's own doc comment for
-         the full story. -->
-    <string name="key_accessibility_service_label">MatChat softkey</string>
-    <string name="key_accessibility_service_desc">Lets MatChat\'s own right softkey (Options or Back,
-        depending on Settings > Advanced > Swap Left/Right keys) work while typing a message, on
-        phones whose predictive-text keyboard would otherwise capture it first. Reads only the right
-        softkey press — nothing else, never your typing, never the screen.\n\nStill not working after
-        turning this on? Only one app\'s accessibility service can win a given key press — check
-        Settings > Accessibility for any other keyboard or key-logging service and turn it off too.
-        On Android 13 and up, this switch can also silently fail to take effect for a sideloaded app
-        like this one until you allow it: open Settings > Apps > MatChat, use the overflow menu for
-        \"Allow restricted settings,\" then try turning this on again.</string>
+         system on the enable/consent screen. Called "Background helper" in the
+         app (S25, S27). Two jobs: it keeps MatChat connected without the
+         "MatChat is running" notification (docs/adr/0008), and it works around
+         predictive-text keyboards that consume the right softkey while
+         composing. See MatChatKeyAccessibilityService's own doc comment. -->
+    <string name="key_accessibility_service_label">MatChat background helper</string>
+    <string name="key_accessibility_service_desc">Keeps MatChat connected so new messages arrive
+        right away, without the \"MatChat is running\" notification. Also allow MatChat to run in the
+        background (MatChat > Settings > Advanced) for this to work.\n\nIt also lets MatChat\'s own right
+        softkey (Options or Back, depending on Settings > Advanced > Swap Left/Right keys) work while
+        typing a message, on phones whose predictive-text keyboard would otherwise capture it first.
+        Reads only the right softkey press — nothing else, never your typing, never the screen.\n\nStill
+        not working after turning this on? Only one app\'s accessibility service can win a given key
+        press — check Settings > Accessibility for any other keyboard or key-logging service and turn
+        it off too. On Android 13 and up, this switch can also silently fail to take effect for a
+        sideloaded app like this one until you allow it: open Settings > Apps > MatChat, use the
+        overflow menu for \"Allow restricted settings,\" then try turning this on again.</string>
 </resources>

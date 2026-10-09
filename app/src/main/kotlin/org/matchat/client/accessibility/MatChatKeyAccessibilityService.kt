@@ -2,13 +2,31 @@ package org.matchat.client.accessibility
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.Intent
 import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import org.matchat.client.MainActivity
+import org.matchat.client.sync.SyncHosts
+import javax.inject.Inject
 
 /**
- * Optional, user-enabled workaround (Settings > Advanced > "Softkey helper",
+ * **Second job — sync host (docs/adr/0008).** While enabled, the system keeps
+ * this service bound, which keeps MatChat's process alive and restarts it after
+ * a kill, the way TurboText's own accessibility service keeps TurboText alive.
+ * When the battery exemption is also granted, [SyncHosts] lets this service host
+ * the sync loop instead of the foreground service, so the "MatChat is running"
+ * notification disappears. This service only lends its lifetime: it still reads
+ * nothing but the right softkey, and sync logic stays in SyncOwner. Disabling it
+ * hands sync straight back to the foreground service.
+ *
+ * **First job — softkey workaround.**
+ * Optional, user-enabled workaround (Settings > Advanced > "Background helper",
  * which links to system Accessibility settings) for a confirmed device
  * conflict, diagnosed with the user via adb logcat: on some hardware, the
  * system's own predictive-text ("T9word") keyboard consumes
@@ -85,7 +103,15 @@ import org.matchat.client.MainActivity
  * normal dispatchKeyEvent handling changes if they don't, on this device or
  * any other.
  */
+@AndroidEntryPoint
 class MatChatKeyAccessibilityService : AccessibilityService() {
+
+    @Inject lateinit var syncHosts: SyncHosts
+
+    /** Lent to SyncOwner while this service hosts sync; lives as long as the
+     *  service does. */
+    private val syncScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var hostingRegistered = false
 
     // Tracks whether we consumed the DOWN half of the current SOFT_RIGHT
     // press, so the matching UP gets consumed too. Found by comparing this
@@ -109,6 +135,27 @@ class MatChatKeyAccessibilityService : AccessibilityService() {
         // started it (e.g. Android 13+'s "restricted settings" silently blocking
         // a sideloaded app's toggle).
         Log.d(LOG_TAG, "onServiceConnected: flags=${serviceInfo?.flags}")
+        hostingRegistered = true
+        syncHosts.onHelperConnected(syncScope)
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        releaseSync()
+        return super.onUnbind(intent)
+    }
+
+    override fun onDestroy() {
+        releaseSync()
+        syncScope.cancel()
+        super.onDestroy()
+    }
+
+    /** Hand sync back to the foreground service (once, whichever of
+     *  onUnbind/onDestroy comes first). */
+    private fun releaseSync() {
+        if (!hostingRegistered) return
+        hostingRegistered = false
+        syncHosts.onHelperDisconnected()
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {

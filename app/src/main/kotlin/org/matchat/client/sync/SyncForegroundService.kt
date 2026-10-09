@@ -14,76 +14,72 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.matchat.client.R
-import org.matchat.client.notify.CallNotifier
-import org.matchat.core.matrix.MatrixAuth
 import org.matchat.core.matrix.MatrixSession
-import org.matchat.core.matrix.MatrixSessionStore
-import org.matchat.core.model.RoomSummary
-import org.matchat.core.rtc.CallController
-import org.matchat.core.rtc.CallPhase
-import org.matchat.core.rtc.IncomingCall
 import javax.inject.Inject
 
 /**
- * The single owner of the SDK sync loop (ARCHITECTURE.md "Sync lifecycle").
- * Screens observe; they never start or stop sync. No Play Services means no FCM,
- * so sync is a foreground service with a persistent low-priority notification
- * (PLAN.md §6.6, docs/adr/0004).
+ * The default [SyncHost] (docs/adr/0004, 0008): a foreground service with a
+ * persistent low-priority notification, since there is no FCM on these devices
+ * (PLAN.md §6.6). The sync logic itself lives in [SyncOwner]; this class only
+ * keeps the process alive and hands [SyncOwner] its scope. When the background
+ * helper hosts sync instead, [SyncHosts] stops this service and the notification
+ * goes with it.
  *
- * The client/SyncService itself is normally started by MainActivity (sign-in or
- * its cold-start restore); [ensureSessionRestored] below is this service's own
- * fallback so a service-only relaunch (after the whole process was killed and
- * START_STICKY brings just this service back, no Activity involved) restarts
- * sync too, rather than leaving the "MatChat is running" notification up over
- * a dead sync loop.
+ * Started through [SyncHosts.ensureRunning] (MainActivity, the boot receiver,
+ * the [SyncWorker] watchdog). START_STICKY brings it back after a low-memory
+ * kill; [SyncOwner] then restores the session without any Activity running.
  *
  * Android 15 caps a dataSync FGS at ~6h/24h; [onTimeout] hands sync off to the
- * [SyncWorker] WorkManager fallback when that ceiling is hit, and [onStartCommand]
- * reclaims it (cancelling the worker) once the app is foregrounded (docs/adr/0004).
+ * [SyncWorker] catch-up runs when that ceiling is hit, and [onStartCommand]
+ * reclaims it once the app is foregrounded (docs/adr/0004).
  */
 @AndroidEntryPoint
 class SyncForegroundService : LifecycleService() {
 
     @Inject lateinit var session: MatrixSession
 
-    @Inject lateinit var auth: MatrixAuth
-
-    @Inject lateinit var sessionStore: MatrixSessionStore
-
-    @Inject lateinit var callController: CallController
-
-    @Inject lateinit var messageNotifications: MessageNotifications
-
-    private val lastCall = HashMap<String, Boolean>()
-
-    /** Rooms we raised a ring for, roomId -> caller; cleared on answer or end. */
-    private val ringingRooms = HashMap<String, String>()
-
-    /** True while we are in any call (our own or a ring we raised) — suppresses a
-     *  second ring and our own outgoing call from ringing us. */
-    private var ownCallActive = false
-    private var seeded = false
-    private var observing = false
+    @Inject lateinit var owner: SyncOwner
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        startForeground(NOTIFICATION_ID, buildNotification())
-        // We are the foreground service again: reclaim sync from the WorkManager
-        // fallback (ADR 0004) so the two never sync in parallel. Foregrounding
-        // resets the Android 15 dataSync budget, so the loop gets a fresh window.
-        SyncWorker.cancel(this)
-        ensureSessionRestored()
-        observeRoomsForNotifications()
+        // Must come first on every start (the OS requires it after
+        // startForegroundService). It throws when Android won't allow a dataSync
+        // FGS right now — e.g. the Android 15 budget is spent, or a BOOT_COMPLETED
+        // start on API 35. Then leave it to the SyncWorker catch-up runs.
+        val promoted = runCatching { startForeground(NOTIFICATION_ID, buildNotification()) }
+            .onFailure { Log.w(TAG, "could not enter the foreground; using the catch-up fallback: ${it.message}") }
+            .isSuccess
+        if (!promoted) {
+            timedOut = true
+            SyncWorker.schedule(applicationContext)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        if (owner.activeHost.value == SyncHost.ACCESSIBILITY) {
+            // The background helper already hosts sync; no notification needed.
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // Foregrounding resets the Android 15 dataSync budget, so the loop gets
+        // a fresh window and the watchdog stops doing catch-ups.
+        timedOut = false
+        owner.attach(SyncHost.FOREGROUND_SERVICE, lifecycleScope)
         return START_STICKY
+    }
+
+    override fun onDestroy() {
+        owner.detach(SyncHost.FOREGROUND_SERVICE)
+        super.onDestroy()
     }
 
     /**
      * Android 15 caps a `dataSync` foreground service at ~6h per 24h; when we
      * cross it the OS calls this and we must stop promptly (ADR 0004). Pause the
-     * loop (keeping the client alive for a fast foreground resume) and hand off
-     * to the [SyncWorker] fallback so messages keep arriving, delayed, until the
-     * app is foregrounded and [onStartCommand] reclaims sync. Both `onTimeout`
-     * overloads route here: API 34 calls the one-arg form, API 35+ the two-arg.
+     * loop (keeping the client alive for a fast foreground resume) and let the
+     * always-scheduled [SyncWorker] run catch-ups so messages keep arriving,
+     * delayed, until the app is foregrounded and [onStartCommand] reclaims sync.
+     * Both `onTimeout` overloads route here: API 34 calls the one-arg form, API
+     * 35+ the two-arg.
      */
     override fun onTimeout(startId: Int) = handleTimeout()
 
@@ -91,7 +87,9 @@ class SyncForegroundService : LifecycleService() {
 
     private fun handleTimeout() {
         Log.i(TAG, "dataSync FGS timed out; handing sync off to the WorkManager fallback")
-        SyncWorker.enqueue(applicationContext)
+        timedOut = true
+        owner.detach(SyncHost.FOREGROUND_SERVICE)
+        SyncWorker.schedule(applicationContext)
         // Pause before stopSelf(): stopSelf() ends the service and cancels
         // lifecycleScope, so ordering the pause first (svc.stop() is quick)
         // guarantees the loop is actually paused rather than left running in the
@@ -101,92 +99,6 @@ class SyncForegroundService : LifecycleService() {
             runCatching { session.pauseSync() }
             stopSelf()
         }
-    }
-
-    /**
-     * Bug fix: the SDK's sync loop is only ever started from MainActivity
-     * (sign-in, or its own cold-start restore) — this service never started
-     * it itself, only rode the already-live client's [session.rooms] flow.
-     * A low-memory kill takes the whole process, this singleton client
-     * included; START_STICKY then relaunches *this service* without ever
-     * running MainActivity.onCreate(), so the client was never rebuilt and
-     * the persistent "MatChat is running" notification kept showing while
-     * sync had actually died — the on-device "not reliably syncing, won't
-     * show new messages" report. Restoring here too means any process that
-     * gets this service running also has a live sync loop, regardless of
-     * whether an Activity ever ran in it. isActive() guards against
-     * rebuilding a client that's already live (restore() is not a no-op —
-     * it tears down and reconnects).
-     */
-    private fun ensureSessionRestored() {
-        if (!sessionStore.hasSession()) return
-        lifecycleScope.launch {
-            // Active client but the loop may have been paused by the WorkManager
-            // fallback's last catch-up — ensureSyncing() restarts it (idempotent
-            // if already running). No client at all → restore (which starts sync).
-            if (session.isActive()) session.ensureSyncing() else auth.restoreSession()
-        }
-    }
-
-    /** Watch joined-room unread counts and raise a per-room notification when one
-     *  climbs (a new incoming message), cancelling it when the room is read. The
-     *  first emission only seeds the baseline so existing history never alerts. */
-    private fun observeRoomsForNotifications() {
-        if (observing) return
-        observing = true
-        lifecycleScope.launch {
-            session.rooms.collect { rooms -> onRooms(rooms) }
-        }
-        // Track our call phase: once a ringing call connects it's answered (drop
-        // it from the missed-call set); isActive gates a second ring.
-        lifecycleScope.launch {
-            callController.session.collect { s ->
-                ownCallActive = s.isActive
-                if (s.phase == CallPhase.CONNECTED) s.roomId?.let { ringingRooms.remove(it.value) }
-            }
-        }
-    }
-
-    private suspend fun onRooms(rooms: List<RoomSummary>) {
-        // Message notifications go through the shared, @Singleton
-        // MessageNotifications so the unread baseline survives the hand-off to
-        // the WorkManager fallback (ADR 0004). Call ringing stays here — a
-        // delayed background job can't usefully ring a live call.
-        messageNotifications.onRooms(rooms)
-
-        if (!seeded) {
-            // Seed the call baseline so an already-ongoing call (app just launched
-            // into it) never rings.
-            rooms.forEach { lastCall[it.id.value] = it.hasActiveCall }
-            seeded = true
-            return
-        }
-        rooms.forEach { room ->
-            val hadCall = lastCall[room.id.value] ?: false
-            when {
-                room.hasActiveCall && !hadCall -> onCallAppeared(room)
-                !room.hasActiveCall && hadCall -> onCallDisappeared(room)
-            }
-            lastCall[room.id.value] = room.hasActiveCall
-        }
-    }
-
-    /** A call appeared in a room: ring, unless we are already in a call (our own
-     *  outgoing call lights up the same room, and we don't ring ourselves). */
-    private fun onCallAppeared(room: RoomSummary) {
-        if (ownCallActive) return
-        val caller = room.name.ifBlank { room.id.value }
-        ringingRooms[room.id.value] = caller
-        callController.onIncomingCall(IncomingCall(room.id, caller))
-        CallNotifier.showIncoming(this, room.id, caller)
-    }
-
-    /** A call ended: drop the ring. If we raised it and never answered (still in
-     *  ringingRooms — the session collector removes answered ones), show missed. */
-    private fun onCallDisappeared(room: RoomSummary) {
-        CallNotifier.cancel(this)
-        val caller = ringingRooms.remove(room.id.value) ?: return
-        CallNotifier.showMissed(this, room.id, caller)
     }
 
     private fun buildNotification(): Notification {
@@ -226,16 +138,28 @@ class SyncForegroundService : LifecycleService() {
         private const val NOTIFICATION_ID = 1
         private const val TAG = "SyncForegroundService"
 
-        fun start(context: Context) {
+        /** True after the OS refused or ended our foreground time (the Android 15
+         *  dataSync cap). The [SyncWorker] watchdog then runs bounded catch-ups
+         *  instead of restarting this service; cleared when a start succeeds. */
+        @Volatile var timedOut: Boolean = false
+            private set
+
+        /** Use [SyncHosts.ensureRunning] instead — it picks the host. Returns
+         *  false when Android refuses the start (background-start limits on
+         *  API 31+ without the battery exemption, a BOOT_COMPLETED start on 35). */
+        internal fun start(context: Context): Boolean {
             val intent = Intent(context, SyncForegroundService::class.java)
             // startForegroundService exists only on API 26+ (minSdk is 24); on
             // older AOSP flips, startService + startForeground works without the
             // 5-second promotion window.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            return runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            }.onFailure { Log.w(TAG, "foreground service start refused: ${it.message}") }
+                .isSuccess
         }
     }
 }

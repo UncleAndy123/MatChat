@@ -26,6 +26,8 @@ class MatChatApp : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
+    @Inject lateinit var bundledSounds: org.matchat.client.notify.BundledSounds
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
@@ -45,6 +47,9 @@ class MatChatApp : Application(), Configuration.Provider {
                 userPreferences.notificationChannelVersion.value,
                 userPreferences.notificationSoundUri.value,
             )
+            // Make sounds bundled in res/raw pickable (docs/SOUNDS.md). No-op on
+            // Android 7–9 until storage access is granted from a sound picker.
+            bundledSounds.install()
         }
     }
 }

@@ -17,7 +17,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import org.matchat.client.di.UserPreferencesEntryPoint
-import org.matchat.client.sync.SyncForegroundService
+import org.matchat.client.sync.BackgroundSyncStatusProvider
+import org.matchat.client.sync.SyncHosts
 import org.matchat.core.matrix.MatrixAuth
 import org.matchat.core.matrix.MatrixSessionStore
 import org.matchat.core.model.EventId
@@ -52,6 +53,10 @@ class MainActivity : AppCompatActivity(), Navigator {
     @Inject lateinit var session: org.matchat.core.matrix.MatrixSession
 
     @Inject lateinit var updateManager: org.matchat.core.update.UpdateManager
+
+    @Inject lateinit var syncHosts: SyncHosts
+
+    @Inject lateinit var backgroundStatus: BackgroundSyncStatusProvider
 
     // Read via an EntryPoint, not @Inject: Hilt's own field injection runs
     // inside super.onCreate(), too late to setTheme() before it.
@@ -180,6 +185,47 @@ class MainActivity : AppCompatActivity(), Navigator {
         }
     }
 
+    // One-time background setup after sign-in (UX-SPEC §S27, docs/adr/0008):
+    // the system "run in background" (battery optimization) dialog, then — if
+    // the background helper isn't on yet — the S27 prompt. Returning from the
+    // dialog continues the sequence whatever the user chose.
+    private val batteryExemptionRequest =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+        ) { continueBackgroundSetup() }
+
+    /** Offered once per install (existing installs see it once after updating). */
+    private fun offerBackgroundSetupIfNeeded() {
+        if (backgroundStatus.setupOffered) return
+        backgroundStatus.markSetupOffered()
+        backgroundStatus.refresh()
+        if (backgroundStatus.status.value.batteryExempt || !requestBatteryExemption()) {
+            continueBackgroundSetup()
+        }
+    }
+
+    /** Launches the system dialog, or its settings list on builds that lack the
+     *  dialog. False if neither exists; S27 then names the missing permission. */
+    @android.annotation.SuppressLint("BatteryLife") // sideloaded messenger with no push: the documented exemption case
+    private fun requestBatteryExemption(): Boolean {
+        val direct = Intent(
+            android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            android.net.Uri.parse("package:$packageName"),
+        )
+        val list = Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        // Try-and-catch rather than resolveActivity(): package visibility on API
+        // 30+ can hide the Settings activity from resolveActivity itself.
+        return listOf(direct, list).any { intent ->
+            runCatching { batteryExemptionRequest.launch(intent) }.isSuccess
+        }
+    }
+
+    private fun continueBackgroundSetup() {
+        backgroundStatus.refresh()
+        syncHosts.ensureRunning()
+        if (!backgroundStatus.status.value.helperConnected) toBackgroundHelper()
+    }
+
     // Own presence: online while the app is foregrounded, unavailable when it
     // leaves. (The SDK exposes no way to read *other* users' presence, so this is
     // outbound only — there are no peer presence dots.)
@@ -187,12 +233,13 @@ class MainActivity : AppCompatActivity(), Navigator {
         super.onResume()
         activeInstance = this
         if (sessionStore.hasSession()) {
-            // Reclaim the foreground sync service on every foreground. Being in the
-            // foreground resets the Android 15 dataSync runtime budget, so this both
-            // recovers from a WorkManager-fallback handoff (ADR 0004) and cancels
-            // that fallback (SyncForegroundService.onStartCommand). Idempotent when
-            // the service is already the live sync owner.
-            SyncForegroundService.start(this)
+            // Make sure a sync host is running on every foreground (docs/adr/0008).
+            // With the FGS as host, being in the foreground resets the Android 15
+            // dataSync runtime budget, so this also recovers from a catch-up
+            // handoff (ADR 0004). Also re-checks the battery exemption, so the
+            // background helper takes over (or hands back) after the user changed
+            // it in system settings. Idempotent when the host is already live.
+            syncHosts.ensureRunning()
             lifecycleScope.launch { session.setPresence(online = true) }
         }
     }
@@ -358,14 +405,18 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     override fun toRoomListRoot() {
         // A successful sign-in means a live session; own sync from here on.
-        SyncForegroundService.start(this)
+        syncHosts.ensureRunning()
         val options = androidx.navigation.navOptions {
             popUpTo(R.id.welcomeFragment) { inclusive = true }
         }
         navController.navigate(R.id.roomListFragment, null, options)
+        offerBackgroundSetupIfNeeded()
     }
 
     override fun toWelcomeRoot() {
+        // Signed out (not a failed restore, which keeps the stored session):
+        // stop every sync host, the watchdog and the running notification.
+        if (!sessionStore.hasSession()) syncHosts.stopAll()
         val options = androidx.navigation.navOptions {
             popUpTo(R.id.nav_graph) { inclusive = true }
         }
@@ -418,6 +469,7 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun toTheme() = navController.navigate(R.id.themeFragment)
     override fun toTextSize() = navController.navigate(R.id.textSizeFragment)
     override fun toAdvanced() = navController.navigate(R.id.advancedFragment)
+    override fun toBackgroundHelper() = navController.navigate(R.id.backgroundHelperFragment)
     override fun toNotifications() = navController.navigate(R.id.notificationsFragment)
     override fun toPolicy() = navController.navigate(R.id.policyFragment)
     override fun toUpdate() = navController.navigate(R.id.updateFragment)

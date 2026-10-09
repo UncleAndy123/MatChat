@@ -51,4 +51,15 @@ class MappersTest {
     fun `normalizeWaveform on an empty list is an empty list`() {
         assertEquals(emptyList<Float>(), Mappers.normalizeWaveform(emptyList()))
     }
+
+    @Test
+    fun `preview sender uses the display name`() {
+        assertEquals("Ann", Mappers.previewSenderName("Ann", "@ann:server"))
+    }
+
+    @Test
+    fun `preview sender falls back to the raw id when the name is missing or blank`() {
+        assertEquals("@ann:server", Mappers.previewSenderName(null, "@ann:server"))
+        assertEquals("@ann:server", Mappers.previewSenderName(" ", "@ann:server"))
+    }
 }

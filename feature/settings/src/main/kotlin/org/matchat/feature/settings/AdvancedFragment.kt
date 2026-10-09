@@ -7,15 +7,19 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import org.matchat.core.model.background.HelperStatus
 import org.matchat.core.ui.focus.FocusEngine
 import org.matchat.core.ui.softkey.SoftkeyFragment
 import org.matchat.feature.settings.databinding.FragmentAdvancedBinding
 
-/** Settings > Advanced (Phase 6, UI improvement plan; docs/adr/0007): a
- *  narrow, explicit exception to "LEFT=Options/RIGHT=Back, always" for a
- *  device whose hardware softkeys are physically reversed. One focusable
- *  toggle row — CENTER (or a tap) selects it; render() is the only place
- *  that decides its checkmark (AGENTS.md §3), same shape as ThemeFragment. */
+/** Settings > Advanced (S25; Phase 6, UI improvement plan; docs/adr/0007,
+ *  0008). First row: the softkey swap, a narrow, explicit exception to
+ *  "LEFT=Options/RIGHT=Back, always" for a device whose hardware softkeys are
+ *  physically reversed — CENTER (or a tap) toggles it; render() is the only
+ *  place that decides its checkmark (AGENTS.md §3), same shape as
+ *  ThemeFragment. Then two rows that open system screens for settings only
+ *  the user can grant: "Run in background" and the background helper, each
+ *  with a status line rendered from state. */
 @AndroidEntryPoint
 class AdvancedFragment : SoftkeyFragment() {
 
@@ -34,10 +38,12 @@ class AdvancedFragment : SoftkeyFragment() {
         b.advancedSwapSoftkeys.setOnClickListener {
             viewModel.onAction(AdvancedAction.ToggleSoftkeysSwapped)
         }
+        b.advancedBatteryRow.setOnClickListener { openBatteryExemption() }
         b.advancedAccessibilityRow.setOnClickListener { openAccessibilitySettings() }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.onAction(AdvancedAction.Refresh)
                 viewModel.state.collect(::render)
             }
         }
@@ -49,6 +55,29 @@ class AdvancedFragment : SoftkeyFragment() {
         val label = getString(R.string.advanced_swap_softkeys)
         b.advancedSwapSoftkeys.text =
             if (state.softkeysSwapped) getString(R.string.theme_row_selected_format, label) else label
+        b.advancedBatteryStatus.setText(
+            if (state.batteryExempt) R.string.advanced_battery_allowed else R.string.advanced_battery_not_allowed,
+        )
+        b.advancedAccessibilityStatus.setText(
+            when (state.helperStatus) {
+                HelperStatus.ON -> R.string.advanced_helper_status_on
+                HelperStatus.NEEDS_BATTERY -> R.string.advanced_helper_status_needs_battery
+                HelperStatus.OFF -> R.string.advanced_helper_status_off
+            },
+        )
+    }
+
+    /** The system "let MatChat run in the background?" dialog, or its settings
+     *  list on builds without the dialog. Like the helper, only the user can
+     *  grant it; the status line refreshes when this screen is shown again. */
+    @android.annotation.SuppressLint("BatteryLife") // sideloaded messenger with no push (docs/adr/0008)
+    private fun openBatteryExemption() {
+        val direct = android.content.Intent(
+            android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            android.net.Uri.parse("package:${requireContext().packageName}"),
+        )
+        val list = android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        listOf(direct, list).any { runCatching { startActivity(it) }.isSuccess }
     }
 
     /** The toggle above is our own preference; whether

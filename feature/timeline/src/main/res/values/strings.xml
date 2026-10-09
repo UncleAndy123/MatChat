@@ -52,6 +52,14 @@
     <string name="timeline_msg_unpin">Unpin message</string>
     <string name="timeline_pin_failed">Couldn\'t pin — you may not have permission in this room.</string>
     <string name="timeline_msg_copy">Copy text</string>
+    <!-- Message menu (S11) + image viewer (S9): save media off the chat. -->
+    <string name="timeline_msg_save_gallery">Save to gallery</string>
+    <string name="timeline_msg_save_files">Save to files</string>
+    <!-- Shown after a save completes. -->
+    <string name="timeline_saved_gallery">Saved to Pictures.</string>
+    <string name="timeline_saved_downloads">Saved to Downloads.</string>
+    <string name="timeline_save_failed">Could not save this file.</string>
+    <string name="timeline_save_denied">Storage permission is needed to save files.</string>
     <string name="timeline_msg_info">Message info</string>
     <!-- Marks a row already selected/active — a local copy of the same
          "%1$s ✓" idiom feature/settings' theme_row_selected_format uses
@@ -66,6 +74,15 @@
     <string name="roominfo_remove_member">Remove from room</string>
     <string name="roominfo_bad_address">Enter a full address, e.g. @sam:example.org</string>
     <string name="roominfo_edit_failed">That change didn\'t go through.</string>
+    <!-- S12 Notification sound row: caption, and the sound name shown above it.
+         "App sound" = the one chosen in Settings > Notifications. -->
+    <string name="roominfo_sound_caption">Notification sound</string>
+    <string name="roominfo_sound_app_default">Default (app sound)</string>
+    <string name="roominfo_sound_silent">Silent</string>
+    <!-- A custom sound whose name can't be read any more. -->
+    <string name="roominfo_sound_custom">Custom sound</string>
+    <!-- Android 7–9, storage access refused before opening the sound picker. -->
+    <string name="roominfo_sounds_need_access">MatChat\'s own sounds need storage access.</string>
     <string name="timeline_edit_title">Edit message</string>
 
     <!-- Pinned messages (reached from Room info > Pinned messages). -->
@@ -85,6 +102,9 @@
     <!-- Media. -->
     <string name="timeline_image">Image</string>
     <string name="timeline_media_failed">Could not download this attachment.</string>
+    <!-- Shown when a captured photo can't be recovered (camera ignored our
+         output file and media access was not granted). -->
+    <string name="timeline_camera_failed">Couldn\'t get the photo. Allow media access and try again.</string>
     <string name="timeline_media_no_app">No app on this phone can open this file.</string>
     <string name="timeline_audio_failed">Can\'t play this audio on this phone.</string>
 

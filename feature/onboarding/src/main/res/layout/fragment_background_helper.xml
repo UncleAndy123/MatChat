@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S27 "Hide the running notification?" (UX-SPEC §S27, docs/adr/0008).
+     Explanation, the one focusable row (opens system Accessibility settings),
+     then a status line. Focus order = XML order; only the row is focusable.
+     ScrollView so the text can grow at the largest font scale; it scrolls
+     with the D-pad because the row is its only focus target and the text is
+     short enough to fit one screen at normal size. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/content_pad">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:focusable="false"
+            android:text="@string/background_helper_body"
+            android:textSize="?attr/textSizeBody"
+            android:textColor="?attr/colorTextPrimary" />
+
+        <TextView
+            android:id="@+id/background_helper_open"
+            style="@style/Widget.MatChat.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/background_helper_open"
+            android:textSize="?attr/textSizeLabel"
+            android:textColor="?attr/colorTextOnFocus" />
+
+        <TextView
+            android:id="@+id/background_helper_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:paddingTop="4dp"
+            android:textSize="?attr/textSizeMeta"
+            android:textColor="?attr/colorTextSecondary" />
+    </LinearLayout>
+</ScrollView>

@@ -3,7 +3,9 @@ package org.matchat.client.sync
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.matchat.client.notify.MessageNotifier
+import org.matchat.client.notify.NotificationContent
 import org.matchat.core.model.RoomSummary
+import org.matchat.core.model.notify.RoomNotificationSounds
 import org.matchat.core.ui.prefs.UserPreferences
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,6 +27,7 @@ import javax.inject.Singleton
 class MessageNotifications @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userPreferences: UserPreferences,
+    private val roomSounds: RoomNotificationSounds,
 ) {
     private val lastUnread = HashMap<String, Int>()
     private var seeded = false
@@ -43,10 +46,11 @@ class MessageNotifications @Inject constructor(
                     MessageNotifier.show(
                         context,
                         room.id,
-                        room.name.ifBlank { room.id.value },
-                        now,
+                        contentFor(room, now),
                         channelVersion = userPreferences.notificationChannelVersion.value,
                         soundUri = userPreferences.notificationSoundUri.value,
+                        // A room's own sound (Room info) wins over the app-wide one.
+                        roomSound = roomSounds.overrides.value[room.id],
                     )
                 }
                 now == 0 && prev > 0 -> MessageNotifier.cancel(context, room.id)
@@ -54,4 +58,15 @@ class MessageNotifications @Inject constructor(
             lastUnread[room.id.value] = now
         }
     }
+
+    /** The latest message's text, unless it is our own — then just the count
+     *  (the unread count climbed because of someone else's message that the
+     *  room list hasn't caught up with yet). */
+    private fun contentFor(room: RoomSummary, unread: Int) = NotificationContent(
+        roomName = room.name.ifBlank { room.id.value },
+        sender = room.lastMessageSender.takeUnless { room.lastMessageIsOwn },
+        text = room.lastMessage.takeUnless { room.lastMessageIsOwn },
+        media = room.lastMessageMedia.takeUnless { room.lastMessageIsOwn },
+        unread = unread,
+    )
 }
