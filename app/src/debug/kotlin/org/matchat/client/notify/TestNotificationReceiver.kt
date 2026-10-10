@@ -15,11 +15,11 @@ import org.matchat.core.model.RoomId
  * tested without waiting for a live Matrix message.
  *
  * It posts through [MessageNotifier.show] unchanged, so what you see is exactly
- * the production notification: `CATEGORY_MESSAGE`, auto-cancel, not ongoing —
- * the shape InfoSign's NotificationListener filter is believed to mirror as
- * "N from <app>" on the front screen.
+ * the production notification — including the `sublcd_notification="messaging"`
+ * extra ([MessageNotifier.EXTRA_SUBLCD]) that InfoSign keys on to mirror it to
+ * the cover screen (docs/COVER-DISPLAY.md).
  *
- * Usage (reference device over adb):
+ * Usage (reference device over adb — post with the flip closed):
  * ```
  * adb shell "logcat -c"
  * adb shell "logcat -v time -s kc_infosign" &      # watch the cover-screen tag
@@ -27,10 +27,11 @@ import org.matchat.core.model.RoomId
  * # optional extras:
  * #   --es text "see you at six"   --es room "Ann"   --ei count 1
  * ```
- * A pass looks like `onNotificationPosted(... pkg=org.matchat.client ...
- * category=msg ...)` followed by `sendBroadcast pkg=org.matchat.client count=1`.
- * If it posts but no `sendBroadcast` line follows, there is a package whitelist
- * and getting on-screen needs root (see the notifications branch notes).
+ * A pass looks like `onNotificationPosted(... extra=messaging ...)` followed by
+ * a `sendBroadcast ... count=1`, and the cover lights. Clearing the
+ * notification sends count=0 and clears it. (The cover renders this under a
+ * known package's identity, not MatChat's — branding needs the signed build;
+ * see docs/COVER-DISPLAY.md.)
  *
  * Registered only in `app/src/debug/AndroidManifest.xml`, so it ships in no
  * release build. Clear it afterwards with:

@@ -10,6 +10,7 @@ import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
@@ -47,6 +48,15 @@ object MessageNotifier {
     const val REPLY_KEY = "matchat.reply"
     const val EXTRA_ROOM_ID = "org.matchat.client.ROOM_ID"
     const val EXTRA_NOTIF_ID = "org.matchat.client.NOTIF_ID"
+
+    /** Kyocera cover-screen mirror (docs/COVER-DISPLAY.md). InfoSign's
+     *  NotificationListener mirrors a notification to the front screen when
+     *  this extra equals [SUBLCD_MESSAGING] (or "email") — it keys on the
+     *  extra, not the package, so this is all an unrooted app needs to light
+     *  the cover for a waiting message. Harmless everywhere else: a device
+     *  without InfoSign just ignores an unknown extra. */
+    const val EXTRA_SUBLCD = "sublcd_notification"
+    const val SUBLCD_MESSAGING = "messaging"
 
     private const val REQ_REPLY = 1_000
     private const val REQ_READ = 2_000
@@ -319,6 +329,10 @@ object MessageNotifier {
             .setContentIntent(openPI)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            // Lights the Kyocera cover screen (docs/COVER-DISPLAY.md). Rides
+            // this notification's existing lifecycle: posted on a new message,
+            // cancelled on read, so the cover indicator tracks unread for free.
+            .addExtras(Bundle().apply { putString(EXTRA_SUBLCD, SUBLCD_MESSAGING) })
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             // Below O the channel doesn't carry the sound — set it directly here.
             // On O+ this is ignored in favor of the channel's own sound.
