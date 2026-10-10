@@ -143,17 +143,59 @@ Read it as a decision tree:
 Post with the **flip closed** — some cover renderers only react to a
 notification that posts while the lid is shut.
 
-## The one real limit — branding
+## The real wall — confirmed on-device
 
-Both paths carry only `package + count` downstream. The cover renderer decides
-the icon/label from the package and only knows a handful (dialer, vzmsgs, email,
-vvm). So via Path 1 the cover shows a *generic messaging identity* (Verizon
-Messages' icon), not MatChat/KyCall — functionally "you have a message," which
-is the goal, but not our branding.
+A full trace (flip-closed test post) shows the pipeline works right up to the
+renderer, then stops:
 
-To show MatChat's own icon/name on the cover, MatChat's package must be added to
-that downstream renderer's map. The renderer is a system component (SystemUI /
-`sublcd`), so that is the signed-build / root step — the same signed-build path
-already planned, now an isolated, well-defined change rather than a mystery. The
-renderer itself has not yet been located; pull SystemUI and any `*sublcd*` APK
-to trace who consumes `INFOSIGN_DATA`.
+```
+kc_infosign: onNotificationPosted extra=messaging                         # matched our extra
+BadgeProvider: update
+kc_infosign: sendBroadcast pkg=com.verizon.messaging.vzmsgs cls= count=1   # RELABELED to vzmsgs
+KeyguardStatusView: infosignData[0].pkgName = com.verizon.messaging.vzmsgs # SystemUI renderer got it
+KeyguardStatusView: infosignData[0].count = 1
+```
+
+So:
+
+- **Path 1 relabels.** On an `extra=messaging` match InfoSign throws away the
+  real package and emits `com.verizon.messaging.vzmsgs`. So the cover can only
+  ever show a Verizon-Messages identity via this path — and if Verizon Messages
+  isn't installed, `KeyguardStatusView` has no icon/label to resolve and draws
+  nothing. That is the observed blank cover.
+- **The renderer is `KeyguardStatusView` in SystemUI** (not a `sublcd` app). It
+  consumes `jp.kyocera.kcinfosignprovider.action.INFOSIGN_DATA`
+  (`String[][]{pkg, cls, count}`).
+- **InfoSign's notification-listener access is system-bound**, not via
+  `enabled_notification_listeners` (that setting did not list InfoSign, yet
+  `onNotificationPosted` still fired). So listener access is a non-issue.
+
+### Does Path 2 carry our own package through? (the deciding experiment)
+
+Path 1 is a dead end for us (always relabels to vzmsgs). Path 2
+(`BADGE_COUNT_UPDATE` → BadgeProvider → `INFOSIGN_DATA`) passes the package
+through *verbatim*, so it should reach `KeyguardStatusView` as
+`pkg=org.matchat.client`. Whether the cover then paints depends on whether
+`KeyguardStatusView` resolves the icon dynamically (via PackageManager — we'd
+win, our icon shows) or from a fixed internal map of known packages (dialer,
+vzmsgs, email, vvm — we'd lose, needs a signed SystemUI). Test it directly,
+flip closed:
+
+```
+adb logcat -c
+adb shell am broadcast -n jp.kyocera.kcinfosignprovider/.KCInfosignBroadcastReceiver \
+  -a android.intent.action.BADGE_COUNT_UPDATE \
+  --ei badge_count 3 \
+  --es badge_count_package_name org.matchat.client \
+  --es badge_count_class_name org.matchat.client.MainActivity
+adb logcat -d > badge.txt
+# PowerShell:  Select-String -Path badge.txt -Pattern "BadgeProvider","INFOSIGN_DATA","KeyguardStatusView"
+```
+
+- Cover shows MatChat's icon + "3" → **Path 2 is the unrooted win**; wire MatChat
+  to fire this broadcast (a `CoverBadge` helper) on unread-count changes.
+- Cover still blank (and `KeyguardStatusView` log shows `pkg=org.matchat.client`
+  arriving but nothing drawn) → `KeyguardStatusView` has a fixed package map;
+  real branding needs a signed SystemUI build. Pull `SystemUI.apk` +
+  `framework-res.apk` and trace `KeyguardStatusView`'s handling of `infosignData`
+  to find where to add `org.matchat.client`.
