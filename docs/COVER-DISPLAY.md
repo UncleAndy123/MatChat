@@ -35,24 +35,45 @@ duration is a visibility/battery trade-off.
   right softkey + sync only, so adding it needs explicit direction and an
   AGENTS.md update — not done here.
 
-### Open: scrolling text, and re-showing the card on every cover wake
+### Scrolling and re-showing (probe results → implemented)
 
-Goal: the card scrolls long text, and comes back whenever the cover lights up
-until the message is read. Both depend on facts only the device can tell us, so
-the debug-only `CoverProbeReceiver` gathers them in one run (usage in its doc
-comment): every method/constant of `SubLcdManager` and
-`SubLcdNotificationExtender`, framework layouts near the rich-card template,
-the device's `Display`s, and which signals fire when the cover wakes.
+The debug-only `CoverProbeReceiver` dumped the OEM API and watched wake signals
+on the DuraXV. Findings:
 
-How the answers map to an implementation:
+- **No native scrolling.** `SubLcdNotificationExtender` offers `setTitle`,
+  `setText`, `setText2`, `setBlinkText/Title`, `setCancelBySideKey`,
+  `setFullScreen`, `setDisplayPerson`, `setInfoSign`, `setRemoteViews` — no
+  marquee. A long line posted once does not scroll. Templates are
+  `k_sublcd_template_1`…`_5` (`0x010900ab`…`0x010900af`; we use `_5`).
+- **App-side ticker works.** Reposting the same card id every 400 ms with a
+  sliding window of the text scrolls cleanly on the cover.
+- **The cover is not an Android `Display`.** Only display 0 exists. What an app
+  *can* hear is the main display's `SCREEN_OFF` when the flip closes and
+  `SCREEN_ON` when it opens.
+- **Other OEM API worth knowing:** `SubLcdManager` has `notify` overloads taking
+  a `long` cancel time (`DEFAULT_CANCEL_TIME = -1`), `wakeUpSecDisplay(boolean)`,
+  `isKeyguard()`, `registerCallback(ISubLcdCallback)`, and
+  `notifyIconToAnnunciatorTray` / `cancelAnnunciatorIconFromTray`.
 
-| Probe shows | Then |
-|---|---|
-| An extender setter or layout for marquee/ticker | Use it — native scrolling. |
-| The long line doesn't scroll, but the repost ticker looks clean | App-side ticker: repost the same id with a sliding window of text. |
-| The cover is a `Display` whose state changes on wake | `DisplayListener` re-posts active cards on each wake — no accessibility service. |
-| `SubLcdManager` has a listener/callback | Same, via the OEM callback. |
-| Only key presses wake it (TurboText's finding) | Re-post from `MatChatKeyAccessibilityService` — needs explicit direction + an AGENTS.md §4 update. |
+Implemented in `CoverScreenNotifier`:
+
+- Text longer than 14 characters scrolls (ticker) for the card's 30 s.
+- The card is re-shown each time the flip closes (`SCREEN_OFF`) until the room
+  is read (`MessageNotifier.cancel*` → `CoverScreenNotifier.cancel`), and stopped
+  when the flip opens (`SCREEN_ON`). Only the most recent unread room's card is
+  shown. Side effect: a main-screen timeout with the flip *open* also sends
+  `SCREEN_OFF`, so the card re-shows (unseen) on the lid then — 30 s of cover
+  screen, accepted for now.
+
+Still open:
+
+- **Waking the cover with a side key while closed** produces no signal an app
+  can hear (beyond TurboText's accessibility-service route, which AGENTS.md §4
+  rules out for `MatChatKeyAccessibilityService` without explicit direction).
+- **A persistent "until cleared" icon:** `notifyIconToAnnunciatorTray` may put
+  an icon in the cover's status tray that survives sleep/wake. Probe it with
+  `--ez tray true` (usage in `CoverProbeReceiver`); if it persists, it is the
+  cleanest "message waiting" indicator.
 
 ---
 

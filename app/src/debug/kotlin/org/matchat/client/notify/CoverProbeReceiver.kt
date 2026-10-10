@@ -28,15 +28,20 @@ import java.lang.reflect.Modifier
  * Usage (PowerShell-safe):
  * ```
  * adb logcat -c
- * adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver --ez ticker true
+ * adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver --ez tray true
  * # close the flip; over the next ~2 min press a side key a few times to wake
  * # the cover, open/close the flip once
  * adb logcat -d > probe.txt
- * Select-String -Path probe.txt -Pattern "MatChatCover"
- * Select-String -Path probe.txt -Pattern "sublcd","SubLcd","flip","hall","lid"
+ * Select-String -Path probe.txt -Pattern "probe:","SubLcd"
+ * # afterwards, clear the tray icon:
+ * adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver --ez tray_clear true
  * ```
- * `ticker` additionally posts one long line (does the template scroll it by
- * itself?), then a repost-based ticker (does app-side scrolling look OK?).
+ * `tray` tests `notifyIconToAnnunciatorTray`: does a persistent icon appear on
+ * the idle cover and survive cover sleep/wake until `tray_clear`?
+ *
+ * First-run results (scrolling: no native marquee, app-side ticker works;
+ * wake: only main-display SCREEN_ON/OFF are visible) are in
+ * docs/COVER-DISPLAY.md.
  */
 class CoverProbeReceiver : BroadcastReceiver() {
 
@@ -48,7 +53,8 @@ class CoverProbeReceiver : BroadcastReceiver() {
         dumpLayouts(app)
         dumpDisplays(app)
         watchWake(app)
-        if (intent.getBooleanExtra("ticker", false)) tickerTest(app)
+        if (intent.getBooleanExtra("tray", false)) trayTest(app, show = true)
+        if (intent.getBooleanExtra("tray_clear", false)) trayTest(app, show = false)
     }
 
     /** Every declared method, constructor, static constant and nested class. */
@@ -145,20 +151,28 @@ class CoverProbeReceiver : BroadcastReceiver() {
         }, WATCH_MS)
     }
 
-    /** First one long line (does the template scroll on its own?), then an
-     *  app-side ticker: the same id reposted with a sliding window of text. */
-    private fun tickerTest(context: Context) {
-        val main = Handler(Looper.getMainLooper())
-        CoverScreenNotifier.notify(context, TICKER_ID, TICKER_TEXT, durationMs = LONG_LINE_MS)
-        Log.d(TAG, "probe: ticker — long line posted; repost ticker starts in ${TICKER_DELAY_MS / 1000}s")
-
-        val loop = "$TICKER_TEXT   "
-        val doubled = loop + loop
-        loop.indices.forEach { i ->
-            main.postDelayed({
-                val slice = doubled.substring(i, i + TICKER_WINDOW)
-                CoverScreenNotifier.notify(context, TICKER_ID, slice, durationMs = TICKER_HOLD_MS)
-            }, TICKER_DELAY_MS + i * TICKER_STEP_MS)
+    /** Does `SubLcdManager.notifyIconToAnnunciatorTray` put a *persistent*
+     *  icon on the idle cover (surviving cover sleep/wake until cleared)? That
+     *  would be the "until the notification clears" indicator. */
+    private fun trayTest(context: Context, show: Boolean) {
+        runCatching {
+            val managerClass = Class.forName("jp.kyocera.sublcd.SubLcdManager")
+            val manager = managerClass.getMethod("getInstance", Context::class.java).invoke(null, context)
+            if (show) {
+                val card = CoverScreenNotifier.buildCard(context, "Tray test", TRAY_CARD_MS)
+                managerClass.getMethod(
+                    "notifyIconToAnnunciatorTray",
+                    Int::class.javaPrimitiveType,
+                    android.app.Notification::class.java,
+                ).invoke(manager, TRAY_ID, card)
+            } else {
+                managerClass.getMethod("cancelAnnunciatorIconFromTray", Int::class.javaPrimitiveType)
+                    .invoke(manager, TRAY_ID)
+            }
+        }.onSuccess {
+            Log.d(TAG, "probe: tray ${if (show) "icon posted" else "icon cleared"} id=$TRAY_ID")
+        }.onFailure {
+            Log.d(TAG, "probe: tray call failed: $it")
         }
     }
 
@@ -180,12 +194,7 @@ class CoverProbeReceiver : BroadcastReceiver() {
 
         const val WATCH_MS = 120_000L
 
-        const val TICKER_ID = -42
-        const val TICKER_TEXT = "Ticker test: this line is longer than the cover screen can show at once"
-        const val TICKER_WINDOW = 14 // a guess at the cover's width in characters
-        const val LONG_LINE_MS = 8_000
-        const val TICKER_DELAY_MS = 9_000L
-        const val TICKER_STEP_MS = 400L
-        const val TICKER_HOLD_MS = 1_500 // outlasts the step, so the card stays up between reposts
+        const val TRAY_ID = -43
+        const val TRAY_CARD_MS = 5_000
     }
 }
