@@ -86,7 +86,7 @@ Still open:
   (`shouldReshowOnKeyPress`). Never consumes the key, never records which key.
   Caveats: only works with Settings ▸ Advanced ▸ "Background helper" on, and
   not yet confirmed on the DuraXV that the service receives outside-button
-  presses with the lid shut — `MatChatCover: key press with screen off` in
+  presses with the lid shut — `MatChatCover: key seen: interactive=false` in
   logcat confirms it does. (A keylog check showed those buttons are *not*
   among the keys the system drops while closed, unlike the inner keypad's
   `drop key event:19 lid:0`.)

@@ -115,7 +115,10 @@ internal object CoverScreenNotifier {
         val app = context.applicationContext
         main.post {
             val interactive = app.getSystemService(PowerManager::class.java)?.isInteractive == true
-            if (!interactive) Log.d(TAG, "key press with screen off — pending=${active.size}")
+            // Diagnostic, every press (never the key code): tells "presses never
+            // reach the service with the lid shut" apart from "they arrive, but
+            // waking the cover makes the phone count as interactive".
+            Log.d(TAG, "key seen: interactive=$interactive pending=${active.size}")
             val sinceShown = SystemClock.elapsedRealtime() - lastShownAt
             if (!shouldReshowOnKeyPress(active.isNotEmpty(), interactive, sinceShown, CARD_DURATION_MS.toLong())) {
                 return@post
@@ -169,6 +172,7 @@ internal object CoverScreenNotifier {
                         show(context, id, text)
                     }
                     Intent.ACTION_SCREEN_ON -> {
+                        Log.d(TAG, "screen on (flip opened?) — stopping cover cards")
                         active.keys.forEach { id ->
                             stopTicker(id)
                             cancelCard(context, id)
