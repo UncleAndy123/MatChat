@@ -38,7 +38,12 @@ internal object CoverScreenNotifier {
     private const val SUBLCD_LAYOUT_RICH_CARD = 0x010900af
     private const val SUBLCD_CATEGORY_MESSAGE = 2
     private const val SUBLCD_PRIORITY = 0
-    private const val CARD_DURATION_MS = 5000
+
+    /** How long the card stays up. The sub-LCD holds the cover screen *on* for
+     *  this whole span (TurboText's finding), so it is a battery/visibility
+     *  trade-off — 30 s per the user's ask, long enough to notice on a glance
+     *  without camping the screen on indefinitely. */
+    private const val CARD_DURATION_MS = 30000
 
     /** Shows a cover-screen card for [id] with [text] (keep it short — the
      *  sub-LCD is tiny). [id] matches the notification id so [cancel] clears

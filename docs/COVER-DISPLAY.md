@@ -22,8 +22,10 @@ name (the notification title, not the body — same lock-screen privacy posture)
 **Known limitation (verified on-device by TurboText, which this mirrors —
 github.com/Ben-Showalter/TurboText `OuterScreenNotifier`):** every post needs a
 duration and clears when it expires; there is no setting that holds the card on
-the idle cover indefinitely without keeping the screen on. So this is a ~5 s
-"a message arrived" card, not a permanent unread badge.
+the idle cover indefinitely without keeping the screen on. So this is a timed
+"a message arrived" card (currently `CARD_DURATION_MS` = 30 s), not a permanent
+unread badge — and it keeps the cover screen on for that whole span, so the
+duration is a visibility/battery trade-off.
 
 - **A permanent idle-screen badge** still needs the signed SystemUI build (the
   InfoSign/`KeyguardStatusView` path below).
