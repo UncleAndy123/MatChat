@@ -10,5 +10,6 @@ data class SignInState(
     val homeserver: String = "",
     val homeserverPinned: Boolean = false,
     val isSubmitting: Boolean = false,
+    val showPassword: Boolean = false,
     val error: ErrorText? = null,
 )

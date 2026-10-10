@@ -101,8 +101,10 @@ Options: Help · About.
 
 ### S3 — Sign in (password)
 Content: homeserver row (read-only when pinned, shown as grey text with a lock
-glyph), `Username` field, `Password` field, `Sign in` button.
-Focus order: Username → Password → Sign in.
+glyph), `Username` field, `Password` field, `Show password` toggle (directly
+below the password; CENTER flips masking, label reads `Show password` /
+`Hide password`), `Sign in` button.
+Focus order: Username → Password → Show password → Sign in.
 Softkeys: Options | Select | Back.
 Options: Sign in with QR code · Help · About.
 Errors: inline under the field, red, plain language — "That username or password

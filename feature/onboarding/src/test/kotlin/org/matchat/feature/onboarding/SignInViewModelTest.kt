@@ -54,6 +54,16 @@ class SignInViewModelTest {
     }
 
     @Test
+    fun `toggle flips showPassword and is reversible`() {
+        val vm = SignInViewModel(FakeMatrixAuth(), FakePolicyProvider())
+        assertEquals(false, vm.state.value.showPassword)
+        vm.onAction(SignInAction.ToggleShowPassword)
+        assertTrue(vm.state.value.showPassword)
+        vm.onAction(SignInAction.ToggleShowPassword)
+        assertEquals(false, vm.state.value.showPassword)
+    }
+
+    @Test
     fun `network failure maps to a retryable network error`() = runTest {
         val auth = FakeMatrixAuth(signInResult = Result.failure(java.io.IOException("down")))
         val vm = SignInViewModel(auth, FakePolicyProvider())

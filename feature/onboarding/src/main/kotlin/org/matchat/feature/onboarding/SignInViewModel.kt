@@ -40,6 +40,8 @@ class SignInViewModel @Inject constructor(
             is SignInAction.Submit ->
                 submit(action.username.trim(), action.password, action.homeserver.trim())
             SignInAction.DismissError -> _state.update { it.copy(error = null) }
+            SignInAction.ToggleShowPassword ->
+                _state.update { it.copy(showPassword = !it.showPassword) }
         }
     }
 

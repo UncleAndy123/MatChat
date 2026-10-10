@@ -1,5 +1,6 @@
 package org.matchat.feature.onboarding
 
+import android.text.method.HideReturnsTransformationMethod
 import android.text.method.PasswordTransformationMethod
 import android.view.View
 import androidx.core.view.isVisible
@@ -33,9 +34,9 @@ class SignInFragment : SoftkeyFragment() {
         val b = FragmentSignInBinding.bind(content)
         binding = b
         setTitle(getString(R.string.signin_title))
-        // The field is a textVisiblePassword so the device keypad lets digits
-        // through (see fragment_sign_in.xml); mask it back to dots here.
-        b.password.transformationMethod = PasswordTransformationMethod.getInstance()
+        b.togglePassword.setOnClickListener {
+            viewModel.onAction(SignInAction.ToggleShowPassword)
+        }
         b.signInButton.setOnClickListener { submit() }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -66,6 +67,18 @@ class SignInFragment : SoftkeyFragment() {
         }
         b.homeserverField.isEnabled = !state.homeserverPinned
         b.homeserverField.isFocusable = !state.homeserverPinned
+        // The field is a textVisiblePassword so the device keypad lets digits
+        // through (see fragment_sign_in.xml); masking is a transformation driven
+        // by state, so Show/Hide stays a pure function of showPassword.
+        b.password.transformationMethod = if (state.showPassword) {
+            HideReturnsTransformationMethod.getInstance()
+        } else {
+            PasswordTransformationMethod.getInstance()
+        }
+        b.password.setSelection(b.password.text?.length ?: 0)
+        b.togglePassword.setText(
+            if (state.showPassword) R.string.signin_hide_password else R.string.signin_show_password,
+        )
         b.signInButton.isEnabled = !state.isSubmitting
         b.error.isVisible = state.error != null
         state.error?.let { b.error.text = messageFor(it) }

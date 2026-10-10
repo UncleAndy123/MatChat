@@ -77,6 +77,17 @@
         android:textColor="?attr/colorTextPrimary"
         android:hint="@string/signin_password" />
 
+    <!-- Directly below the password: a focus stop that toggles masking. Label
+         text is set in render() from state.showPassword. -->
+    <TextView
+        android:id="@+id/toggle_password"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/signin_show_password"
+        android:textSize="?attr/textSizeLabel"
+        android:textColor="?attr/colorTextOnFocus" />
+
     <TextView
         android:id="@+id/error"
         android:layout_width="match_parent"

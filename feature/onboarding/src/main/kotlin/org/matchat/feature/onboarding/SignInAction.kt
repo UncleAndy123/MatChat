@@ -8,6 +8,9 @@ sealed interface SignInAction {
         val homeserver: String,
     ) : SignInAction
     data object DismissError : SignInAction
+
+    /** Flip the password field between masked dots and plain text. */
+    data object ToggleShowPassword : SignInAction
 }
 
 sealed interface SignInNav {
