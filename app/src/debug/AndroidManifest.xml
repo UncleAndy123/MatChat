@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only overlay (notifications branch). Registers the on-demand
+     InfoSign cover-screen test trigger; it is merged into debug builds only,
+     so it ships in no release build. See TestNotificationReceiver's doc for
+     the adb usage. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- exported so `adb shell am broadcast` can reach it; debug-only. -->
+        <receiver
+            android:name=".notify.TestNotificationReceiver"
+            android:exported="true" />
+    </application>
+</manifest>
