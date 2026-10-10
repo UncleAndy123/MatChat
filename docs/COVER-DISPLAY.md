@@ -64,7 +64,11 @@ on the DuraXV. Findings:
 
 Implemented in `CoverScreenNotifier`:
 
-- Text longer than 14 characters scrolls (ticker) for the card's 15 s.
+- Text is cut to 40 characters, ending in "…" when longer (`coverDisplayText`).
+  If it's wider than the 14-character cover it scrolls: holds the start, steps
+  one character at a time to the end, holds the end, then starts over from the
+  beginning (`tickerFrames`) for the card's 15 s. An earlier version wrapped the
+  end back into the start, which read as broken text on the second pass.
 - The card is re-shown each time the flip closes (`SCREEN_OFF`) until the room
   is read (`MessageNotifier.cancel*` → `CoverScreenNotifier.cancel`), and stopped
   when the flip opens (`SCREEN_ON`). Only the most recent unread room's card is

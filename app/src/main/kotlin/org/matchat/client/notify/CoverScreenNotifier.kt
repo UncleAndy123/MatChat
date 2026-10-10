@@ -57,12 +57,19 @@ internal object CoverScreenNotifier {
 
     /** Characters visible on the cover at once — longer text scrolls. */
     private const val TICKER_WINDOW = 14
+
+    /** Longest text the cover shows; anything past it is cut and ends in "…"
+     *  (user's call — one scroll pass stays short enough to read). */
+    private const val COVER_MAX_CHARS = 40
     private const val TICKER_STEP_MS = 400L
+
+    /** Frames to hold still at the start and end of each scroll pass, so the
+     *  beginning and the "…" are readable before it starts over. */
+    private const val TICKER_PAUSE_STEPS = 3
 
     /** Each scroll frame outlasts the step, so the card stays up between
      *  frames and clears shortly after the last one. */
     private const val TICKER_HOLD_MS = 1_500
-    private const val TICKER_GAP = "   "
 
     private val main = Handler(Looper.getMainLooper())
 
@@ -120,23 +127,23 @@ internal object CoverScreenNotifier {
     }
 
     /** Only one card is on screen at a time: stop any other scroll, then show
-     *  [text] once (short) or as a ticker (longer than [TICKER_WINDOW]). */
+     *  [text] (cut to [COVER_MAX_CHARS]) once if it fits, or as a ticker that
+     *  scrolls to the end, pauses, and starts over from the beginning. */
     private fun show(context: Context, id: Int, text: String) {
         tickers.keys.toList().forEach(::stopTicker)
         lastShownAt = SystemClock.elapsedRealtime()
-        if (text.length <= TICKER_WINDOW) {
-            post(context, id, text, CARD_DURATION_MS)
+        val shown = coverDisplayText(text, COVER_MAX_CHARS)
+        if (shown.length <= TICKER_WINDOW) {
+            post(context, id, shown, CARD_DURATION_MS)
             Log.d(TAG, "cover card shown id=$id scrolling=false")
             return
         }
-        val loop = text + TICKER_GAP
-        val doubled = loop + loop
+        val cycle = tickerFrames(shown, TICKER_WINDOW, TICKER_PAUSE_STEPS)
         val frames = (CARD_DURATION_MS / TICKER_STEP_MS).toInt()
         val ticker = object : Runnable {
             private var frame = 0
             override fun run() {
-                val start = frame % loop.length
-                post(context, id, doubled.substring(start, start + TICKER_WINDOW), TICKER_HOLD_MS)
+                post(context, id, cycle[frame % cycle.size], TICKER_HOLD_MS)
                 frame++
                 if (frame < frames) main.postDelayed(this, TICKER_STEP_MS) else tickers.remove(id)
             }
@@ -246,3 +253,20 @@ internal fun shouldReshowOnKeyPress(
     msSinceLastShown: Long,
     cardDurationMs: Long,
 ): Boolean = hasPending && !screenInteractive && msSinceLastShown >= cardDurationMs
+
+/** [text] as the cover shows it: unchanged up to [maxChars], otherwise cut to
+ *  fit [maxChars] including a trailing "…". */
+internal fun coverDisplayText(text: String, maxChars: Int): String =
+    if (text.length <= maxChars) text else text.take(maxChars - 1).trimEnd() + "…"
+
+/** One scroll pass over [text] as the frames the cover shows, [window]
+ *  characters each: the start held for [pauseSteps] frames, one character per
+ *  frame to the end, the end held for [pauseSteps] frames. The ticker repeats
+ *  this pass, so it always starts over cleanly from the beginning instead of
+ *  wrapping the end into the start. Text that fits is a single frame. */
+internal fun tickerFrames(text: String, window: Int, pauseSteps: Int): List<String> {
+    if (text.length <= window) return listOf(text)
+    val lastStart = text.length - window
+    val starts = List(pauseSteps) { 0 } + (1 until lastStart) + List(pauseSteps) { lastStart }
+    return starts.map { text.substring(it, it + window) }
+}
