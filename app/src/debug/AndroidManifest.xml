@@ -10,5 +10,9 @@
         <receiver
             android:name=".notify.TestNotificationReceiver"
             android:exported="true" />
+        <!-- Cover-screen probe: sub-LCD API surface, layouts, wake signals. -->
+        <receiver
+            android:name=".notify.CoverProbeReceiver"
+            android:exported="true" />
     </application>
 </manifest>

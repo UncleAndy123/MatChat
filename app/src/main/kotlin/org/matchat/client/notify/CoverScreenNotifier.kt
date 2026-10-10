@@ -48,13 +48,13 @@ internal object CoverScreenNotifier {
     /** Shows a cover-screen card for [id] with [text] (keep it short — the
      *  sub-LCD is tiny). [id] matches the notification id so [cancel] clears
      *  the right one. No-ops off Kyocera hardware. */
-    fun notify(context: Context, id: Int, text: String) {
-        post(context, id, text)
+    fun notify(context: Context, id: Int, text: String, durationMs: Int = CARD_DURATION_MS) {
+        post(context, id, text, durationMs)
     }
 
     @Suppress("DEPRECATION") // Notification.Builder(Context): this card is handed
     // to SubLcdManager, never posted through a NotificationManager channel.
-    private fun post(context: Context, id: Int, text: String) {
+    private fun post(context: Context, id: Int, text: String, durationMs: Int) {
         runCatching {
             val managerClass = Class.forName("jp.kyocera.sublcd.SubLcdManager")
             val extenderClass = Class.forName("jp.kyocera.sublcd.SubLcdNotificationExtender")
@@ -72,7 +72,7 @@ internal object CoverScreenNotifier {
                 .invoke(extender, R.drawable.ic_stat_message)
             extenderClass.getMethod("setText", CharSequence::class.java).invoke(extender, text)
             extenderClass.getMethod("setDuration", Int::class.javaPrimitiveType)
-                .invoke(extender, CARD_DURATION_MS)
+                .invoke(extender, durationMs)
 
             val builder = Notification.Builder(context).setContentText(text)
             Notification.Builder::class.java
@@ -82,7 +82,7 @@ internal object CoverScreenNotifier {
             managerClass.getMethod("notify", Int::class.javaPrimitiveType, Notification::class.java)
                 .invoke(manager, id, builder.build())
         }.onSuccess {
-            Log.d(TAG, "sub-LCD notify ok id=$id duration=$CARD_DURATION_MS")
+            Log.d(TAG, "sub-LCD notify ok id=$id duration=$durationMs")
         }.onFailure {
             // Expected on any non-Kyocera device (classes absent) or if the OEM
             // API differs from the disassembly — either way, safe to no-op.

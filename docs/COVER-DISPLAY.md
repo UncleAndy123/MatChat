@@ -35,6 +35,25 @@ duration is a visibility/battery trade-off.
   right softkey + sync only, so adding it needs explicit direction and an
   AGENTS.md update — not done here.
 
+### Open: scrolling text, and re-showing the card on every cover wake
+
+Goal: the card scrolls long text, and comes back whenever the cover lights up
+until the message is read. Both depend on facts only the device can tell us, so
+the debug-only `CoverProbeReceiver` gathers them in one run (usage in its doc
+comment): every method/constant of `SubLcdManager` and
+`SubLcdNotificationExtender`, framework layouts near the rich-card template,
+the device's `Display`s, and which signals fire when the cover wakes.
+
+How the answers map to an implementation:
+
+| Probe shows | Then |
+|---|---|
+| An extender setter or layout for marquee/ticker | Use it — native scrolling. |
+| The long line doesn't scroll, but the repost ticker looks clean | App-side ticker: repost the same id with a sliding window of text. |
+| The cover is a `Display` whose state changes on wake | `DisplayListener` re-posts active cards on each wake — no accessibility service. |
+| `SubLcdManager` has a listener/callback | Same, via the OEM callback. |
+| Only key presses wake it (TurboText's finding) | Re-post from `MatChatKeyAccessibilityService` — needs explicit direction + an AGENTS.md §4 update. |
+
 ---
 
 The rest of this file is the investigation of the **other** cover path
