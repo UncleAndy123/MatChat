@@ -34,3 +34,9 @@
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
+
+# Kyocera's cover-screen classes exist only on the phone, compiled against
+# :stubs:kyocera-sublcd (compileOnly, docs/adr/0009). Keep R8 from failing on
+# them, and keep our callback's overrides so the framework Stub can reach them.
+-dontwarn jp.kyocera.sublcd.**
+-keep class * extends jp.kyocera.sublcd.ISubLcdCallback$Stub { *; }

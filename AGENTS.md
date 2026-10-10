@@ -70,6 +70,8 @@ feature/invites/         Invitation list, invitation detail, accept / decline
 feature/newchat/         New message: contacts, recents, type an address, blocked address
 feature/settings/        Settings, help, sign out
 feature/verification/    Emoji SAS, recovery key
+stubs/kyocera-sublcd/    Compile-only declaration of Kyocera's cover-screen callback (docs/adr/0009).
+                         :app uses it compileOnly; never packaged. Nothing else may depend on it.
 docs/                    ARCHITECTURE.md, UX-SPEC.md, MDM.md, SERVER.md, DEVICE-SETUP.md, adr/
 config/                  detekt.yml, ktlint config
 ```

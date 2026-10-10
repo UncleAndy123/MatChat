@@ -78,6 +78,16 @@ Implemented in `CoverScreenNotifier`:
 
 Still open:
 
+- **Kyocera's own cover callback (in testing, docs/adr/0009).** The probe found
+  `SubLcdManager.registerCallback(ISubLcdCallback)` with
+  `onScreenStateChanged(int)` (1 = cover on, 0 = off), `onKeyDown/Up/LongPress/
+  Multiple`, and `onNotificationCancel(String, int)` — transaction codes 1–6.
+  MatChat compiles against a declaration of that interface in
+  `:stubs:kyocera-sublcd` (compileOnly, never packaged). Step 1 is a debug-only
+  listener that logs events and handles no keys:
+  `adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver --ez callback true`.
+  If cover on/off arrives, the re-show moves onto it and the accessibility job
+  below is removed.
 - **Waking the cover with an outside button while closed** produces no signal
   an app can hear. Handled (per explicit user direction, AGENTS.md §4) by
   `MatChatKeyAccessibilityService`, which already sees every key: each fresh

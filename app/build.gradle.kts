@@ -99,6 +99,10 @@ dependencies {
     implementation(project(":feature:verification"))
     implementation(project(":feature:call"))
 
+    // Kyocera cover-screen callback declarations: compile-only, never packaged —
+    // the phone supplies the real classes (docs/adr/0009).
+    compileOnly(project(":stubs:kyocera-sublcd"))
+
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.core.ktx)

@@ -9,7 +9,9 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.Display
+import android.view.KeyEvent
 import androidx.core.content.ContextCompat
+import jp.kyocera.sublcd.ISubLcdCallback
 import java.lang.reflect.Modifier
 
 /**
@@ -28,13 +30,17 @@ import java.lang.reflect.Modifier
  * Usage (PowerShell-safe):
  * ```
  * adb logcat -c
- * adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver
+ * adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver --ez callback true
  * # close the flip; over the next ~2 min press a side key a few times to wake
  * # the cover, open/close the flip once
  * adb logcat -d > probe.txt
  * Select-String -Path probe.txt -Pattern "probe:","SubLcd"
  * ```
- * Read-only: it never posts to the cover. (A tray-icon test that called
+ * `callback` also registers a listener on Kyocera's cover service
+ * (`ISubLcdCallback`, compiled against :stubs:kyocera-sublcd) that only logs
+ * cover on/off and forwarded keys, answering every key "not handled".
+ *
+ * It never posts to the cover. (A tray-icon test that called
  * `notifyIconToAnnunciatorTray` was removed — it crashed SystemUI.)
  *
  * Results (scrolling: no native marquee, app-side ticker works;
@@ -56,6 +62,29 @@ class CoverProbeReceiver : BroadcastReceiver() {
         dumpLayouts(app)
         dumpDisplays(app)
         watchWake(app)
+        if (intent.getBooleanExtra("callback", false)) callbackTest(app)
+    }
+
+    /** Registers a listener on Kyocera's cover service for [WATCH_MS] and only
+     *  *logs* what it reports — cover screen on/off and the keys it forwards.
+     *  Every key method answers "not handled" (false), so no button changes
+     *  behavior. Unregistered afterwards. */
+    private fun callbackTest(context: Context) {
+        runCatching {
+            val managerClass = Class.forName("jp.kyocera.sublcd.SubLcdManager")
+            val manager = managerClass.getMethod("getInstance", Context::class.java).invoke(null, context)
+            val callbackType = Class.forName("jp.kyocera.sublcd.ISubLcdCallback")
+            val callback = ProbeCallback()
+            managerClass.getMethod("registerCallback", callbackType).invoke(manager, callback)
+            Log.d(TAG, "probe: callback registered for ${WATCH_MS / 1000}s — open/close the flip, press outside buttons")
+            Handler(Looper.getMainLooper()).postDelayed({
+                runCatching { managerClass.getMethod("unregisterCallback", callbackType).invoke(manager, callback) }
+                    .onFailure { Log.d(TAG, "probe: callback unregister failed: $it") }
+                Log.d(TAG, "probe: callback unregistered")
+            }, WATCH_MS)
+        }.onFailure {
+            Log.d(TAG, "probe: callback register failed: $it")
+        }
     }
 
     /** Every declared method, constructor, static constant and nested class. */
@@ -169,5 +198,42 @@ class CoverProbeReceiver : BroadcastReceiver() {
         val LAYOUT_HINT = Regex("sub|lcd|marquee|ticker|scroll", RegexOption.IGNORE_CASE)
 
         const val WATCH_MS = 120_000L
+    }
+}
+
+/** Logs everything Kyocera's cover service reports; handles nothing. Runs on
+ *  binder threads, so it only logs. Debug probe only — key codes are fine to
+ *  log here (they say which outside button is which), unlike in the app. */
+private class ProbeCallback : ISubLcdCallback.Stub() {
+
+    override fun onScreenStateChanged(state: Int) {
+        val name = when (state) {
+            1 -> "ON"
+            0 -> "OFF"
+            else -> "?"
+        }
+        Log.d(TAG, "probe: cb onScreenStateChanged state=$state ($name)")
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean = notHandled("onKeyDown key=$keyCode")
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean = notHandled("onKeyUp key=$keyCode")
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean = notHandled("onKeyLongPress key=$keyCode")
+
+    override fun onKeyMultiple(keyCode: Int, count: Int, event: KeyEvent?): Boolean =
+        notHandled("onKeyMultiple key=$keyCode count=$count")
+
+    override fun onNotificationCancel(tag: String?, id: Int) {
+        Log.d(TAG, "probe: cb onNotificationCancel tag=$tag id=$id")
+    }
+
+    private fun notHandled(what: String): Boolean {
+        Log.d(TAG, "probe: cb $what")
+        return false
+    }
+
+    private companion object {
+        val TAG = MessageNotifier.COVER_TAG
     }
 }
