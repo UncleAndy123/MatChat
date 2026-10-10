@@ -100,6 +100,21 @@ captured nothing. Use one of these instead:
   `Start-Job { adb logcat -v time -s MatChatCover kc_infosign }` then
   `Receive-Job -Keep (Get-Job)[-1]` to read it.
 
+**Do not use Android Studio's Logcat for the `kc_infosign` half.** It scopes to
+the debugged app's process, and InfoSign runs in its own process
+(`jp.kyocera.kcinfosignprovider`) — so its lines are filtered out and it looks
+like InfoSign saw nothing when really it just wasn't captured. Use the `adb`
+CLI, unfiltered by package. To be sure of catching it whatever the exact tag,
+dump everything and grep:
+
+```
+adb logcat -c
+adb shell am broadcast -n org.matchat.client/.notify.TestNotificationReceiver
+adb logcat -d > cover.txt
+# PowerShell:
+Select-String -Path cover.txt -Pattern "infosign","sublcd","INFOSIGN_DATA"
+```
+
 Then send a message from another account (or fire `TestNotificationReceiver`).
 Read it as a decision tree:
 
