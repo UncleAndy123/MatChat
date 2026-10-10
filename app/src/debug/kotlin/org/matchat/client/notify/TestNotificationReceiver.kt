@@ -70,7 +70,7 @@ class TestNotificationReceiver : BroadcastReceiver() {
     }
 
     private companion object {
-        const val TAG = "MessageNotifier"
+        val TAG = MessageNotifier.COVER_TAG
         const val TEST_ROOM_ID = "!matchat-infosign-test:local"
     }
 }

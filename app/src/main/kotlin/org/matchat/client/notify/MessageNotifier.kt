@@ -58,6 +58,12 @@ object MessageNotifier {
     const val EXTRA_SUBLCD = "sublcd_notification"
     const val SUBLCD_MESSAGING = "messaging"
 
+    /** One logcat tag for the whole cover-screen pipeline, so it can be watched
+     *  alongside InfoSign's own tag:
+     *  `adb shell logcat -s MatChatCover kc_infosign`. Diagnostics only — no PII
+     *  (docs/COVER-DISPLAY.md, AGENTS.md §9). */
+    const val COVER_TAG = "MatChatCover"
+
     private const val REQ_REPLY = 1_000
     private const val REQ_READ = 2_000
     private const val CHANNEL_PREFIX = "matchat.messages.l"
@@ -220,6 +226,17 @@ object MessageNotifier {
         val id = notifId(roomId)
         val notification = buildNotification(context, roomId, id, content, channel, sound)
 
+        // Cover-screen diagnostics (docs/COVER-DISPLAY.md). Reads the extra
+        // back off the *built* Notification so we can see whether the
+        // `sublcd_notification` key actually survived NotificationCompat into
+        // notification.extras — the thing InfoSign reads. No PII: ids, the
+        // count, the channel and the category only, never room name or body.
+        Log.d(
+            COVER_TAG,
+            "show id=$id unread=${content.unread} channel=$channel roomSound=${roomSound != null} " +
+                "sublcd=${notification.extras?.getString(EXTRA_SUBLCD)} category=${notification.category}",
+        )
+
         // Crash fix (kept): a notification whose sound URI the app no longer
         // holds a read grant for (observed on-device: a custom sound picked
         // via RingtoneManager, content://media/...) makes notify() throw
@@ -237,15 +254,20 @@ object MessageNotifier {
         // fixed, always-default-sound channel, so a broken stored sound
         // preference degrades to "wrong sound" rather than "no notification."
         val posted = runCatching { manager(context).notify(id, notification) }
+        if (posted.isSuccess) {
+            Log.d(COVER_TAG, "notify ok id=$id — InfoSign should now mirror it if sublcd=messaging above")
+        }
         if (posted.isFailure) {
             Log.w(
                 TAG,
                 "notify() failed on channel $channel; retrying with the default sound",
                 posted.exceptionOrNull(),
             )
+            Log.d(COVER_TAG, "notify FAILED id=$id on channel $channel; retrying on safe channel")
             ensureSafeChannel(context)
             val fallback = buildNotification(context, roomId, id, content, SAFE_CHANNEL_ID, soundUri = null)
             runCatching { manager(context).notify(id, fallback) }
+                .onSuccess { Log.d(COVER_TAG, "fallback notify ok id=$id") }
                 .onFailure { e -> Log.e(TAG, "fallback notify() also failed; giving up on this notification", e) }
         }
     }

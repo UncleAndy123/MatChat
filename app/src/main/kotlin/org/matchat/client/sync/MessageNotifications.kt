@@ -1,6 +1,7 @@
 package org.matchat.client.sync
 
 import android.content.Context
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.matchat.client.notify.MessageNotifier
 import org.matchat.client.notify.NotificationContent
@@ -36,11 +37,23 @@ class MessageNotifications @Inject constructor(
         if (!seeded) {
             rooms.forEach { lastUnread[it.id.value] = it.unreadCount }
             seeded = true
+            // Cover-screen diagnostics (docs/COVER-DISPLAY.md). The first
+            // emission only seeds the baseline, so a message that arrives
+            // before this will never alert — a common "nothing showed" cause.
+            Log.d(MessageNotifier.COVER_TAG, "onRooms: seeded baseline for ${rooms.size} rooms (no alerts this pass)")
             return
         }
         rooms.forEach { room ->
             val prev = lastUnread[room.id.value] ?: 0
             val now = room.unreadCount
+            val id = MessageNotifier.notifId(room.id)
+            if (now != prev) {
+                // No PII: notifId, counts and the enabled flag only.
+                Log.d(
+                    MessageNotifier.COVER_TAG,
+                    "onRooms: id=$id prev=$prev now=$now enabled=${userPreferences.notificationsEnabled.value}",
+                )
+            }
             when {
                 now > prev && now > 0 -> if (userPreferences.notificationsEnabled.value) {
                     MessageNotifier.show(
@@ -52,8 +65,13 @@ class MessageNotifications @Inject constructor(
                         // A room's own sound (Room info) wins over the app-wide one.
                         roomSound = roomSounds.overrides.value[room.id],
                     )
+                } else {
+                    Log.d(MessageNotifier.COVER_TAG, "onRooms: id=$id climbed but notifications are OFF — not posting")
                 }
-                now == 0 && prev > 0 -> MessageNotifier.cancel(context, room.id)
+                now == 0 && prev > 0 -> {
+                    Log.d(MessageNotifier.COVER_TAG, "onRooms: id=$id read — cancelling (cover clears)")
+                    MessageNotifier.cancel(context, room.id)
+                }
             }
             lastUnread[room.id.value] = now
         }

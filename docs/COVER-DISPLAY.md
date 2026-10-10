@@ -77,6 +77,57 @@ adb shell am broadcast -n org.matchat.client/.notify.TestNotificationReceiver
 Pass = `onNotificationPosted(... extra=messaging ...)` then a `sendBroadcast ...
 count=1`, and the cover lights with the flip closed.
 
+## Debugging ("nothing shows on the cover")
+
+MatChat logs its whole side of the pipeline under one tag, `MatChatCover`
+(diagnostics only, no PII), to watch next to InfoSign's own tag `kc_infosign`.
+
+**PowerShell note:** bash-style backgrounding with `&` is a syntax error in
+PowerShell, so `adb logcat ... &` never starts — that's why an earlier test
+captured nothing. Use one of these instead:
+
+- **Dump-after (simplest, one window):** clear, trigger, then dump the buffer.
+  `-d` prints everything buffered since the clear and exits, so no backgrounding
+  is needed:
+  ```
+  adb logcat -c
+  adb shell am broadcast -n org.matchat.client/.notify.TestNotificationReceiver
+  adb logcat -d -v time -s MatChatCover kc_infosign
+  ```
+- **Live, second window:** run `adb logcat -v time -s MatChatCover kc_infosign`
+  in its own terminal and leave it; send the message in the first.
+- **Live, background job (PowerShell):**
+  `Start-Job { adb logcat -v time -s MatChatCover kc_infosign }` then
+  `Receive-Job -Keep (Get-Job)[-1]` to read it.
+
+Then send a message from another account (or fire `TestNotificationReceiver`).
+Read it as a decision tree:
+
+1. **No `MatChatCover onRooms:` line at all** when a message arrives → the sync
+   observer isn't seeing the unread climb (app not syncing, or the message
+   landed in the ADR-0004 window where no observer runs). Not a cover problem.
+2. **`onRooms: ... seeded baseline ...` and nothing else** → the message arrived
+   on the very first emission, which only seeds; it never alerts. Send a second
+   message.
+3. **`onRooms: id=… climbed but notifications are OFF`** → Settings ▸
+   Notifications is off. Turn it on.
+4. **`onRooms: id=… prev=… now=…`** but **no `show id=…`** → the post was
+   decided but `show` never ran (unread didn't actually climb, or an exception
+   upstream).
+5. **`show id=… sublcd=messaging category=msg`** then **`notify ok`** → MatChat
+   did everything right. Now look at `kc_infosign`:
+   - `onNotificationPosted … extra=messaging` → InfoSign saw it; if the cover
+     still doesn't light the downstream renderer is the issue (branding section).
+   - `… extra=null` → the extra didn't survive to `notification.extras`
+     (shouldn't happen — `show` logs it being present; report the mismatch).
+   - no `kc_infosign` line → InfoSign isn't running / its listener isn't enabled
+     for this build.
+6. **`show id=… sublcd=null`** → the extra isn't on the built notification; the
+   `addExtras` call regressed.
+
+Post with the **flip closed** — some cover renderers only react to a
+notification that posts while the lid is shut.
+
 ## The one real limit — branding
 
 Both paths carry only `package + count` downstream. The cover renderer decides
