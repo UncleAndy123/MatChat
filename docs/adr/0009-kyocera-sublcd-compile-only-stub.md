@@ -1,6 +1,6 @@
 # ADR 0009 — Compile-only stub for Kyocera's cover-screen callback
 
-**Status:** Accepted (debug probe stage) · **Date:** 2026-10
+**Status:** Accepted · **Date:** 2026-10
 
 ## Context
 
@@ -50,6 +50,11 @@ Rollout is in two steps, because the only other private cover call we tried
    it on `onScreenStateChanged(STATE_SCREEN_ON)`, still never handles keys,
    and unregisters when nothing is pending. The accessibility-service "cover
    re-show" job (AGENTS.md §4) is then removed.
+
+**Result:** step 1 on the DuraXV registered cleanly and reported
+`onScreenStateChanged` 1/0 as the cover turned on/off, with nothing breaking;
+no cover keys were forwarded. Step 2 is implemented (`CoverScreenCallback`),
+and the accessibility job is removed.
 
 ## Consequences
 

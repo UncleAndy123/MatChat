@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
-import android.os.PowerManager
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -30,9 +29,11 @@ import org.matchat.client.R
  *  - **scrolls** text wider than the cover by reposting the same card id with
  *    a sliding window of the text (the OEM API has no marquee option — probe
  *    result, docs/COVER-DISPLAY.md);
- *  - **re-shows** the card every time the flip closes (`SCREEN_OFF` — the
- *    moment the cover becomes the visible screen) until [cancel] is called
- *    when the room is read, and stops it when the flip opens (`SCREEN_ON`).
+ *  - **re-shows** the card whenever the cover turns on — flip closed, or an
+ *    outside button pressed with the flip shut — via Kyocera's own callback
+ *    ([CoverScreenCallback], docs/adr/0009), with `SCREEN_OFF` (flip closed) as
+ *    the fallback; until [cancel] is called when the room is read. It stops
+ *    the card when the flip opens (`SCREEN_ON`).
  *
  * All state is confined to the main thread. Every OEM call is reflection
  * wrapped in `runCatching`, so off Kyocera hardware this is a silent no-op.
@@ -79,8 +80,8 @@ internal object CoverScreenNotifier {
     private val tickers = HashMap<Int, Runnable>()
     private var screenReceiver: BroadcastReceiver? = null
 
-    /** When the last card went up (elapsedRealtime), so a burst of key
-     *  presses doesn't restart a card that's still on screen. 0 = none up. */
+    /** When the last card went up (elapsedRealtime), so a cover-on event
+     *  doesn't restart a card that's still on screen. 0 = none up. */
     private var lastShownAt = 0L
 
     /** Shows (and keeps re-showing on flip close) a cover card for [id] with
@@ -90,7 +91,7 @@ internal object CoverScreenNotifier {
         main.post {
             active.remove(id)
             active[id] = text // move to most-recent
-            ensureScreenReceiver(app)
+            startWatching(app)
             show(app, id, text)
         }
     }
@@ -103,30 +104,19 @@ internal object CoverScreenNotifier {
             stopTicker(id)
             cancelCard(app, id)
             lastShownAt = 0L
-            if (active.isEmpty()) releaseScreenReceiver(app)
+            if (active.isEmpty()) stopWatching(app)
         }
     }
 
-    /** A hardware key went down (seen by MatChatKeyAccessibilityService, which
-     *  never consumes it). With the flip shut, an outside button wakes the
-     *  cover without any signal an app can hear, so this is the only cue to
-     *  bring an unread card back. The key itself is never recorded. */
-    fun onKeyPress(context: Context) {
-        val app = context.applicationContext
-        main.post {
-            val interactive = app.getSystemService(PowerManager::class.java)?.isInteractive == true
-            // Diagnostic, every press (never the key code): tells "presses never
-            // reach the service with the lid shut" apart from "they arrive, but
-            // waking the cover makes the phone count as interactive".
-            Log.d(TAG, "key seen: interactive=$interactive pending=${active.size}")
-            val sinceShown = SystemClock.elapsedRealtime() - lastShownAt
-            if (!shouldReshowOnKeyPress(active.isNotEmpty(), interactive, sinceShown, CARD_DURATION_MS.toLong())) {
-                return@post
-            }
-            val latest = active.entries.last()
-            Log.d(TAG, "re-showing id=${latest.key} after key press")
-            show(app, latest.key, latest.value)
-        }
+    /** The cover just became visible (Kyocera's callback, or the flip closing):
+     *  bring the latest unread card back, unless one is still up — our own
+     *  post also wakes the cover, so this debounce is what stops a loop. */
+    private fun maybeReshow(context: Context, reason: String) {
+        val sinceShown = SystemClock.elapsedRealtime() - lastShownAt
+        if (!shouldReshow(active.isNotEmpty(), sinceShown, CARD_DURATION_MS.toLong())) return
+        val latest = active.entries.last()
+        Log.d(TAG, "$reason — re-showing id=${latest.key}")
+        show(context, latest.key, latest.value)
     }
 
     /** Only one card is on screen at a time: stop any other scroll, then show
@@ -160,17 +150,17 @@ internal object CoverScreenNotifier {
         tickers.remove(id)?.let(main::removeCallbacks)
     }
 
-    /** Flip closed → re-show the most recent card; flip opened → stop it (the
-     *  main screen shows the notification itself). */
-    private fun ensureScreenReceiver(context: Context) {
+    /** While any card is owed: Kyocera's callback (cover on — flip closed or
+     *  an outside button) and SCREEN_OFF (flip closed; the fallback if the
+     *  callback is unavailable) re-show the latest card; SCREEN_ON (flip
+     *  opened) stops it, since the main screen shows the notification itself. */
+    private fun startWatching(context: Context) {
         if (screenReceiver != null) return
+        CoverScreenCallback.register(context) { main.post { maybeReshow(context, "cover on") } }
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) {
                 when (intent.action) {
-                    Intent.ACTION_SCREEN_OFF -> active.entries.lastOrNull()?.let { (id, text) ->
-                        Log.d(TAG, "screen off (flip closed?) — re-showing id=$id")
-                        show(context, id, text)
-                    }
+                    Intent.ACTION_SCREEN_OFF -> maybeReshow(context, "screen off (flip closed?)")
                     Intent.ACTION_SCREEN_ON -> {
                         Log.d(TAG, "screen on (flip opened?) — stopping cover cards")
                         active.keys.forEach { id ->
@@ -190,7 +180,8 @@ internal object CoverScreenNotifier {
         screenReceiver = receiver
     }
 
-    private fun releaseScreenReceiver(context: Context) {
+    private fun stopWatching(context: Context) {
+        CoverScreenCallback.unregister(context)
         screenReceiver?.let { runCatching { context.unregisterReceiver(it) } }
         screenReceiver = null
     }
@@ -247,16 +238,15 @@ internal object CoverScreenNotifier {
     }
 }
 
-/** Whether a key press should bring the cover card back: something is still
- *  unread, the main screen is off (flip shut — the press may have woken the
- *  cover), and the last showing has run its course. A pure function so the
- *  rule is unit-testable without a device. */
-internal fun shouldReshowOnKeyPress(
+/** Whether the cover turning on should bring the card back: something is
+ *  still unread, and the last showing has run its course (our own post also
+ *  wakes the cover — this is what keeps that from looping). A pure function so
+ *  the rule is unit-testable without a device. */
+internal fun shouldReshow(
     hasPending: Boolean,
-    screenInteractive: Boolean,
     msSinceLastShown: Long,
     cardDurationMs: Long,
-): Boolean = hasPending && !screenInteractive && msSinceLastShown >= cardDurationMs
+): Boolean = hasPending && msSinceLastShown >= cardDurationMs
 
 /** [text] as the cover shows it: unchanged up to [maxChars], otherwise cut to
  *  fit [maxChars] including a trailing "…". */

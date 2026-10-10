@@ -142,7 +142,7 @@ class CoverProbeReceiver : BroadcastReceiver() {
         }
     }
 
-    /** Logs every display-state change and SCREEN_ON/OFF/USER_PRESENT for
+    /** Logs every display-state change and SCREEN_ON/OFF for
      *  [WATCH_MS], so a cover wake shows up (or doesn't) as a named signal. */
     private fun watchWake(context: Context) {
         val dm = context.getSystemService(DisplayManager::class.java)
@@ -169,7 +169,6 @@ class CoverProbeReceiver : BroadcastReceiver() {
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_USER_PRESENT)
         }
         ContextCompat.registerReceiver(context, screenReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 

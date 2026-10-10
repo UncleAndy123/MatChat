@@ -71,7 +71,8 @@ feature/newchat/         New message: contacts, recents, type an address, blocke
 feature/settings/        Settings, help, sign out
 feature/verification/    Emoji SAS, recovery key
 stubs/kyocera-sublcd/    Compile-only declaration of Kyocera's cover-screen callback (docs/adr/0009).
-                         :app uses it compileOnly; never packaged. Nothing else may depend on it.
+                         :app uses it compileOnly (only CoverScreenCallback); never packaged.
+                         Nothing else may depend on it.
 docs/                    ARCHITECTURE.md, UX-SPEC.md, MDM.md, SERVER.md, DEVICE-SETUP.md, adr/
 config/                  detekt.yml, ktlint config
 ```
@@ -201,13 +202,10 @@ The full key map is in `docs/UX-SPEC.md §2`. What you must obey in code:
   can run without the "MatChat is running" notification, when the user has
   enabled it and allowed "Run in background". It still reads only the right
   softkey, never the screen. Do not give it any other job without the same
-  kind of explicit direction, and update this line again if so.
-  - **Third job, per explicit user direction: cover re-show**
-    (docs/COVER-DISPLAY.md). On every fresh key-down it calls
-    `CoverScreenNotifier.onKeyPress`, which re-shows an unread message's
-    Kyocera cover card when the main screen is off — an outside button wakes
-    the cover with no other signal an app can hear. Observe only: it never
-    consumes those keys and never records or logs which key it was.
+  kind of explicit direction, and update this line again if so. (A short-lived
+  third job — re-showing the Kyocera cover card on key presses — was removed:
+  no key reached it with the flip shut, and Kyocera's own cover callback
+  replaced it, docs/adr/0009.)
 - **Never build a custom T9/predictive-text input engine to replace the
   system IME**, even to work around a device's own IME bugs (e.g. a
   `getShowingNowFlag`/`InputMethodManager` `NoSuchElementException` some

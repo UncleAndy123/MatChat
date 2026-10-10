@@ -69,37 +69,26 @@ Implemented in `CoverScreenNotifier`:
   one character at a time to the end, holds the end, then starts over from the
   beginning (`tickerFrames`) for the card's 15 s. An earlier version wrapped the
   end back into the start, which read as broken text on the second pass.
-- The card is re-shown each time the flip closes (`SCREEN_OFF`) until the room
-  is read (`MessageNotifier.cancel*` → `CoverScreenNotifier.cancel`), and stopped
-  when the flip opens (`SCREEN_ON`). Only the most recent unread room's card is
-  shown. Side effect: a main-screen timeout with the flip *open* also sends
-  `SCREEN_OFF`, so the card re-shows (unseen) on the lid then — 15 s of cover
-  screen, accepted for now.
+- The card comes back **whenever the cover screen turns on** — flip closed,
+  or an outside button pressed with the flip shut — until the room is read
+  (`MessageNotifier.cancel*` → `CoverScreenNotifier.cancel`), and stops when the
+  flip opens (`SCREEN_ON`). Only the most recent unread room's card is shown,
+  and not while one is still up (`shouldReshow` — our own post also wakes the
+  cover, so this is what prevents a loop). The signal is Kyocera's own
+  callback, `SubLcdManager.registerCallback(ISubLcdCallback)` →
+  `onScreenStateChanged(1)` (`CoverScreenCallback`, docs/adr/0009), compiled
+  against `:stubs:kyocera-sublcd` and registered only while a card is unread.
+  It answers every key callback "not handled". `SCREEN_OFF` (flip closed) is
+  kept as a fallback in case registration fails.
+
+How we got there: Android only reports the *main* screen (`SCREEN_ON/OFF`), so
+an outside-button wake was invisible. An accessibility-service attempt saw no
+keys with the flip shut and was removed. The debug probe
+(`CoverProbeReceiver --ez callback true`) then showed Kyocera's callback
+reporting cover on/off (1/0) cleanly; it does not forward cover keys.
 
 Still open:
 
-- **Kyocera's own cover callback (in testing, docs/adr/0009).** The probe found
-  `SubLcdManager.registerCallback(ISubLcdCallback)` with
-  `onScreenStateChanged(int)` (1 = cover on, 0 = off), `onKeyDown/Up/LongPress/
-  Multiple`, and `onNotificationCancel(String, int)` — transaction codes 1–6.
-  MatChat compiles against a declaration of that interface in
-  `:stubs:kyocera-sublcd` (compileOnly, never packaged). Step 1 is a debug-only
-  listener that logs events and handles no keys:
-  `adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver --ez callback true`.
-  If cover on/off arrives, the re-show moves onto it and the accessibility job
-  below is removed.
-- **Waking the cover with an outside button while closed** produces no signal
-  an app can hear. Handled (per explicit user direction, AGENTS.md §4) by
-  `MatChatKeyAccessibilityService`, which already sees every key: each fresh
-  key-down calls `CoverScreenNotifier.onKeyPress`, which re-shows the latest
-  unread card if the main screen is off and the last card has expired
-  (`shouldReshowOnKeyPress`). Never consumes the key, never records which key.
-  Caveats: only works with Settings ▸ Advanced ▸ "Background helper" on, and
-  not yet confirmed on the DuraXV that the service receives outside-button
-  presses with the lid shut — `MatChatCover: key seen: interactive=false` in
-  logcat confirms it does. (A keylog check showed those buttons are *not*
-  among the keys the system drops while closed, unlike the inner keypad's
-  `drop key event:19 lid:0`.)
 - **A persistent "until cleared" icon** on the idle cover has no safe unrooted
   route: the tray-icon API crashed SystemUI, and the InfoSign badge path (below)
   only draws allow-listed packages.
