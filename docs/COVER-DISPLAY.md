@@ -199,3 +199,39 @@ adb logcat -d > badge.txt
   real branding needs a signed SystemUI build. Pull `SystemUI.apk` +
   `framework-res.apk` and trace `KeyguardStatusView`'s handling of `infosignData`
   to find where to add `org.matchat.client`.
+
+### Result (confirmed on-device)
+
+Path 2 delivered our package to the renderer — `KeyguardStatusView:
+infosignData[0].pkgName = org.matchat.client, count = 3` — but the cover drew
+**nothing** (only the notification LED blinked once). So `KeyguardStatusView`
+**receives any package but only draws a fixed allow-list** of known ones
+(dialer, vzmsgs, email, vvm). Verizon Messages *is* installed on this unit, so
+the blank cover is not about missing icons — it is the draw-time allow-list.
+
+Conclusion: **a branded MatChat/KyCall cover indicator is not achievable from an
+unprivileged app.** It requires a signed SystemUI build that adds
+`org.matchat.client` to `KeyguardStatusView`'s allow-list (the signed-build path
+already planned). Pull `SystemUI.apk` + `framework-res.apk` to find the exact
+map.
+
+### Unrooted fallback still open: masquerade as a known package
+
+Path 2 passes the package verbatim, so firing it with a package the renderer
+*does* draw (e.g. `com.verizon.messaging.vzmsgs`) plus our own count would give a
+**functional but unbranded** "N waiting" indicator — Verizon Messages' identity,
+MatChat's count. Deciding test (flip closed, watch the cover, not the log):
+
+```
+adb shell am broadcast -n jp.kyocera.kcinfosignprovider/.KCInfosignBroadcastReceiver \
+  -a android.intent.action.BADGE_COUNT_UPDATE \
+  --ei badge_count 3 \
+  --es badge_count_package_name com.verizon.messaging.vzmsgs \
+  --es badge_count_class_name com.verizon.messaging.vzmsgs.ui.LaunchConversationActivity
+```
+
+- Verizon badge + "3" appears → MatChat *can* drive a functional cover indicator
+  unrooted by masquerading (a product call: unbranded is the cost). Would be a
+  Kyocera-gated `CoverBadge` firing this on unread changes, count=0 to clear.
+- Still nothing → this cover's app-badge rendering isn't usable unrooted at all;
+  the whole feature waits on the signed SystemUI build.
