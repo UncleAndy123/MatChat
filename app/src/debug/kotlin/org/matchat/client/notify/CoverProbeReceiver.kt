@@ -48,6 +48,11 @@ class CoverProbeReceiver : BroadcastReceiver() {
         val app = context.applicationContext
         dumpClass("jp.kyocera.sublcd.SubLcdManager")
         dumpClass("jp.kyocera.sublcd.SubLcdNotificationExtender")
+        // The callback SubLcdManager.registerCallback takes — likely how
+        // Kyocera reports cover-screen on/off (STATE_SCREEN_ON/OFF). Dump only:
+        // its methods tell us what a listener would receive; nothing is
+        // registered here.
+        dumpClass("jp.kyocera.sublcd.ISubLcdCallback")
         dumpLayouts(app)
         dumpDisplays(app)
         watchWake(app)
