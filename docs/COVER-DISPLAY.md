@@ -74,9 +74,18 @@ Implemented in `CoverScreenNotifier`:
 
 Still open:
 
-- **Waking the cover with a side key while closed** produces no signal an app
-  can hear (beyond TurboText's accessibility-service route, which AGENTS.md §4
-  rules out for `MatChatKeyAccessibilityService` without explicit direction).
+- **Waking the cover with an outside button while closed** produces no signal
+  an app can hear. Handled (per explicit user direction, AGENTS.md §4) by
+  `MatChatKeyAccessibilityService`, which already sees every key: each fresh
+  key-down calls `CoverScreenNotifier.onKeyPress`, which re-shows the latest
+  unread card if the main screen is off and the last card has expired
+  (`shouldReshowOnKeyPress`). Never consumes the key, never records which key.
+  Caveats: only works with Settings ▸ Advanced ▸ "Background helper" on, and
+  not yet confirmed on the DuraXV that the service receives outside-button
+  presses with the lid shut — `MatChatCover: key press with screen off` in
+  logcat confirms it does. (A keylog check showed those buttons are *not*
+  among the keys the system drops while closed, unlike the inner keypad's
+  `drop key event:19 lid:0`.)
 - **A persistent "until cleared" icon** on the idle cover has no safe unrooted
   route: the tray-icon API crashed SystemUI, and the InfoSign badge path (below)
   only draws allow-listed packages.

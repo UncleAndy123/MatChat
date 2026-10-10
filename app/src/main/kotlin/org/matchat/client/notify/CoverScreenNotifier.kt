@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
 import org.matchat.client.R
@@ -70,6 +72,10 @@ internal object CoverScreenNotifier {
     private val tickers = HashMap<Int, Runnable>()
     private var screenReceiver: BroadcastReceiver? = null
 
+    /** When the last card went up (elapsedRealtime), so a burst of key
+     *  presses doesn't restart a card that's still on screen. 0 = none up. */
+    private var lastShownAt = 0L
+
     /** Shows (and keeps re-showing on flip close) a cover card for [id] with
      *  [text] until [cancel]. [id] matches the notification id. */
     fun notify(context: Context, id: Int, text: String) {
@@ -89,7 +95,27 @@ internal object CoverScreenNotifier {
             active.remove(id)
             stopTicker(id)
             cancelCard(app, id)
+            lastShownAt = 0L
             if (active.isEmpty()) releaseScreenReceiver(app)
+        }
+    }
+
+    /** A hardware key went down (seen by MatChatKeyAccessibilityService, which
+     *  never consumes it). With the flip shut, an outside button wakes the
+     *  cover without any signal an app can hear, so this is the only cue to
+     *  bring an unread card back. The key itself is never recorded. */
+    fun onKeyPress(context: Context) {
+        val app = context.applicationContext
+        main.post {
+            val interactive = app.getSystemService(PowerManager::class.java)?.isInteractive == true
+            if (!interactive) Log.d(TAG, "key press with screen off — pending=${active.size}")
+            val sinceShown = SystemClock.elapsedRealtime() - lastShownAt
+            if (!shouldReshowOnKeyPress(active.isNotEmpty(), interactive, sinceShown, CARD_DURATION_MS.toLong())) {
+                return@post
+            }
+            val latest = active.entries.last()
+            Log.d(TAG, "re-showing id=${latest.key} after key press")
+            show(app, latest.key, latest.value)
         }
     }
 
@@ -97,6 +123,7 @@ internal object CoverScreenNotifier {
      *  [text] once (short) or as a ticker (longer than [TICKER_WINDOW]). */
     private fun show(context: Context, id: Int, text: String) {
         tickers.keys.toList().forEach(::stopTicker)
+        lastShownAt = SystemClock.elapsedRealtime()
         if (text.length <= TICKER_WINDOW) {
             post(context, id, text, CARD_DURATION_MS)
             Log.d(TAG, "cover card shown id=$id scrolling=false")
@@ -134,9 +161,12 @@ internal object CoverScreenNotifier {
                         Log.d(TAG, "screen off (flip closed?) — re-showing id=$id")
                         show(context, id, text)
                     }
-                    Intent.ACTION_SCREEN_ON -> active.keys.forEach { id ->
-                        stopTicker(id)
-                        cancelCard(context, id)
+                    Intent.ACTION_SCREEN_ON -> {
+                        active.keys.forEach { id ->
+                            stopTicker(id)
+                            cancelCard(context, id)
+                        }
+                        lastShownAt = 0L
                     }
                 }
             }
@@ -205,3 +235,14 @@ internal object CoverScreenNotifier {
         }
     }
 }
+
+/** Whether a key press should bring the cover card back: something is still
+ *  unread, the main screen is off (flip shut — the press may have woken the
+ *  cover), and the last showing has run its course. A pure function so the
+ *  rule is unit-testable without a device. */
+internal fun shouldReshowOnKeyPress(
+    hasPending: Boolean,
+    screenInteractive: Boolean,
+    msSinceLastShown: Long,
+    cardDurationMs: Long,
+): Boolean = hasPending && !screenInteractive && msSinceLastShown >= cardDurationMs

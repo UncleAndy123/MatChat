@@ -200,6 +200,12 @@ The full key map is in `docs/UX-SPEC.md §2`. What you must obey in code:
   enabled it and allowed "Run in background". It still reads only the right
   softkey, never the screen. Do not give it any other job without the same
   kind of explicit direction, and update this line again if so.
+  - **Third job, per explicit user direction: cover re-show**
+    (docs/COVER-DISPLAY.md). On every fresh key-down it calls
+    `CoverScreenNotifier.onKeyPress`, which re-shows an unread message's
+    Kyocera cover card when the main screen is off — an outside button wakes
+    the cover with no other signal an app can hear. Observe only: it never
+    consumes those keys and never records or logs which key it was.
 - **Never build a custom T9/predictive-text input engine to replace the
   system IME**, even to work around a device's own IME bugs (e.g. a
   `getShowingNowFlag`/`InputMethodManager` `NoSuchElementException` some

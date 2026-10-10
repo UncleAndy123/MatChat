@@ -12,10 +12,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.matchat.client.MainActivity
+import org.matchat.client.notify.CoverScreenNotifier
 import org.matchat.client.sync.SyncHosts
 import javax.inject.Inject
 
 /**
+ * **Third job — cover re-show (docs/COVER-DISPLAY.md), per explicit user
+ * direction.** On Kyocera flips an outside button wakes the cover screen with
+ * no signal an app can hear. This service already receives every key (that's
+ * how the softkey job below works), so on each fresh key-down it nudges
+ * [CoverScreenNotifier.onKeyPress], which re-shows an unread message's cover
+ * card if the main screen is off. Observe only: the key is never consumed and
+ * its code is never recorded or logged.
+ *
  * **Second job — sync host (docs/adr/0008).** While enabled, the system keeps
  * this service bound, which keeps MatChat's process alive and restarts it after
  * a kill, the way TurboText's own accessibility service keeps TurboText alive.
@@ -88,9 +97,9 @@ import javax.inject.Inject
  * service claims ONLY the physical right softkey (KEYCODE_SOFT_RIGHT) — not
  * SOFT_LEFT, not MENU, not the dedicated BACK key. Every other key —
  * including all of T9's own digit/D-pad/CENTER input, and the left softkey
- * — returns false immediately from [onKeyEvent], completely untouched, and
- * continues through the normal platform pipeline exactly as if this service
- * didn't exist.
+ * — returns false from [onKeyEvent] (after the cover nudge above, which
+ * doesn't touch the event) and continues through the normal platform
+ * pipeline exactly as if this service didn't exist.
  *
  * A claimed key is handed to [MainActivity.handleExternalSoftkey], which
  * runs it through the exact same [org.matchat.core.ui.key.KeyMap] +
@@ -159,6 +168,12 @@ class MatChatKeyAccessibilityService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
+        // Third job (cover re-show): any fresh key press is a cue that the
+        // cover may have just woken. Observe only — never consumed, key code
+        // never recorded; CoverScreenNotifier decides whether to act.
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+            CoverScreenNotifier.onKeyPress(this)
+        }
         if (!isInterceptedSoftkey(event.keyCode)) return false
         if (event.action == KeyEvent.ACTION_UP) {
             if (!interceptedDown) return false
