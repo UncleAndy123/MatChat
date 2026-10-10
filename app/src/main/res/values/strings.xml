@@ -34,6 +34,13 @@
         <item quantity="one">New message</item>
         <item quantity="other">%d new messages</item>
     </plurals>
+    <!-- Flip phone outside (cover) screen card: %1$s is the room / contact
+         name, %2$s the message line (may itself be "Sender: text"). Scrolls
+         when it's wider than the small screen. -->
+    <string name="cover_message_format">%1$s: %2$s</string>
+    <!-- Cover screen card when the user turned on "Hide message on cover":
+         says a message arrived without revealing who or what. -->
+    <string name="cover_generic_message">MatChat message</string>
 
     <!-- Managed-configuration titles/descriptions shown in the EMM console (docs/MDM.md §3). -->
     <string name="policy_homeserver_title">Home server</string>

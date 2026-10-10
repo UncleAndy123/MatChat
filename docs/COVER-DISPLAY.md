@@ -16,14 +16,18 @@ that blocked us (below). Any app can post to it; it no-ops (reflection
 try/catch) on non-Kyocera hardware.
 
 `MessageNotifier` drives it on its existing lifecycle: a card is posted when a
-message arrives and cancelled when the room is read. The card shows the room
-name (the notification title, not the body — same lock-screen privacy posture).
+message arrives and cancelled when the room is read. The card shows
+"Room: message" (e.g. "Ann: see you at six", or "Barn Crew: Ann: see you at
+six" in a group — the count when the text can't be shown yet). **Settings ▸
+Notifications ▸ "Hide message on cover"** (UX-SPEC S26, off by default) swaps
+that for a generic "MatChat message", for anyone who doesn't want the sender
+and text readable on the outside of a closed phone.
 
 **Known limitation (verified on-device by TurboText, which this mirrors —
 github.com/Ben-Showalter/TurboText `OuterScreenNotifier`):** every post needs a
 duration and clears when it expires; there is no setting that holds the card on
 the idle cover indefinitely without keeping the screen on. So this is a timed
-"a message arrived" card (currently `CARD_DURATION_MS` = 30 s), not a permanent
+"a message arrived" card (currently `CARD_DURATION_MS` = 15 s), not a permanent
 unread badge — and it keeps the cover screen on for that whole span, so the
 duration is a visibility/battery trade-off.
 
@@ -54,15 +58,18 @@ on the DuraXV. Findings:
   a `long` cancel time (`DEFAULT_CANCEL_TIME = -1`), `wakeUpSecDisplay(boolean)`,
   `isKeyguard()`, `registerCallback(ISubLcdCallback)`, and
   `notifyIconToAnnunciatorTray` / `cancelAnnunciatorIconFromTray`.
+- **Do not call `notifyIconToAnnunciatorTray`.** Testing it as a persistent
+  "until cleared" cover icon **crashed SystemUI** on the DuraXV. The probe no
+  longer has that test, and nothing in the app calls it.
 
 Implemented in `CoverScreenNotifier`:
 
-- Text longer than 14 characters scrolls (ticker) for the card's 30 s.
+- Text longer than 14 characters scrolls (ticker) for the card's 15 s.
 - The card is re-shown each time the flip closes (`SCREEN_OFF`) until the room
   is read (`MessageNotifier.cancel*` → `CoverScreenNotifier.cancel`), and stopped
   when the flip opens (`SCREEN_ON`). Only the most recent unread room's card is
   shown. Side effect: a main-screen timeout with the flip *open* also sends
-  `SCREEN_OFF`, so the card re-shows (unseen) on the lid then — 30 s of cover
+  `SCREEN_OFF`, so the card re-shows (unseen) on the lid then — 15 s of cover
   screen, accepted for now.
 
 Still open:
@@ -70,10 +77,9 @@ Still open:
 - **Waking the cover with a side key while closed** produces no signal an app
   can hear (beyond TurboText's accessibility-service route, which AGENTS.md §4
   rules out for `MatChatKeyAccessibilityService` without explicit direction).
-- **A persistent "until cleared" icon:** `notifyIconToAnnunciatorTray` may put
-  an icon in the cover's status tray that survives sleep/wake. Probe it with
-  `--ez tray true` (usage in `CoverProbeReceiver`); if it persists, it is the
-  cleanest "message waiting" indicator.
+- **A persistent "until cleared" icon** on the idle cover has no safe unrooted
+  route: the tray-icon API crashed SystemUI, and the InfoSign badge path (below)
+  only draws allow-listed packages.
 
 ---
 

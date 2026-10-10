@@ -64,6 +64,7 @@ class MessageNotifications @Inject constructor(
                         soundUri = userPreferences.notificationSoundUri.value,
                         // A room's own sound (Room info) wins over the app-wide one.
                         roomSound = roomSounds.overrides.value[room.id],
+                        coverMessageHidden = userPreferences.coverMessageHidden.value,
                     )
                 } else {
                     Log.d(MessageNotifier.COVER_TAG, "onRooms: id=$id climbed but notifications are OFF — not posting")

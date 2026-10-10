@@ -36,6 +36,10 @@ dependencies {
     testImplementation(project(":core:testing"))
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
+    // Paparazzi screenshot tests are JUnit4; the vintage engine runs them on the
+    // same JUnit Platform as the JUnit5 reducer tests (same as :feature:roomlist).
+    testImplementation(libs.junit4)
+    testRuntimeOnly(libs.junit.vintage.engine)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
 }

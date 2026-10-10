@@ -26,6 +26,17 @@ class SharedPreferencesUserPreferencesTest {
         assertEquals(true, prefs.notificationsEnabled.value)
         assertEquals(null, prefs.notificationSoundUri.value)
         assertEquals(0, prefs.notificationChannelVersion.value)
+        assertEquals(false, prefs.coverMessageHidden.value)
+    }
+
+    @Test
+    fun `cover-message-hidden read-after-write, including a fresh instance`() = runTest {
+        val prefs = SharedPreferencesUserPreferences(context)
+        prefs.setCoverMessageHidden(true)
+        assertEquals(true, prefs.coverMessageHidden.value)
+
+        val reloaded = SharedPreferencesUserPreferences(context)
+        assertEquals(true, reloaded.coverMessageHidden.value)
     }
 
     @Test

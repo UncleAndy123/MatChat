@@ -487,7 +487,14 @@ storage access to add MatChat's bundled sounds (docs/SOUNDS.md); if refused,
 a second 11 sp note says they need storage access, and the picker opens
 anyway. Per-room/per-thread sound is not offered
 here — every room shares the one chosen sound (future work).
-Focus order: Notifications → Sound. Initial focus: Notifications.
+Last, a third toggle row, "Hide message on cover" (same checkmark convention,
+off by default), with an 11 sp subtitle explaining both states. On Kyocera
+flip phones a new message also appears on the small outside (cover) screen,
+scrolling, as "Room: message" (docs/COVER-DISPLAY.md); with this on it reads
+only "MatChat message", so who wrote and what they said aren't visible on a
+closed phone.
+Focus order: Notifications → Sound → Hide message on cover. Initial focus:
+Notifications.
 Softkeys: (blank) | Select | Back.
 
 ### S27 — Background helper ("Hide the running notification?")

@@ -28,18 +28,16 @@ import java.lang.reflect.Modifier
  * Usage (PowerShell-safe):
  * ```
  * adb logcat -c
- * adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver --ez tray true
+ * adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver
  * # close the flip; over the next ~2 min press a side key a few times to wake
  * # the cover, open/close the flip once
  * adb logcat -d > probe.txt
  * Select-String -Path probe.txt -Pattern "probe:","SubLcd"
- * # afterwards, clear the tray icon:
- * adb shell am broadcast -n org.matchat.client/.notify.CoverProbeReceiver --ez tray_clear true
  * ```
- * `tray` tests `notifyIconToAnnunciatorTray`: does a persistent icon appear on
- * the idle cover and survive cover sleep/wake until `tray_clear`?
+ * Read-only: it never posts to the cover. (A tray-icon test that called
+ * `notifyIconToAnnunciatorTray` was removed — it crashed SystemUI.)
  *
- * First-run results (scrolling: no native marquee, app-side ticker works;
+ * Results (scrolling: no native marquee, app-side ticker works;
  * wake: only main-display SCREEN_ON/OFF are visible) are in
  * docs/COVER-DISPLAY.md.
  */
@@ -53,8 +51,6 @@ class CoverProbeReceiver : BroadcastReceiver() {
         dumpLayouts(app)
         dumpDisplays(app)
         watchWake(app)
-        if (intent.getBooleanExtra("tray", false)) trayTest(app, show = true)
-        if (intent.getBooleanExtra("tray_clear", false)) trayTest(app, show = false)
     }
 
     /** Every declared method, constructor, static constant and nested class. */
@@ -151,31 +147,6 @@ class CoverProbeReceiver : BroadcastReceiver() {
         }, WATCH_MS)
     }
 
-    /** Does `SubLcdManager.notifyIconToAnnunciatorTray` put a *persistent*
-     *  icon on the idle cover (surviving cover sleep/wake until cleared)? That
-     *  would be the "until the notification clears" indicator. */
-    private fun trayTest(context: Context, show: Boolean) {
-        runCatching {
-            val managerClass = Class.forName("jp.kyocera.sublcd.SubLcdManager")
-            val manager = managerClass.getMethod("getInstance", Context::class.java).invoke(null, context)
-            if (show) {
-                val card = CoverScreenNotifier.buildCard(context, "Tray test", TRAY_CARD_MS)
-                managerClass.getMethod(
-                    "notifyIconToAnnunciatorTray",
-                    Int::class.javaPrimitiveType,
-                    android.app.Notification::class.java,
-                ).invoke(manager, TRAY_ID, card)
-            } else {
-                managerClass.getMethod("cancelAnnunciatorIconFromTray", Int::class.javaPrimitiveType)
-                    .invoke(manager, TRAY_ID)
-            }
-        }.onSuccess {
-            Log.d(TAG, "probe: tray ${if (show) "icon posted" else "icon cleared"} id=$TRAY_ID")
-        }.onFailure {
-            Log.d(TAG, "probe: tray call failed: $it")
-        }
-    }
-
     private fun stateName(state: Int): String = when (state) {
         Display.STATE_ON -> "ON"
         Display.STATE_OFF -> "OFF"
@@ -193,8 +164,5 @@ class CoverProbeReceiver : BroadcastReceiver() {
         val LAYOUT_HINT = Regex("sub|lcd|marquee|ticker|scroll", RegexOption.IGNORE_CASE)
 
         const val WATCH_MS = 120_000L
-
-        const val TRAY_ID = -43
-        const val TRAY_CARD_MS = 5_000
     }
 }

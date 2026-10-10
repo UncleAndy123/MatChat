@@ -131,4 +131,35 @@ class NotificationsViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `cover message is shown by default`() = runTest {
+        subject().state.test {
+            assertEquals(false, expectMostRecentItem().coverMessageHidden)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `toggling hide-on-cover turns it on in the fake and the state`() = runTest {
+        val vm = subject()
+        vm.onAction(NotificationsAction.ToggleCoverMessageHidden)
+        vm.state.test {
+            assertEquals(true, expectMostRecentItem().coverMessageHidden)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(true, prefs.coverMessageHidden.value)
+    }
+
+    @Test
+    fun `toggling hide-on-cover again turns it back off`() = runTest {
+        val prefs = FakeUserPreferences(initialCoverMessageHidden = true)
+        val vm = NotificationsViewModel(prefs, bundledSounds)
+        vm.onAction(NotificationsAction.ToggleCoverMessageHidden)
+        vm.state.test {
+            assertEquals(false, expectMostRecentItem().coverMessageHidden)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(false, prefs.coverMessageHidden.value)
+    }
 }

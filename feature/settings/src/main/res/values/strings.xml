@@ -92,6 +92,12 @@
     <!-- Shown on Android 7–9 when storage access was refused: MatChat's own
          bundled sounds can't be added to the phone's sound list. -->
     <string name="notifications_bundled_access">MatChat\'s own sounds need storage access. Open Sound again to allow it.</string>
+    <!-- Toggle row (trailing ✓ when on): hide the sender and message text on
+         the flip phone's outside (cover) screen. "Cover" = that small outer
+         display, not the main screen. -->
+    <string name="notifications_cover_hidden">Hide message on cover</string>
+    <!-- Subtitle under the toggle above, explaining both states. -->
+    <string name="notifications_cover_hidden_sub">On: the outside screen shows only \"MatChat message\". Off: it shows who wrote and what they said.</string>
 
     <!-- S23 Policy. -->
     <string name="policy_title">Policy</string>

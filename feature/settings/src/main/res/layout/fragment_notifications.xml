@@ -79,5 +79,28 @@
             android:paddingEnd="@dimen/content_pad"
             android:paddingTop="8dp"
             android:text="@string/notifications_bundled_access" />
+
+        <!-- Privacy toggle for the Kyocera cover-screen card
+             (docs/COVER-DISPLAY.md): checkmark when the card shows only a
+             generic "MatChat message". Last, after the sound notes. -->
+        <TextView
+            android:id="@+id/notifications_cover_hidden"
+            style="@style/Widget.MatChat.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="?attr/textSizeLabel"
+            android:textColor="?attr/colorTextOnFocus" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:textSize="?attr/textSizeMeta"
+            android:textColor="?attr/colorTextSecondary"
+            android:paddingStart="@dimen/content_pad"
+            android:paddingEnd="@dimen/content_pad"
+            android:paddingTop="2dp"
+            android:text="@string/notifications_cover_hidden_sub" />
     </LinearLayout>
 </ScrollView>

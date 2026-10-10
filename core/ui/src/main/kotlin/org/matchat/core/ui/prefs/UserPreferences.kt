@@ -88,11 +88,19 @@ interface UserPreferences {
      *  ("matchat.messages.s$version"), not mutating the old one. */
     val notificationChannelVersion: StateFlow<Int>
 
+    /** Settings > Notifications — when true, the Kyocera cover-screen card
+     *  (docs/COVER-DISPLAY.md) shows only a generic "MatChat message" instead
+     *  of the room, sender and message text, for privacy with the flip shut.
+     *  Default false. Read directly (.value) on every post, same read shape
+     *  as [notificationsEnabled]. */
+    val coverMessageHidden: StateFlow<Boolean>
+
     suspend fun setThemeMode(mode: ThemeMode)
     suspend fun setAccentColor(color: AccentColor)
     suspend fun setTextSize(size: TextSizePreference)
     suspend fun setSoftkeysSwapped(swapped: Boolean)
     suspend fun setNotificationsEnabled(enabled: Boolean)
+    suspend fun setCoverMessageHidden(hidden: Boolean)
 
     /** Also bumps [notificationChannelVersion] so the next notification is
      *  posted on a fresh channel carrying the new sound. */

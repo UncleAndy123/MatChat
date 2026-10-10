@@ -11,6 +11,9 @@ data class NotificationsState(
     /** Android 7–9: storage access was refused, so MatChat's bundled sounds
      *  (docs/SOUNDS.md) are missing from the picker. Shows a note. */
     val bundledSoundsNeedAccess: Boolean = false,
+    /** The Kyocera cover-screen card shows a generic "MatChat message"
+     *  instead of the sender and text (privacy with the flip shut). */
+    val coverMessageHidden: Boolean = false,
 )
 
 sealed interface SoundChoice {
@@ -21,6 +24,9 @@ sealed interface SoundChoice {
 
 sealed interface NotificationsAction {
     data object ToggleEnabled : NotificationsAction
+
+    /** CENTER on the "Hide message on cover" row. */
+    data object ToggleCoverMessageHidden : NotificationsAction
     data class SelectSound(val uri: String?) : NotificationsAction
 
     /** CENTER on the Sound row. */

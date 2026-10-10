@@ -16,6 +16,7 @@ class FakeUserPreferences(
     initialNotificationsEnabled: Boolean = true,
     initialNotificationSoundUri: String? = null,
     initialNotificationChannelVersion: Int = 0,
+    initialCoverMessageHidden: Boolean = false,
 ) : UserPreferences {
 
     private val themeModeState = MutableStateFlow(initialThemeMode)
@@ -39,6 +40,9 @@ class FakeUserPreferences(
     private val notificationChannelVersionState = MutableStateFlow(initialNotificationChannelVersion)
     override val notificationChannelVersion: StateFlow<Int> = notificationChannelVersionState
 
+    private val coverMessageHiddenState = MutableStateFlow(initialCoverMessageHidden)
+    override val coverMessageHidden: StateFlow<Boolean> = coverMessageHiddenState
+
     override suspend fun setThemeMode(mode: ThemeMode) {
         themeModeState.value = mode
     }
@@ -57,6 +61,10 @@ class FakeUserPreferences(
 
     override suspend fun setNotificationsEnabled(enabled: Boolean) {
         notificationsEnabledState.value = enabled
+    }
+
+    override suspend fun setCoverMessageHidden(hidden: Boolean) {
+        coverMessageHiddenState.value = hidden
     }
 
     override suspend fun setNotificationSoundUri(uri: String?) {

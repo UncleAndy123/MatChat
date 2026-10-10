@@ -200,7 +200,8 @@ object MessageNotifier {
     /**
      * Posts (or updates) [roomId]'s notification. With [roomSound] set, it goes
      * on the room's own channel with that sound; otherwise on the app-wide
-     * channel ([channelVersion], [soundUri]).
+     * channel ([channelVersion], [soundUri]). [coverMessageHidden] (Settings >
+     * Notifications) makes the Kyocera cover card generic.
      */
     @Suppress("LongParameterList")
     suspend fun show(
@@ -210,6 +211,7 @@ object MessageNotifier {
         channelVersion: Int = 0,
         soundUri: String? = null,
         roomSound: RoomSound? = null,
+        coverMessageHidden: Boolean = false,
     ) {
         val channel: String
         val sound: String?
@@ -271,11 +273,23 @@ object MessageNotifier {
                 .onFailure { e -> Log.e(TAG, "fallback notify() also failed; giving up on this notification", e) }
         }
 
-        // Also raise a transient card on the Kyocera cover screen (sub-LCD) so a
-        // waiting message is visible with the flip closed (docs/COVER-DISPLAY.md).
-        // Independent of the status-bar notify() above; no-ops off Kyocera. The
-        // title (room name), not the body, keeps the lock-screen privacy posture.
-        CoverScreenNotifier.notify(context, id, content.roomName)
+        // Also raise a card on the Kyocera cover screen (sub-LCD) so a waiting
+        // message is visible with the flip closed (docs/COVER-DISPLAY.md).
+        // Independent of the status-bar notify() above; no-ops off Kyocera.
+        CoverScreenNotifier.notify(context, id, coverText(context, content, coverMessageHidden))
+    }
+
+    /** What the cover card says: "Room: Ann: see you at six" (scrolls when
+     *  long), or just "MatChat message" when the user hid it (Settings >
+     *  Notifications). Falls back to the count, like the notification body,
+     *  when the text can't be shown (e.g. not yet decrypted). */
+    private fun coverText(context: Context, content: NotificationContent, hidden: Boolean): String {
+        if (hidden) return context.getString(R.string.cover_generic_message)
+        val body = messageText(context, content)
+            ?: context.resources.getQuantityString(R.plurals.notif_new_messages, content.unread, content.unread)
+        // A direct chat is named after the other person, and messageText
+        // already prefixes the sender when it differs from the room name.
+        return context.getString(R.string.cover_message_format, content.roomName, body)
     }
 
     @Suppress("LongMethod")

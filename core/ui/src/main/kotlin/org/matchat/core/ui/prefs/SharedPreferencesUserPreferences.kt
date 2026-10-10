@@ -42,6 +42,9 @@ internal class SharedPreferencesUserPreferences @Inject constructor(
         MutableStateFlow(prefs.getInt(KEY_NOTIFICATION_CHANNEL_VERSION, 0))
     override val notificationChannelVersion: StateFlow<Int> = notificationChannelVersionState
 
+    private val coverMessageHiddenState = MutableStateFlow(prefs.getBoolean(KEY_COVER_MESSAGE_HIDDEN, false))
+    override val coverMessageHidden: StateFlow<Boolean> = coverMessageHiddenState
+
     override suspend fun setThemeMode(mode: ThemeMode) {
         prefs.edit { putString(KEY_THEME_MODE, mode.name) }
         themeModeState.value = mode
@@ -65,6 +68,11 @@ internal class SharedPreferencesUserPreferences @Inject constructor(
     override suspend fun setNotificationsEnabled(enabled: Boolean) {
         prefs.edit { putBoolean(KEY_NOTIFICATIONS_ENABLED, enabled) }
         notificationsEnabledState.value = enabled
+    }
+
+    override suspend fun setCoverMessageHidden(hidden: Boolean) {
+        prefs.edit { putBoolean(KEY_COVER_MESSAGE_HIDDEN, hidden) }
+        coverMessageHiddenState.value = hidden
     }
 
     override suspend fun setNotificationSoundUri(uri: String?) {
@@ -91,5 +99,6 @@ internal class SharedPreferencesUserPreferences @Inject constructor(
         const val KEY_NOTIFICATIONS_ENABLED = "notifications_enabled"
         const val KEY_NOTIFICATION_SOUND_URI = "notification_sound_uri"
         const val KEY_NOTIFICATION_CHANNEL_VERSION = "notification_channel_version"
+        const val KEY_COVER_MESSAGE_HIDDEN = "cover_message_hidden"
     }
 }

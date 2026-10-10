@@ -34,6 +34,9 @@ import org.matchat.client.R
  *
  * All state is confined to the main thread. Every OEM call is reflection
  * wrapped in `runCatching`, so off Kyocera hardware this is a silent no-op.
+ *
+ * Never call `SubLcdManager.notifyIconToAnnunciatorTray`: on the DuraXV it
+ * crashed SystemUI (probe test, docs/COVER-DISPLAY.md).
  */
 internal object CoverScreenNotifier {
 
@@ -46,8 +49,9 @@ internal object CoverScreenNotifier {
     private const val SUBLCD_PRIORITY = 0
 
     /** How long a card stays up per showing. The sub-LCD holds the cover screen
-     *  *on* for this whole span, so it is a battery/visibility trade-off. */
-    private const val CARD_DURATION_MS = 30_000
+     *  *on* for this whole span, so it is a battery/visibility trade-off —
+     *  15 s per the user's call (re-shown on every flip close anyway). */
+    private const val CARD_DURATION_MS = 15_000
 
     /** Characters visible on the cover at once — longer text scrolls. */
     private const val TICKER_WINDOW = 14
@@ -154,7 +158,7 @@ internal object CoverScreenNotifier {
      *  [TICKER_STEP_MS], so success lines would flood logcat. */
     @Suppress("DEPRECATION") // Notification.Builder(Context): this card is handed
     // to SubLcdManager, never posted through a NotificationManager channel.
-    internal fun post(context: Context, id: Int, text: String, durationMs: Int) {
+    private fun post(context: Context, id: Int, text: String, durationMs: Int) {
         runCatching {
             val managerClass = Class.forName("jp.kyocera.sublcd.SubLcdManager")
             val manager = managerClass.getMethod("getInstance", Context::class.java).invoke(null, context)
@@ -168,9 +172,9 @@ internal object CoverScreenNotifier {
     }
 
     /** A Notification carrying the sub-LCD extender (icon, text, template,
-     *  duration). Also used by the debug probe's tray test. */
+     *  duration). */
     @Suppress("DEPRECATION")
-    internal fun buildCard(context: Context, text: String, durationMs: Int): Notification {
+    private fun buildCard(context: Context, text: String, durationMs: Int): Notification {
         val extenderClass = Class.forName("jp.kyocera.sublcd.SubLcdNotificationExtender")
         val extender = extenderClass.getConstructor(Context::class.java).newInstance(context)
         extenderClass.getMethod("setCategory", Int::class.javaPrimitiveType).invoke(extender, SUBLCD_CATEGORY_MESSAGE)

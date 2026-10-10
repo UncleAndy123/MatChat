@@ -37,6 +37,8 @@ class NotificationsViewModel @Inject constructor(
             when (action) {
                 NotificationsAction.ToggleEnabled ->
                     userPreferences.setNotificationsEnabled(!userPreferences.notificationsEnabled.value)
+                NotificationsAction.ToggleCoverMessageHidden ->
+                    userPreferences.setCoverMessageHidden(!userPreferences.coverMessageHidden.value)
                 is NotificationsAction.SelectSound -> userPreferences.setNotificationSoundUri(action.uri)
                 NotificationsAction.OpenSoundPicker ->
                     if (bundledSounds.needsStoragePermission) {
@@ -76,8 +78,14 @@ class NotificationsViewModel @Inject constructor(
         userPreferences.notificationsEnabled,
         userPreferences.notificationSoundUri,
         bundledNeedAccess,
-    ) { enabled, soundUri, needAccess ->
-        NotificationsState(enabled = enabled, sound = soundChoiceFor(soundUri), bundledSoundsNeedAccess = needAccess)
+        userPreferences.coverMessageHidden,
+    ) { enabled, soundUri, needAccess, coverHidden ->
+        NotificationsState(
+            enabled = enabled,
+            sound = soundChoiceFor(soundUri),
+            bundledSoundsNeedAccess = needAccess,
+            coverMessageHidden = coverHidden,
+        )
     }
 
     private fun soundChoiceFor(soundUri: String?): SoundChoice = when (soundUri) {

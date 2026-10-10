@@ -63,6 +63,9 @@ class NotificationsFragment : SoftkeyFragment() {
             viewModel.onAction(NotificationsAction.ToggleEnabled)
         }
         b.notificationsSound.setOnClickListener { viewModel.onAction(NotificationsAction.OpenSoundPicker) }
+        b.notificationsCoverHidden.setOnClickListener {
+            viewModel.onAction(NotificationsAction.ToggleCoverMessageHidden)
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -115,6 +118,9 @@ class NotificationsFragment : SoftkeyFragment() {
             if (state.enabled) getString(R.string.theme_row_selected_format, label) else label
         b.notificationsSoundSub.text = soundLabel(state.sound)
         b.notificationsBundledAccess.isVisible = state.bundledSoundsNeedAccess
+        val coverLabel = getString(R.string.notifications_cover_hidden)
+        b.notificationsCoverHidden.text =
+            if (state.coverMessageHidden) getString(R.string.theme_row_selected_format, coverLabel) else coverLabel
     }
 
     /** Resolving a Custom choice's display name needs RingtoneManager +
