@@ -1,5 +1,6 @@
 package org.matchat.feature.onboarding
 
+import android.text.method.PasswordTransformationMethod
 import android.view.View
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
@@ -32,6 +33,9 @@ class SignInFragment : SoftkeyFragment() {
         val b = FragmentSignInBinding.bind(content)
         binding = b
         setTitle(getString(R.string.signin_title))
+        // The field is a textVisiblePassword so the device keypad lets digits
+        // through (see fragment_sign_in.xml); mask it back to dots here.
+        b.password.transformationMethod = PasswordTransformationMethod.getInstance()
         b.signInButton.setOnClickListener { submit() }
 
         viewLifecycleOwner.lifecycleScope.launch {

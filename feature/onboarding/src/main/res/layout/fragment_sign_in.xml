@@ -58,6 +58,12 @@
         android:textSize="?attr/textSizeMeta"
         android:textColor="?attr/colorTextSecondary" />
 
+    <!-- textVisiblePassword, not textPassword: on the keypad IMEs these phones
+         ship, the password variation forces alpha multi-tap and swallows the
+         number keys, so a password containing digits can't be typed. The
+         masking is restored in code with a PasswordTransformationMethod (the
+         IME reads inputType, the view reads the transformation), so the field
+         still shows dots. Same reason the recovery-key field uses it. -->
     <EditText
         android:id="@+id/password"
         android:layout_width="match_parent"
@@ -65,7 +71,7 @@
         android:background="@drawable/focus_selector"
         android:focusable="true"
         android:focusableInTouchMode="true"
-        android:inputType="textPassword"
+        android:inputType="textVisiblePassword"
         android:importantForAutofill="no"
         android:textSize="?attr/textSizeBody"
         android:textColor="?attr/colorTextPrimary"
