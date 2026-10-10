@@ -1,9 +1,46 @@
 # Cover display (Kyocera front screen) notifications
 
-Status: **working unrooted** for the message-waiting indicator (branch
-`notifications`). Custom branding on the cover is the only part still needing a
-signed/root build. This file records how the Kyocera cover display is driven,
-confirmed by decompiling `jp.kyocera.kcinfosignprovider` ("InfoSign").
+Status: **working unrooted** via the sub-LCD alert card (see below). The
+persistent idle-screen badge (InfoSign path) is a dead end for a third-party app
+and remains a signed-build item. Branch `notifications`.
+
+## Implemented: the sub-LCD alert card (`SubLcdManager`)
+
+`CoverScreenNotifier` posts a transient card to the cover screen through the OEM
+framework class `jp.kyocera.sublcd.SubLcdManager` + `SubLcdNotificationExtender`,
+reached by reflection on Android's **public** `Notification.Builder.extend()`
+API (the wearable-extender pattern). This is the surface SystemUI's own PowerUI
+uses for battery cards — **a different path from InfoSign**, so it bypasses the
+notification-listener mirror and the `KeyguardStatusView` package allow-list
+that blocked us (below). Any app can post to it; it no-ops (reflection
+try/catch) on non-Kyocera hardware.
+
+`MessageNotifier` drives it on its existing lifecycle: a card is posted when a
+message arrives and cancelled when the room is read. The card shows the room
+name (the notification title, not the body — same lock-screen privacy posture).
+
+**Known limitation (verified on-device by TurboText, which this mirrors —
+github.com/Ben-Showalter/TurboText `OuterScreenNotifier`):** every post needs a
+duration and clears when it expires; there is no setting that holds the card on
+the idle cover indefinitely without keeping the screen on. So this is a ~5 s
+"a message arrived" card, not a permanent unread badge.
+
+- **A permanent idle-screen badge** still needs the signed SystemUI build (the
+  InfoSign/`KeyguardStatusView` path below).
+- **A wake pulse** (flash the icon when a hardware key wakes the closed phone,
+  as TurboText does from its accessibility service) is a possible add-on, but
+  MatChat's `MatChatKeyAccessibilityService` is scoped by AGENTS.md §4 to the
+  right softkey + sync only, so adding it needs explicit direction and an
+  AGENTS.md update — not done here.
+
+---
+
+The rest of this file is the investigation of the **other** cover path
+(InfoSign), kept as the record of why it's a dead end for a third-party app.
+
+## Background: InfoSign path (the dead end)
+
+Confirmed by decompiling `jp.kyocera.kcinfosignprovider` ("InfoSign").
 
 ## The mechanism (confirmed, not a guess)
 

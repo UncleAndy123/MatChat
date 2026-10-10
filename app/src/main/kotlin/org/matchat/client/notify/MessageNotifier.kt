@@ -270,6 +270,12 @@ object MessageNotifier {
                 .onSuccess { Log.d(COVER_TAG, "fallback notify ok id=$id") }
                 .onFailure { e -> Log.e(TAG, "fallback notify() also failed; giving up on this notification", e) }
         }
+
+        // Also raise a transient card on the Kyocera cover screen (sub-LCD) so a
+        // waiting message is visible with the flip closed (docs/COVER-DISPLAY.md).
+        // Independent of the status-bar notify() above; no-ops off Kyocera. The
+        // title (room name), not the body, keeps the lock-screen privacy posture.
+        CoverScreenNotifier.notify(context, id, content.roomName)
     }
 
     @Suppress("LongMethod")
@@ -384,9 +390,16 @@ object MessageNotifier {
         MediaKind.FILE -> R.string.notif_media_file
     }
 
-    fun cancel(context: Context, roomId: RoomId) = manager(context).cancel(notifId(roomId))
+    fun cancel(context: Context, roomId: RoomId) {
+        val id = notifId(roomId)
+        manager(context).cancel(id)
+        CoverScreenNotifier.cancel(context, id) // clear the cover card too
+    }
 
-    fun cancelById(context: Context, notifId: Int) = manager(context).cancel(notifId)
+    fun cancelById(context: Context, notifId: Int) {
+        manager(context).cancel(notifId)
+        CoverScreenNotifier.cancel(context, notifId)
+    }
 
     private fun manager(context: Context): NotificationManager =
         context.getSystemService(NotificationManager::class.java)
