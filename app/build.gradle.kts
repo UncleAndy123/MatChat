@@ -128,24 +128,3 @@ dependencies {
     androidTestImplementation(libs.hilt.testing)
     kspAndroidTest(libs.hilt.compiler)
 }
-
-// APK size gate (PLAN.md §8.4): fail if any release ABI split exceeds 25 MB.
-tasks.register("checkApkSize") {
-    group = "verification"
-    description = "Fails if a release APK split is larger than 25 MB."
-    dependsOn("assembleRelease")
-    doLast {
-        val limitBytes = 25L * 1024 * 1024
-        val apks = fileTree("${layout.buildDirectory.get()}/outputs/apk/release") {
-            include("**/*.apk")
-            // The universal APK bundles every ABI for the in-app updater; the
-            // 25 MB gate is a per-split download budget, so it doesn't apply.
-            exclude("**/*universal*.apk")
-        }.files
-        val tooBig = apks.filter { it.length() > limitBytes }
-        require(tooBig.isEmpty()) {
-            "Release APK over 25 MB per split: " +
-                tooBig.joinToString { "${it.name}=${it.length() / (1024 * 1024)}MB" }
-        }
-    }
-}

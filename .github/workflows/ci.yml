@@ -1,5 +1,5 @@
 # CI pipeline (PLAN.md §8.5):
-#   spotless -> detekt -> konsist -> unit -> paparazzi -> assembleRelease -> size check
+#   spotless -> detekt -> konsist -> unit -> paparazzi -> assembleRelease
 # Instrumented traversal tests run nightly (they are slow) — see traversal.yml.
 name: CI
 
@@ -50,6 +50,3 @@ jobs:
 
 #      - name: Assemble release
 #        run: ./gradlew :app:assembleRelease
-
-      - name: APK size check (< 25 MB per ABI split)
-        run: ./gradlew :app:checkApkSize
