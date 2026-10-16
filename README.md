@@ -13,7 +13,7 @@ Real end-to-end-encrypted chat on Kyocera flips and other locked-down AOSP
 ![Platform](https://img.shields.io/badge/platform-Android%20%7C%20minSdk%2024-3DDC84?logo=android&logoColor=white)
 ![Screen](https://img.shields.io/badge/screen-240%C3%97320%20QVGA-lightgrey)
 ![Status](https://img.shields.io/badge/status-pre--release-orange)
-![Version](https://img.shields.io/badge/version-0.1.5--M0-informational)
+[![Version](https://img.shields.io/github/v/release/UncleAndy123/MatChat?include_prereleases&sort=semver&label=version&color=informational)](https://github.com/UncleAndy123/MatChat/releases/latest)
 
 </div>
 
