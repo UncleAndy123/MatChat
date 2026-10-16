@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>NestedBlockDepth:UpdateManager.kt$UpdateManager$private suspend fun streamApk(info: UpdateInfo): File</ID>
+    <ID>ReturnCount:UpdateManager.kt$UpdateManager$private fun pickApk(assets: JSONArray?): JSONObject?</ID>
+  </CurrentIssues>
+</SmellBaseline>

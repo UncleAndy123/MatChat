@@ -120,6 +120,9 @@ class UpdateManager @Inject constructor(
      * fallback (installs on any ABI, e.g. an odd ABI with no split), then the sole
      * APK when only one is attached. Null when nothing fits.
      */
+    // One early return per candidate tier (split-for-ABI, universal, sole) reads
+    // clearer than nesting; detekt's 4-return cap doesn't fit this shape.
+    @Suppress("ReturnCount")
     private fun pickApk(assets: JSONArray?): JSONObject? {
         if (assets == null) return null
         val apks = (0 until assets.length())
@@ -159,6 +162,7 @@ class UpdateManager @Inject constructor(
             .onSuccess { apk -> _state.value = UpdateStatus.Downloaded(info, apk) }
     }
 
+    @Suppress("NestedBlockDepth") // download loop + progress/error handling; splitting hurts readability
     private suspend fun streamApk(info: UpdateInfo): File {
         val dir = File(context.cacheDir, UPDATES_DIR).apply {
             mkdirs()

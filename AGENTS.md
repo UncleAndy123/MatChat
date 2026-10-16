@@ -122,7 +122,11 @@ Non-negotiables:
 - `render(state: State)` is a **pure function of state**. Never read a view's
   current value to decide what to do. Never mutate a view outside `render`.
 - The ViewModel never imports `android.view`, `android.widget`, or anything from
-  `:core:ui`.
+  `:core:ui` — **except `org.matchat.core.ui.prefs`** (`UserPreferences`,
+  `ThemeMode`, `TextSizePreference`, …), which are settings *data* types a
+  ViewModel legitimately reads, not Android UI or rendering code. The settings
+  ViewModels depend on them, and `ArchitectureTest` carves out exactly that
+  package. The rest of `:core:ui` stays banned.
 - The Fragment never imports anything from `:core:matrix`.
 - State classes carry display-ready values (`"3:42 PM"`, not `Instant`). Formatting
   happens in the ViewModel so it is unit-testable.
@@ -250,7 +254,7 @@ The full key map is in `docs/UX-SPEC.md §2`. What you must obey in code:
 | A screen's layout or render | Paparazzi screenshot at 240×320, normal + largest font scale |
 | Focus order or a new screen | Entry in the key-only traversal test (`app/src/androidTest/.../TraversalTest.kt`) |
 | `:core:matrix` | A test against the fake; do **not** write a test that hits a real homeserver |
-| Anything at all | `./gradlew spotlessApply detekt konsistTest test` green locally |
+| Anything at all | `./gradlew spotlessApply detekt test` green locally (the Konsist architecture rules run inside `test`) |
 
 Do not write tests that assert implementation details (that a method was called
 N times). Assert the state that resulted.
@@ -259,8 +263,8 @@ N times). Assert the state that resulted.
 
 ```bash
 ./gradlew spotlessApply            # format — run before every commit
-./gradlew detekt konsistTest       # static + architecture rules
-./gradlew test                     # JVM unit tests
+./gradlew detekt                   # static analysis
+./gradlew test                     # JVM unit tests (incl. the Konsist architecture rules)
 ./gradlew verifyPaparazziDebug     # screenshot diffs
 ./gradlew recordPaparazziDebug     # accept intentional screenshot changes
 ./gradlew :app:assembleDebug
@@ -278,7 +282,8 @@ A change is done when **all** of these hold:
 - [ ] Acceptance criteria from the task are met and restated in the PR body.
 - [ ] Reachable and operable with D-pad + softkeys only, verified in the traversal
       test — not by reasoning about it.
-- [ ] `spotless`, `detekt`, `konsist`, `test`, `paparazzi` are green.
+- [ ] `spotless`, `detekt`, `test` (which runs the Konsist architecture rules),
+      and `paparazzi` are green.
 - [ ] No new dependency without justification; no new module without an ADR.
 - [ ] `docs/UX-SPEC.md` updated if any screen, key binding, or label changed.
 - [ ] No TODO left behind without a linked issue number.

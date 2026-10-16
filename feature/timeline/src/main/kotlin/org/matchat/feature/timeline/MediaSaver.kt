@@ -41,13 +41,7 @@ internal object MediaSaver {
         return bounds.outMimeType ?: DEFAULT_IMAGE_MIME
     }
 
-    fun save(
-        context: Context,
-        target: Target,
-        displayName: String,
-        mimeType: String?,
-        bytes: ByteArray,
-    ): Boolean {
+    fun save(context: Context, target: Target, displayName: String, mimeType: String?, bytes: ByteArray): Boolean {
         val name = displayName.substringAfterLast('/').ifBlank { "attachment" }
         val mime = mimeType?.takeIf { it.isNotBlank() }
             ?: if (target == Target.GALLERY) DEFAULT_IMAGE_MIME else DEFAULT_FILE_MIME
@@ -94,13 +88,7 @@ internal object MediaSaver {
     /** API 24–28: write into the public folder and let the scanner index it so it
      *  shows up in the gallery / file manager. */
     @Suppress("DEPRECATION")
-    private fun saveLegacy(
-        context: Context,
-        target: Target,
-        name: String,
-        mime: String,
-        bytes: ByteArray,
-    ): Boolean {
+    private fun saveLegacy(context: Context, target: Target, name: String, mime: String, bytes: ByteArray): Boolean {
         val root = when (target) {
             Target.GALLERY -> Environment.DIRECTORY_PICTURES
             Target.DOWNLOADS -> Environment.DIRECTORY_DOWNLOADS

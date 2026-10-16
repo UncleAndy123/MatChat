@@ -3,7 +3,7 @@ package org.matchat.feature.timeline
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -26,7 +26,7 @@ class PinnedMessagesViewModelTest {
 
     private fun subject() = PinnedMessagesViewModel(session, SavedStateHandle(mapOf("roomId" to roomId.value)))
 
-    @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+    @BeforeEach fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     @AfterEach fun tearDown() = Dispatchers.resetMain()
 

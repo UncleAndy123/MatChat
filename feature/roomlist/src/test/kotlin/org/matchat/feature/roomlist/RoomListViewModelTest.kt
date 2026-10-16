@@ -2,7 +2,7 @@ package org.matchat.feature.roomlist
 
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -32,7 +32,7 @@ class RoomListViewModelTest {
 
     private fun subject() = RoomListViewModel(session, policy, clock, draftStore)
 
-    @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+    @BeforeEach fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     @AfterEach fun tearDown() = Dispatchers.resetMain()
 

@@ -5,6 +5,12 @@ import com.lemonappdev.konsist.api.verify.assertFalse
 import com.lemonappdev.konsist.api.verify.assertTrue
 import org.junit.Test
 
+/** Konsist's `file.path` uses the host OS separator, so the `/core/matrix/`,
+ *  `/feature/` etc. filters below matched nothing on Windows — silently flagging
+ *  core/matrix files that are allowed to use the SDK (they pass on CI's Linux).
+ *  Normalise to '/' so the rules hold on every OS. */
+private fun String.unix() = replace('\\', '/')
+
 /**
  * The §5 dependency rules, enforced mechanically (PLAN.md §8.4). These are the
  * Konsist standins for the custom Detekt rules named in PLAN.md; they fail the
@@ -17,7 +23,7 @@ class ArchitectureTest {
         Konsist.scopeFromProject()
             .files
             .filter { file -> file.imports.any { it.name.startsWith("org.matrix.rustcomponents") } }
-            .assertTrue { it.path.contains("/core/matrix/") }
+            .assertTrue { it.path.unix().contains("/core/matrix/") }
     }
 
     @Test
@@ -25,8 +31,8 @@ class ArchitectureTest {
         // Belt-and-braces for the import rule: catch fully-qualified references too.
         Konsist.scopeFromProject()
             .files
-            .filter { !it.path.contains("/core/matrix/") }
-            .filterNot { it.path.contains("/arch/") } // these rule files name the token
+            .filter { !it.path.unix().contains("/core/matrix/") }
+            .filterNot { it.path.unix().contains("/arch/") } // these rule files name the token
             .assertFalse { it.text.contains("org.matrix.rustcomponents") }
     }
 
@@ -35,9 +41,9 @@ class ArchitectureTest {
         val featureOf = Regex("/feature/([^/]+)/")
         Konsist.scopeFromProject()
             .files
-            .filter { it.path.contains("/feature/") }
+            .filter { it.path.unix().contains("/feature/") }
             .assertFalse { file ->
-                val own = featureOf.find(file.path)?.groupValues?.get(1)
+                val own = featureOf.find(file.path.unix())?.groupValues?.get(1)
                 file.imports.any { imp ->
                     imp.name.startsWith("org.matchat.feature.") &&
                         own != null && !imp.name.startsWith("org.matchat.feature.$own.")
@@ -54,7 +60,14 @@ class ArchitectureTest {
                 klass.containingFile.imports.any {
                     it.name.startsWith("android.view") ||
                         it.name.startsWith("android.widget") ||
-                        it.name.startsWith("org.matchat.core.ui")
+                        // core.ui.prefs is carved out: UserPreferences/ThemeMode/
+                        // TextSizePreference are settings DATA types a ViewModel
+                        // legitimately reads, not Android UI or rendering code
+                        // (AGENTS.md §3). The rest of :core:ui stays banned.
+                        (
+                            it.name.startsWith("org.matchat.core.ui") &&
+                                !it.name.startsWith("org.matchat.core.ui.prefs")
+                            )
                 }
             }
     }

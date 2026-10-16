@@ -2,6 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues></ManuallySuppressedIssues>
   <CurrentIssues>
+    <ID>LongParameterList:FakeUserPreferences.kt$FakeUserPreferences$( initialThemeMode: ThemeMode = ThemeMode.LIGHT, initialAccentColor: AccentColor = AccentColor.GREEN, initialTextSize: TextSizePreference = TextSizePreference.NORMAL, initialSoftkeysSwapped: Boolean = false, initialNotificationsEnabled: Boolean = true, initialNotificationSoundUri: String? = null, initialNotificationChannelVersion: Int = 0, initialCoverMessageHidden: Boolean = false, )</ID>
     <ID>SpreadOperator:FakeMatrixAuth.kt$FakeMatrixAuth$(*qrSteps.toTypedArray())</ID>
   </CurrentIssues>
 </SmellBaseline>

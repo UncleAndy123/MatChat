@@ -3,11 +3,13 @@
 
 The cover template draws the icon from a resource id only (no runtime
 images), scaled into a small square slot; a 96x96 nodpi square drew best on
-the DuraXV (docs/COVER-DISPLAY.md, "Clock on the card"). This is the chat
-bubble from app/src/main/res/drawable/ic_launcher.xml, solid black with the
-same transparent "M" cut out, on transparent, scaled to fill most of the
-square. Re-run when the launcher
-mark changes:
+the DuraXV (docs/COVER-DISPLAY.md, "Clock on the card"). The outer screen is
+black and white, so this is the monochrome form of the same bubble+"M"
+geometry as app/src/main/res/drawable/ic_launcher.xml: a solid black bubble
+with the "M" knocked out (transparent), on transparent, scaled to fill most
+of the square. (The launcher itself is the colour version — indigo bubble,
+black "M" — but the geometry is shared.) Re-run when the launcher mark's
+geometry changes:
 
     python3 tools/gen_cover_icon.py
 

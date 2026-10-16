@@ -75,6 +75,9 @@ class ThemeFragment : SoftkeyFragment() {
         return if (selected) getString(R.string.theme_row_selected_format, label) else label
     }
 
+    // A flat 1:1 accent -> string-res mapping; the branch count is the accent
+    // count, not real complexity.
+    @Suppress("CyclomaticComplexMethod")
     private fun labelResFor(color: AccentColor): Int = when (color) {
         AccentColor.GREEN -> R.string.theme_accent_green
         AccentColor.AMBER -> R.string.theme_accent_amber

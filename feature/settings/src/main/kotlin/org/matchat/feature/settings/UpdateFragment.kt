@@ -49,6 +49,10 @@ class UpdateFragment : SoftkeyFragment() {
         FocusEngine.requestInitialFocus(b.updateAction)
     }
 
+    // render() fans out over every UpdatePhase (a pure function of state,
+    // AGENTS.md §3); the phase count drives both the complexity and the
+    // notes-visibility condition.
+    @Suppress("CyclomaticComplexMethod", "ComplexCondition")
     private fun render(state: UpdateState) {
         val b = binding ?: return
         b.updateStatus.text = when (state.phase) {

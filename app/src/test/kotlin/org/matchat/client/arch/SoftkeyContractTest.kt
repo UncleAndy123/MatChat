@@ -4,6 +4,11 @@ import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.verify.assertTrue
 import org.junit.Test
 
+/** Konsist's `file.path` uses the host OS separator; normalise to '/' so the
+ *  `/feature/` filter matches on Windows too (otherwise it selected nothing
+ *  there and the rule silently enforced against an empty set). */
+private fun String.unix() = replace('\\', '/')
+
 /**
  * Every screen extends SoftkeyFragment and declares its softkey labels
  * (AGENTS.md §4). A label may be empty, but the declaration is required — this is
@@ -30,7 +35,7 @@ class SoftkeyContractTest {
         // focusable rows, which is allowed.
         Konsist.scopeFromProject()
             .files
-            .filter { it.path.contains("/feature/") }
+            .filter { it.path.unix().contains("/feature/") }
             .assertTrue { file ->
                 !file.text.contains("setOnTouchListener") &&
                     !file.text.contains("GestureDetector")

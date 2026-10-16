@@ -52,6 +52,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
     private var followBottom = true
     private var followLayoutListener: android.view.ViewTreeObserver.OnGlobalLayoutListener? = null
     private val audio = AudioPlayback()
+
     /** The voice row currently loaded in [audio] (playing or paused), plus its
      *  live position — Fragment-local because it's an ephemeral, high-frequency
      *  media concern tied to the MediaPlayer the Fragment owns, exactly like
@@ -558,12 +559,11 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }
     }
 
-    private fun readImagesPermission(): String =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            android.Manifest.permission.READ_MEDIA_IMAGES
-        } else {
-            android.Manifest.permission.READ_EXTERNAL_STORAGE
-        }
+    private fun readImagesPermission(): String = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        android.Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+        android.Manifest.permission.READ_EXTERNAL_STORAGE
+    }
 
     private fun launchCameraNow() {
         val ctx = requireContext()
@@ -949,29 +949,26 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
 
     /** Download the media (if needed) and write it to Downloads. [label]/[mimeType]
      *  are null for images (no filename carried) — a name is then synthesized. */
-    private fun saveMediaToFiles(
-        eventId: org.matchat.core.model.EventId,
-        label: String?,
-        mimeType: String?,
-    ) = withStoragePermission {
-        viewLifecycleOwner.lifecycleScope.launch {
-            val ctx = requireContext()
-            val bytes = viewModel.loadMedia(eventId) ?: run {
-                Toast.makeText(ctx, R.string.timeline_media_failed, Toast.LENGTH_SHORT).show()
-                return@launch
+    private fun saveMediaToFiles(eventId: org.matchat.core.model.EventId, label: String?, mimeType: String?) =
+        withStoragePermission {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val ctx = requireContext()
+                val bytes = viewModel.loadMedia(eventId) ?: run {
+                    Toast.makeText(ctx, R.string.timeline_media_failed, Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val mime = mimeType ?: MediaSaver.imageMime(bytes)
+                    val name = label?.let { MediaFiles.ensureExtension(it, mime) } ?: imageFileName(eventId, mime)
+                    MediaSaver.save(ctx, MediaSaver.Target.DOWNLOADS, name, mime, bytes)
+                }
+                Toast.makeText(
+                    ctx,
+                    if (ok) R.string.timeline_saved_downloads else R.string.timeline_save_failed,
+                    Toast.LENGTH_SHORT,
+                ).show()
             }
-            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                val mime = mimeType ?: MediaSaver.imageMime(bytes)
-                val name = label?.let { MediaFiles.ensureExtension(it, mime) } ?: imageFileName(eventId, mime)
-                MediaSaver.save(ctx, MediaSaver.Target.DOWNLOADS, name, mime, bytes)
-            }
-            Toast.makeText(
-                ctx,
-                if (ok) R.string.timeline_saved_downloads else R.string.timeline_save_failed,
-                Toast.LENGTH_SHORT,
-            ).show()
         }
-    }
 
     /** A stable gallery filename for an image row, which carries no filename of
      *  its own: the event id (slashes/colons stripped) plus a type extension. */

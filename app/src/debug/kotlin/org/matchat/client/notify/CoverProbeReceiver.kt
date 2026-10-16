@@ -110,7 +110,10 @@ class CoverProbeReceiver : BroadcastReceiver() {
             val callbackType = Class.forName("jp.kyocera.sublcd.ISubLcdCallback")
             val callback = ProbeCallback()
             managerClass.getMethod("registerCallback", callbackType).invoke(manager, callback)
-            Log.d(TAG, "probe: callback registered for ${WATCH_MS / 1000}s — open/close the flip, press outside buttons")
+            Log.d(
+                TAG,
+                "probe: callback registered for ${WATCH_MS / 1000}s — open/close the flip, press outside buttons",
+            )
             Handler(Looper.getMainLooper()).postDelayed({
                 runCatching { managerClass.getMethod("unregisterCallback", callbackType).invoke(manager, callback) }
                     .onFailure { Log.d(TAG, "probe: callback unregister failed: $it") }

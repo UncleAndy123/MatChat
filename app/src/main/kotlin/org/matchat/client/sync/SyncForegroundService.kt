@@ -105,7 +105,7 @@ class SyncForegroundService : LifecycleService() {
         ensureChannel()
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.sync_notification_running))
-            .setSmallIcon(R.drawable.ic_stat_sync)
+            .setSmallIcon(R.drawable.ic_stat_matchat)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .setShowWhen(false)

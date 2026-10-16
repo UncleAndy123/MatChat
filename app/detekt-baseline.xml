@@ -4,6 +4,11 @@
   <CurrentIssues>
     <ID>ComplexCondition:MainActivity.kt$MainActivity$logical == LogicalKey.UP || logical == LogicalKey.DOWN || logical == LogicalKey.LEFT || logical == LogicalKey.RIGHT</ID>
     <ID>CyclomaticComplexMethod:MainActivity.kt$MainActivity$override fun dispatchKeyEvent(event: KeyEvent): Boolean</ID>
+    <ID>CyclomaticComplexMethod:NotificationGate.kt$NotificationGate$fun decide(prev: RoomState?, room: RoomSummary, nowMs: Long, enabled: Boolean): Result</ID>
+    <ID>LongParameterList:SyncWorker.kt$SyncWorker$( @Assisted context: Context, @Assisted params: WorkerParameters, private val auth: MatrixAuth, private val session: MatrixSession, private val sessionStore: MatrixSessionStore, private val messageNotifications: MessageNotifications, private val owner: SyncOwner, private val hosts: SyncHosts, )</ID>
+    <ID>NestedBlockDepth:SilentLeadInSound.kt$SilentLeadInSound$private fun decodeToPcm(extractor: MediaExtractor, codec: MediaCodec, pcmFile: File)</ID>
     <ID>ReturnCount:MainActivity.kt$MainActivity$override fun dispatchKeyEvent(event: KeyEvent): Boolean</ID>
+    <ID>ReturnCount:MatChatKeyAccessibilityService.kt$MatChatKeyAccessibilityService$override fun onKeyEvent(event: KeyEvent): Boolean</ID>
+    <ID>TooGenericExceptionCaught:MainActivity.kt$MainActivity$e: RuntimeException</ID>
   </CurrentIssues>
 </SmellBaseline>

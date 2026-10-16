@@ -2,7 +2,7 @@ package org.matchat.feature.settings
 
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -20,7 +20,7 @@ class ThemeViewModelTest {
 
     private fun subject() = ThemeViewModel(prefs)
 
-    @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+    @BeforeEach fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     @AfterEach fun tearDown() = Dispatchers.resetMain()
 

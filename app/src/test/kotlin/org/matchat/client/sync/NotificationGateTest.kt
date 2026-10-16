@@ -51,7 +51,10 @@ class NotificationGateTest {
     @Test
     fun `media without text is readable`() {
         val r = NotificationGate.decide(
-            seeded, room(unread = 1, ts = 200L, text = null, media = MediaKind.IMAGE), 0L, true,
+            seeded,
+            room(unread = 1, ts = 200L, text = null, media = MediaKind.IMAGE),
+            0L,
+            true,
         )
         assertEquals(Action.POST_WITH_TEXT, r.action)
     }

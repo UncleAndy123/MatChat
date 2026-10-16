@@ -4,8 +4,11 @@
 name: CI
 
 on:
+  # Full suite gates merges into main: every pull request is validated (incl.
+  # Dev -> main), plus direct pushes to main. Dev is a fast WIP branch and is
+  # not CI'd on each push — open a PR to run the gate.
   push:
-    branches: [ main, Dev ]
+    branches: [ main ]
   pull_request:
 
 concurrency:

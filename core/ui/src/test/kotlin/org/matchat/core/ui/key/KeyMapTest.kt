@@ -106,7 +106,10 @@ class KeyMapTest {
     @Test
     fun `other keys never change the layout`() {
         listOf(
-            KeyEvent.KEYCODE_SOFT_LEFT, KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_5,
+            KeyEvent.KEYCODE_SOFT_LEFT,
+            KeyEvent.KEYCODE_BACK,
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_5,
         ).forEach { code ->
             SoftkeyKind.entries.forEach { seen -> assertNull(KeyMap.detectSoftkeys(code, seen)) }
         }

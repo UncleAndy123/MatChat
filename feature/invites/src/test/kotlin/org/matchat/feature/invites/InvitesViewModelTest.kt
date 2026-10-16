@@ -2,7 +2,8 @@ package org.matchat.feature.invites
 
 import app.cash.turbine.test
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -16,11 +17,15 @@ import org.matchat.core.model.RoomId
 import org.matchat.core.model.UserId
 import org.matchat.core.testing.FakeMatrixSession
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class InvitesViewModelTest {
 
     private val session = FakeMatrixSession()
 
-    @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
+    // Unconfined so the ViewModel's stateIn(WhileSubscribed) mapping runs eagerly
+    // when turbine subscribes; a StandardTestDispatcher here has its own scheduler
+    // that nothing advances, so the mapped state would never be produced.
+    @BeforeEach fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
     @AfterEach fun tearDown() = Dispatchers.resetMain()
 

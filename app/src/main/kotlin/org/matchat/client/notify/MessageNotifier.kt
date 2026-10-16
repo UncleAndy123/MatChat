@@ -352,13 +352,13 @@ object MessageNotifier {
         // What the lock screen / outer display shows when the phone hides
         // sensitive content: the room and the count, never the text.
         val publicVersion = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_stat_message)
+            .setSmallIcon(R.drawable.ic_stat_matchat)
             .setContentTitle(title)
             .setContentText(count)
             .build()
 
         return NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_stat_message)
+            .setSmallIcon(R.drawable.ic_stat_matchat)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))

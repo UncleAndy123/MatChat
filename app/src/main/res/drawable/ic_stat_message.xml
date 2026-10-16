@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Status-bar new-message glyph (white, as status icons must be) — a flat
-     speech-bubble silhouette, replacing the sync service's circular-arrows
-     icon for the incoming-message notification (Notifications settings
-     round). ic_stat_sync.xml is unchanged and still used for the persistent
-     "MatChat is running" sync notification only. -->
+<!-- Reply-action glyph (white, as notification action icons must be) — a flat
+     speech-bubble silhouette for the "Reply" action on a message notification.
+     The notification's own small icon is now the unified brand mark
+     (ic_stat_matchat.xml); this stays a plain reply affordance, not branding. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"

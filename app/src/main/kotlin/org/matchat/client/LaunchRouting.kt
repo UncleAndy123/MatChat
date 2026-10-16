@@ -23,5 +23,4 @@ internal fun shouldGoHome(
     fromNotification: Boolean,
     inCall: Boolean,
     hasSession: Boolean,
-): Boolean =
-    userLeft && !launchedExternal && screenOnWhenStopped && !fromNotification && !inCall && hasSession
+): Boolean = userLeft && !launchedExternal && screenOnWhenStopped && !fromNotification && !inCall && hasSession

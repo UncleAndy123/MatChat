@@ -76,7 +76,7 @@ object CallNotifier {
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_CALLS)
-            .setSmallIcon(R.drawable.ic_stat_sync)
+            .setSmallIcon(R.drawable.ic_stat_matchat)
             .setContentTitle(caller)
             .setContentText(context.getString(R.string.call_incoming))
             .setCategory(NotificationCompat.CATEGORY_CALL)
@@ -101,7 +101,7 @@ object CallNotifier {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_CALLS)
-            .setSmallIcon(R.drawable.ic_stat_sync)
+            .setSmallIcon(R.drawable.ic_stat_matchat)
             .setContentTitle(caller)
             .setContentText(context.getString(R.string.call_missed))
             .setCategory(NotificationCompat.CATEGORY_CALL)

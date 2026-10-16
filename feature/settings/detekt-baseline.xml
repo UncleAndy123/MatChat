@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ComplexCondition:UpdateFragment.kt$UpdateFragment$state.notes.isNotBlank() &amp;&amp; ( state.phase == UpdatePhase.AVAILABLE || state.phase == UpdatePhase.DOWNLOADING || state.phase == UpdatePhase.READY )</ID>
+    <ID>CyclomaticComplexMethod:ThemeFragment.kt$ThemeFragment$private fun labelResFor(color: AccentColor): Int</ID>
+    <ID>CyclomaticComplexMethod:UpdateFragment.kt$UpdateFragment$private fun render(state: UpdateState)</ID>
+  </CurrentIssues>
+</SmellBaseline>

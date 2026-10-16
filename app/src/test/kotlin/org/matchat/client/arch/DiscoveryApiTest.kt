@@ -4,6 +4,11 @@ import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.verify.assertFalse
 import org.junit.Test
 
+/** Konsist's `file.path` uses the host OS separator; normalise to '/' so the
+ *  `/arch/` self-exclusion below matches on Windows too (otherwise this test
+ *  file's own token list trips the rule there — it passes on CI's Linux). */
+private fun String.unix() = replace('\\', '/')
+
 /**
  * G3 as code: no directory or user-search API is reachable from any code path
  * (PLAN.md §8.4 NoDiscoveryApis). "Knowing an address is allowed; finding one is
@@ -26,7 +31,7 @@ class DiscoveryApiTest {
         Konsist.scopeFromProject()
             .files
             .filter { it.path.endsWith(".kt") }
-            .filterNot { it.path.contains("/arch/") } // this test names the tokens
+            .filterNot { it.path.unix().contains("/arch/") } // this test names the tokens
             .assertFalse { file -> bannedTokens.any { file.text.contains(it) } }
     }
 }
