@@ -118,6 +118,19 @@ internal class RustMatrixClientHolder @Inject constructor(
     // rustls-platform-verifier to be initialized" on a real (release) TLS path.
     private val platformInitialized = AtomicBoolean(false)
 
+    /** The bundled public CA roots (docs/adr/0010), parsed once into one DER/PEM
+     *  blob per certificate for ClientBuilder.addRootCertificates. Empty when the
+     *  resource can't be read — the build then falls back to the OS store alone. */
+    private val caBundle: List<ByteArray> by lazy { loadCaBundle() }
+
+    private fun loadCaBundle(): List<ByteArray> = runCatching {
+        val text = context.resources.openRawResource(org.matchat.core.matrix.R.raw.ca_bundle)
+            .bufferedReader().use { it.readText() }
+        // One ByteArray per PEM block — the SDK parses each entry as a single
+        // certificate (DER first, then PEM), not as a bundle.
+        PEM_CERT.findAll(text).map { it.value.toByteArray(Charsets.US_ASCII) }.toList()
+    }.getOrElse { emptyList() }
+
     fun requireClient(): Client = requireNotNull(client) { "no active Matrix client" }
 
     fun isActive(): Boolean = client != null
@@ -149,6 +162,20 @@ internal class RustMatrixClientHolder @Inject constructor(
                 // UPPER_SNAKE_CASE Kotlin entries, hence DISCOVER_NATIVE. Without a
                 // version builder the room list fails with VersionIsMissing.
                 .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DISCOVER_NATIVE)
+            // Augment the device's trust store with an up-to-date public CA set
+            // (docs/adr/0010). The SDK verifies TLS against the OS trust store via
+            // rustls-platform-verifier; older Android (7–11, confirmed on real
+            // devices, issue #41) ships a store that can't anchor modern chains
+            // (Google Trust Services, Let's Encrypt), so release sign-in to an
+            // otherwise-valid homeserver fails with "trust anchor not found" while
+            // Chrome — carrying its own roots — works. addRootCertificates MERGES
+            // with the OS store (it does not replace it, so a CA the user installs
+            // on the device is still honoured); it only adds the roots old stores
+            // lack. No-op if the bundle can't be read.
+            val caRoots = caBundle
+            if (caRoots.isNotEmpty()) {
+                builder = builder.addRootCertificates(caRoots)
+            }
             if (devConfig.allowInsecureTls) {
                 // Debug builds only (see MatrixDevConfig): lets on-device testing
                 // work behind an SSL-inspecting proxy and sidesteps the rustls-
@@ -529,5 +556,9 @@ internal class RustMatrixClientHolder @Inject constructor(
 
     private companion object {
         const val PAGE_SIZE: UInt = 100u
+
+        /** One PEM certificate block, matched out of the bundled CA file. */
+        private val PEM_CERT =
+            Regex("-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----", RegexOption.DOT_MATCHES_ALL)
     }
 }
