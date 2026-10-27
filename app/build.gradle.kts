@@ -88,7 +88,8 @@ dependencies {
     // 0.1.1 (this jar). Read the Cargo.lock, not the crate's `^0.1.0` requirement:
     // 0.1.0 was vendored by that reading, and is the suspected cause of issue #41
     // (release-only "error sending request"): 0.1.1 skips the revocation check
-    // for user-installed root CAs (e.g. an SSL-inspecting proxy), 0.1.0 runs it. When bumping the SDK, re-check with:
+    // for user-installed root CAs (e.g. an SSL-inspecting proxy), 0.1.0 runs it.
+    // When bumping the SDK, re-check with:
     //   curl -sL https://raw.githubusercontent.com/matrix-org/matrix-rust-sdk/<ref>/Cargo.lock \
     //     | grep -A1 'name = "rustls-platform-verifier'
     // and re-vendor that crate version's AAR classes.jar (from its crate download,
