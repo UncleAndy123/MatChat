@@ -131,6 +131,19 @@ internal class RustMatrixClientHolder @Inject constructor(
         PEM_CERT.findAll(text).map { it.value.toByteArray(Charsets.US_ASCII) }.toList()
     }.getOrElse { emptyList() }
 
+    /** Every certificate the device itself trusts — the system roots and any CA
+     *  the user installed by hand — read from `AndroidCAStore` as DER. Added
+     *  alongside [caBundle] so disabling the SDK's built-in roots does not drop
+     *  the device's own trust (a self-hosted homeserver's private CA keeps
+     *  working). Empty when the store can't be read. */
+    private fun deviceTrustAnchors(): List<ByteArray> = runCatching {
+        val store = java.security.KeyStore.getInstance("AndroidCAStore")
+        store.load(null)
+        store.aliases().toList().mapNotNull { alias ->
+            (store.getCertificate(alias) as? java.security.cert.X509Certificate)?.encoded
+        }
+    }.getOrElse { emptyList() }
+
     fun requireClient(): Client = requireNotNull(client) { "no active Matrix client" }
 
     fun isActive(): Boolean = client != null
@@ -162,19 +175,22 @@ internal class RustMatrixClientHolder @Inject constructor(
                 // UPPER_SNAKE_CASE Kotlin entries, hence DISCOVER_NATIVE. Without a
                 // version builder the room list fails with VersionIsMissing.
                 .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DISCOVER_NATIVE)
-            // Augment the device's trust store with an up-to-date public CA set
-            // (docs/adr/0010). The SDK verifies TLS against the OS trust store via
-            // rustls-platform-verifier; older Android (7–11, confirmed on real
-            // devices, issue #41) ships a store that can't anchor modern chains
-            // (Google Trust Services, Let's Encrypt), so release sign-in to an
-            // otherwise-valid homeserver fails with "trust anchor not found" while
-            // Chrome — carrying its own roots — works. addRootCertificates MERGES
-            // with the OS store (it does not replace it, so a CA the user installs
-            // on the device is still honoured); it only adds the roots old stores
-            // lack. No-op if the bundle can't be read.
-            val caRoots = caBundle
-            if (caRoots.isNotEmpty()) {
-                builder = builder.addRootCertificates(caRoots)
+            // Fix TLS trust on old Android (7–11, confirmed on real devices,
+            // issue #41). The SDK verifies against the OS trust store via
+            // rustls-platform-verifier, and those aging stores can't anchor the
+            // chains homeservers now serve (Google Trust Services, Let's Encrypt),
+            // so release sign-in fails with "trust anchor not found" while Chrome —
+            // carrying its own roots — works. We can't MERGE extra roots into the
+            // platform verifier (this SDK build rejects that with a reqwest
+            // "builder error"), so we rebuild the trust set ourselves and hand it
+            // to webpki: the bundled modern public roots (docs/adr/0010) PLUS the
+            // device's own AndroidCAStore, so every CA the device/user already
+            // trusts — including one the user installed by hand — is still honoured.
+            // Only when we actually have roots to supply; otherwise fall back to
+            // the OS store (the platform verifier) unchanged.
+            val trustRoots = caBundle + deviceTrustAnchors()
+            if (trustRoots.isNotEmpty()) {
+                builder = builder.disableBuiltInRootCertificates().addRootCertificates(trustRoots)
             }
             if (devConfig.allowInsecureTls) {
                 // Debug builds only (see MatrixDevConfig): lets on-device testing
