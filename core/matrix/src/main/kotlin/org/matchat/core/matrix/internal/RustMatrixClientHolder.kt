@@ -191,10 +191,19 @@ internal class RustMatrixClientHolder @Inject constructor(
                 // useLightweightTokioRuntime: full runtime for the app process
                 false,
             )
+        }.onSuccess {
+            // Confirms the rustls-platform-verifier was set up: without this the
+            // SDK's TLS path rejects every chain (even one the device trusts).
+            android.util.Log.w("MatrixClientHolder", "initPlatform OK")
         }.onFailure {
-            // Don't hard-fail client build: log and let the (real) TLS error, if
-            // any, surface at sign-in with its own message.
-            android.util.Log.w("MatrixClientHolder", "initPlatform failed: ${it.message}")
+            // Don't hard-fail client build: log the full cause (type + stack) and
+            // let the TLS error surface at sign-in. A failure here means the
+            // verifier never initialized, so every TLS verification then fails.
+            android.util.Log.w(
+                "MatrixClientHolder",
+                "initPlatform FAILED: ${it.javaClass.name}: ${it.message}",
+                it,
+            )
         }
     }
 
