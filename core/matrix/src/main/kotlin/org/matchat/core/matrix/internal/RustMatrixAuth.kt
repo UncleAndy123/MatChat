@@ -28,8 +28,10 @@ internal class RustMatrixAuth @Inject constructor(
             holder.persistSession()
             holder.startSync()
         }.onFailure { e ->
-            // No credentials or tokens in logs (AGENTS.md §9); message only.
-            Log.w(TAG, "sign-in failed for '$target': ${e.message}")
+            // No credentials or tokens in logs (AGENTS.md §9); error type and
+            // message only. The SDK's own logcat lines (RustMatrixClientHolder
+            // initPlatform) carry the underlying cause, e.g. a TLS rejection.
+            Log.w(TAG, "sign-in failed for '$target': ${e.javaClass.simpleName}: ${e.message}")
         }
     }
 

@@ -316,6 +316,13 @@ A change is done when **all** of these hold:
   diagnose with. Every failure gets a visible, plain-language message and a
   retry action.
 - **Chatty logging.** No PII, no message content, no access tokens in logs. Ever.
+  - **Named exception: the SDK's own WARN/ERROR tracing goes to logcat**
+    (`RustMatrixClientHolder.ensurePlatformInitialized`,
+    `writeToStdoutOrSystem = true`), per explicit user direction, so a field
+    report can show *why* a connection failed (TLS vs DNS vs refused). These
+    lines may name a homeserver, user id or room id; never tokens or message
+    bodies. Do not lower the level below WARN or add trace packs without the
+    same kind of explicit direction.
 
 ## 10. When you are unsure
 

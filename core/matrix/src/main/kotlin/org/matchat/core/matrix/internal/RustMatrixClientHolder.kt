@@ -178,7 +178,13 @@ internal class RustMatrixClientHolder @Inject constructor(
                     logLevel = LogLevel.WARN,
                     traceLogPacks = emptyList(),
                     extraTargets = emptyList(),
-                    writeToStdoutOrSystem = false,
+                    // SDK warnings and errors go to logcat, so
+                    // a field report can name the real cause of a failure — e.g.
+                    // "invalid peer certificate: UnknownIssuer" vs a DNS error —
+                    // which the error shown in the UI does not carry. WARN and up
+                    // only: the SDK never logs tokens or message content at these
+                    // levels (AGENTS.md §9 records this exception).
+                    writeToStdoutOrSystem = true,
                     writeToFiles = null,
                     sentryConfig = null,
                 ),
