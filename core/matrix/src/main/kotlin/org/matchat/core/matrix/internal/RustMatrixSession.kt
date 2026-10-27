@@ -74,8 +74,9 @@ internal class RustMatrixSession @Inject constructor(
 
     override suspend fun declineInvite(roomId: RoomId, ignoreSender: Boolean): Result<Unit> {
         val inviter = holder.invites.value.firstOrNull { it.roomId == roomId }?.inviter
+            ?.takeIf { ignoreSender && it.value.isNotEmpty() }
         val result = roomOp(roomId) { it.leave() }
-        if (result.isSuccess && ignoreSender && inviter != null && inviter.value.isNotEmpty()) {
+        if (result.isSuccess && inviter != null) {
             withContext(Dispatchers.IO) { runCatching { holder.requireClient().ignoreUser(inviter.value) } }
         }
         return result

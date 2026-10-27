@@ -81,20 +81,8 @@ class RoomInfoFragment : org.matchat.core.ui.softkey.SoftkeyFragment() {
     private fun onNav(nav: RoomInfoNav) {
         when (nav) {
             RoomInfoNav.Left -> navigator.toRoomListRoot()
-            is RoomInfoNav.Toast -> {
-                val res = when (nav.key) {
-                    ToastKey.BAD_ADDRESS -> R.string.roominfo_bad_address
-                    ToastKey.EDIT_FAILED -> R.string.roominfo_edit_failed
-                    ToastKey.SOUNDS_NEED_ACCESS -> R.string.roominfo_sounds_need_access
-                    ToastKey.CONTACT_SAVED -> R.string.roominfo_contact_saved
-                    ToastKey.CONTACT_REMOVED -> R.string.roominfo_contact_removed
-                    ToastKey.PHONE_MERGED -> R.string.roominfo_phone_merged
-                    ToastKey.PHONE_MERGE_FAILED -> R.string.roominfo_phone_merge_failed
-                    ToastKey.PHONE_CONTACTS_UNAVAILABLE -> R.string.roominfo_phone_contacts_unavailable
-                    ToastKey.MESSAGE_FAILED -> R.string.msginfo_message_failed
-                }
-                Toast.makeText(requireContext(), res, Toast.LENGTH_SHORT).show()
-            }
+            is RoomInfoNav.Toast ->
+                Toast.makeText(requireContext(), toastText(nav.key), Toast.LENGTH_SHORT).show()
             RoomInfoNav.RequestStoragePermission ->
                 storagePermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
             is RoomInfoNav.OpenSoundPicker -> launchSoundPicker(nav.currentUri)
@@ -104,6 +92,18 @@ class RoomInfoFragment : org.matchat.core.ui.softkey.SoftkeyFragment() {
                 runCatching { startActivity(PhoneContactIntents.addToExisting(nav.address)) }
                     .onFailure { viewModel.onPhoneContactsUnavailable() }
         }
+    }
+
+    private fun toastText(key: ToastKey): Int = when (key) {
+        ToastKey.BAD_ADDRESS -> R.string.roominfo_bad_address
+        ToastKey.EDIT_FAILED -> R.string.roominfo_edit_failed
+        ToastKey.SOUNDS_NEED_ACCESS -> R.string.roominfo_sounds_need_access
+        ToastKey.CONTACT_SAVED -> R.string.roominfo_contact_saved
+        ToastKey.CONTACT_REMOVED -> R.string.roominfo_contact_removed
+        ToastKey.PHONE_MERGED -> R.string.roominfo_phone_merged
+        ToastKey.PHONE_MERGE_FAILED -> R.string.roominfo_phone_merge_failed
+        ToastKey.PHONE_CONTACTS_UNAVAILABLE -> R.string.roominfo_phone_contacts_unavailable
+        ToastKey.MESSAGE_FAILED -> R.string.msginfo_message_failed
     }
 
     /** "Add to a phone contact…" with the contacts permission: the phone's own

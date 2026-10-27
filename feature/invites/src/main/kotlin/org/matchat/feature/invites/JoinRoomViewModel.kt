@@ -125,8 +125,7 @@ class JoinRoomViewModel @Inject constructor(
     }
 
     private fun sendRequest(message: String) {
-        val current = state.value
-        if (link == null || current.isBusy || current.blockedDomain != null || current.button != JoinButton.ASK) return
+        if (link == null || !state.value.canAsk) return
         base.update { it.copy(isBusy = true, error = null) }
         viewModelScope.launch {
             session.knockRoom(link, message.trim().ifEmpty { null }).fold(
@@ -139,6 +138,9 @@ class JoinRoomViewModel @Inject constructor(
             )
         }
     }
+
+    private val JoinRoomState.canAsk: Boolean
+        get() = !isBusy && blockedDomain == null && button == JoinButton.ASK
 
     private fun openNav(id: RoomId): JoinRoomNav = if (isSpace) JoinRoomNav.OpenSpace(id) else JoinRoomNav.OpenRoom(id)
 
