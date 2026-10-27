@@ -118,32 +118,6 @@ internal class RustMatrixClientHolder @Inject constructor(
     // rustls-platform-verifier to be initialized" on a real (release) TLS path.
     private val platformInitialized = AtomicBoolean(false)
 
-    /** The bundled public CA roots (docs/adr/0010), parsed once into one DER/PEM
-     *  blob per certificate for ClientBuilder.addRootCertificates. Empty when the
-     *  resource can't be read — the build then falls back to the OS store alone. */
-    private val caBundle: List<ByteArray> by lazy { loadCaBundle() }
-
-    private fun loadCaBundle(): List<ByteArray> = runCatching {
-        val text = context.resources.openRawResource(org.matchat.core.matrix.R.raw.ca_bundle)
-            .bufferedReader().use { it.readText() }
-        // One ByteArray per PEM block — the SDK parses each entry as a single
-        // certificate (DER first, then PEM), not as a bundle.
-        PEM_CERT.findAll(text).map { it.value.toByteArray(Charsets.US_ASCII) }.toList()
-    }.getOrElse { emptyList() }
-
-    /** Every certificate the device itself trusts — the system roots and any CA
-     *  the user installed by hand — read from `AndroidCAStore` as DER. Added
-     *  alongside [caBundle] so disabling the SDK's built-in roots does not drop
-     *  the device's own trust (a self-hosted homeserver's private CA keeps
-     *  working). Empty when the store can't be read. */
-    private fun deviceTrustAnchors(): List<ByteArray> = runCatching {
-        val store = java.security.KeyStore.getInstance("AndroidCAStore")
-        store.load(null)
-        store.aliases().toList().mapNotNull { alias ->
-            (store.getCertificate(alias) as? java.security.cert.X509Certificate)?.encoded
-        }
-    }.getOrElse { emptyList() }
-
     fun requireClient(): Client = requireNotNull(client) { "no active Matrix client" }
 
     fun isActive(): Boolean = client != null
@@ -175,23 +149,11 @@ internal class RustMatrixClientHolder @Inject constructor(
                 // UPPER_SNAKE_CASE Kotlin entries, hence DISCOVER_NATIVE. Without a
                 // version builder the room list fails with VersionIsMissing.
                 .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DISCOVER_NATIVE)
-            // Fix TLS trust on old Android (7–11, confirmed on real devices,
-            // issue #41). The SDK verifies against the OS trust store via
-            // rustls-platform-verifier, and those aging stores can't anchor the
-            // chains homeservers now serve (Google Trust Services, Let's Encrypt),
-            // so release sign-in fails with "trust anchor not found" while Chrome —
-            // carrying its own roots — works. We can't MERGE extra roots into the
-            // platform verifier (this SDK build rejects that with a reqwest
-            // "builder error"), so we rebuild the trust set ourselves and hand it
-            // to webpki: the bundled modern public roots (docs/adr/0010) PLUS the
-            // device's own AndroidCAStore, so every CA the device/user already
-            // trusts — including one the user installed by hand — is still honoured.
-            // Only when we actually have roots to supply; otherwise fall back to
-            // the OS store (the platform verifier) unchanged.
-            val trustRoots = caBundle + deviceTrustAnchors()
-            if (trustRoots.isNotEmpty()) {
-                builder = builder.disableBuiltInRootCertificates().addRootCertificates(trustRoots)
-            }
+            // TLS is verified by the platform verifier, which calls back into
+            // :app's org.rustls.platformverifier.CertificateVerifier (docs/adr/0010).
+            // Never addRootCertificates() here: on Android reqwest rejects merging
+            // roots into the platform verifier ("builder error"), and the FFI's
+            // DER-first parse stores PEM bytes as DER, failing tls_certs_only too.
             if (devConfig.allowInsecureTls) {
                 // Debug builds only (see MatrixDevConfig): lets on-device testing
                 // work behind an SSL-inspecting proxy and sidesteps the rustls-
@@ -206,8 +168,8 @@ internal class RustMatrixClientHolder @Inject constructor(
     /**
      * Initializes the SDK platform (its Tokio runtime, tracing, and the
      * rustls-platform-verifier TLS verifier) exactly once per process, before the
-     * first client is built. The verifier resolves the vendored
-     * org.rustls.platformverifier classes (:app, `libs/`) by name over JNI; without
+     * first client is built. The verifier resolves :app's own
+     * org.rustls.platformverifier.CertificateVerifier (docs/adr/0010) by name over JNI; without
      * this call a real TLS path fails with "Expect rustls-platform-verifier to be
      * initialized". Debug builds also disableSslVerification() (MatrixDevConfig), so
      * the verifier is unused there, but initializing unconditionally matches how the
@@ -572,9 +534,5 @@ internal class RustMatrixClientHolder @Inject constructor(
 
     private companion object {
         const val PAGE_SIZE: UInt = 100u
-
-        /** One PEM certificate block, matched out of the bundled CA file. */
-        private val PEM_CERT =
-            Regex("-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----", RegexOption.DOT_MATCHES_ALL)
     }
 }

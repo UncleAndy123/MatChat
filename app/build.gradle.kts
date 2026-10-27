@@ -71,29 +71,10 @@ dependencies {
     implementation(project(":core:rtc"))
     implementation(project(":core:update"))
 
-    // Vendored Android TLS verifier classes (org.rustls.platformverifier) that the
-    // Matrix SDK's native lib calls by name over JNI to validate the homeserver
-    // certificate. The sdk-android AAR bundles NONE of these, and the artifact is
-    // not on Maven Central (it ships only inside the rustls-platform-verifier-android
-    // crate's local maven repo), so we vendor the compiled classes here. Paired
-    // with the initPlatform() call in :core:matrix (RustMatrixClientHolder) and the
-    // keep rule in proguard-rules.pro. Without it, release sign-in fails with
-    // "Expect rustls-platform-verifier to be initialized".
-    //
-    // VERSION LOCK — must match the rustls-platform-verifier-android version in
-    // the matrix-rust-sdk Cargo.lock that sdk-android was built from (libs.versions.toml
-    // `matrix-rustsdk`). Today: matrix-rustsdk 26.09.3 (matrix-rust-sdk f4b9512)
-    // locks rustls-platform-verifier 0.6.2 + rustls-platform-verifier-android
-    // 0.1.1 (this jar). Read the Cargo.lock, not the crate's `^0.1.0` requirement:
-    // 0.1.0 was vendored by that reading, and is the suspected cause of issue #41
-    // (release-only "error sending request"): 0.1.1 skips the revocation check
-    // for user-installed root CAs (e.g. an SSL-inspecting proxy), 0.1.0 runs it.
-    // When bumping the SDK, re-check with:
-    //   curl -sL https://raw.githubusercontent.com/matrix-org/matrix-rust-sdk/<ref>/Cargo.lock \
-    //     | grep -A1 'name = "rustls-platform-verifier'
-    // and re-vendor that crate version's AAR classes.jar (from its crate download,
-    // maven/rustls/rustls-platform-verifier/<ver>/*.aar).
-    implementation(files("libs/rustls-platform-verifier-android-0.1.1.jar"))
+    // TLS: the Matrix SDK's native lib verifies homeserver certificates by calling
+    // org.rustls.platformverifier.CertificateVerifier over JNI. That class is our
+    // own source in this module (src/main/kotlin/org/rustls/platformverifier), not
+    // a vendored jar — see docs/adr/0010 and its keep rule in proguard-rules.pro.
 
     implementation(project(":feature:onboarding"))
     implementation(project(":feature:roomlist"))
