@@ -48,11 +48,11 @@
     <string name="policy_domains_title">Allowed servers</string>
     <string name="policy_domains_desc">Comma-separated domains the user may message. Empty allows all.</string>
     <string name="policy_dm_title">Allow direct messages</string>
-    <string name="policy_dm_desc">When off, New message is hidden; invitations still work.</string>
+    <string name="policy_dm_desc">When off, Send message is hidden; contacts and invitations still work.</string>
     <string name="policy_invites_title">Invitation handling</string>
     <string name="policy_invites_desc">Ask on every invitation, or auto-join allowed domains.</string>
     <string name="policy_contacts_title">Contacts</string>
-    <string name="policy_contacts_desc">JSON array of {name, address} shown first in New message.</string>
+    <string name="policy_contacts_desc">JSON array of {name, address} shown first in Contacts.</string>
     <string name="policy_media_title">Allow sending images</string>
     <string name="policy_media_desc">When off, images cannot be sent.</string>
 

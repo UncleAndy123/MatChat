@@ -10,6 +10,7 @@ import com.android.resources.Density
 import com.android.resources.ScreenOrientation
 import org.junit.Rule
 import org.junit.Test
+import org.matchat.core.ui.theme.BubbleDrawable
 import org.matchat.core.ui.theme.themeColor
 import org.matchat.feature.timeline.databinding.ItemVoiceBubbleBinding
 import org.matchat.core.ui.R as UiR
@@ -56,9 +57,7 @@ class VoiceBubbleRowScreenshotTest {
         binding.voiceTime.text = "3:42 PM"
         // Mirror VoiceBubbleVH.bind: bubble background per side, cluster + time
         // aligned to the same side.
-        binding.voiceBubble.setBackgroundResource(
-            if (isOwn) UiR.drawable.bubble_own else UiR.drawable.bubble_received,
-        )
+        binding.voiceBubble.background = BubbleDrawable.create(ctx, isOwn)
         val gravity = if (isOwn) Gravity.END else Gravity.START
         (binding.voiceRow.layoutParams as LinearLayout.LayoutParams).gravity = gravity
         (binding.voiceTime.layoutParams as LinearLayout.LayoutParams).gravity = gravity

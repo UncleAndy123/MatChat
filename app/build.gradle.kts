@@ -121,6 +121,8 @@ dependencies {
     // Architecture rules (PLAN.md §8.4) run as JVM unit tests in this module.
     testImplementation(libs.konsist)
     testImplementation(libs.junit4)
+    // FakeContactsRepository for DirectChatContactSaverTest.
+    testImplementation(project(":core:testing"))
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner) // AndroidJUnitRunner

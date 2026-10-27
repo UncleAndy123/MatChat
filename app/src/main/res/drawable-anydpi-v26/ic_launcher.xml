@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive launcher icon (API 26+). Without it the launcher treats MatChat
+     as a legacy icon, shrinks drawable/ic_launcher.xml and boxes it in its
+     own tile, so it looked much smaller than every other app on the
+     reference device. With it the launcher draws ic_launcher_background at
+     full tile size and masks it to its own shape, like every other app.
+     drawable/ic_launcher.xml stays as the API 24-25 icon. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>

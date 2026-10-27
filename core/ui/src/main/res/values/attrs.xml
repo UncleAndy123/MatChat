@@ -38,15 +38,23 @@
          user's chosen accent (Settings > Theme). -->
     <attr name="colorBubbleReceived" format="color" />
     <attr name="colorBubbleOwn" format="color" />
+    <!-- Per-mode (Base.Light/Base.Dark, not per accent) parts of the
+         TurboText-style bubbles (BubbleDrawable): the
+         unfocused outline; a veil laid over the accent stripe and the focus
+         border (Dark lightens them so they read on black); and a veil over
+         an own bubble's accent fill (Light: paper, giving the pale wash;
+         Dark: a little black, keeping white text >= 7:1 on every accent). -->
+    <attr name="colorBubbleBorder" format="color" />
+    <attr name="colorBubbleStripeVeil" format="color" />
+    <attr name="colorBubbleOwnVeil" format="color" />
 
     <!-- Text size setting (Settings > Text size, Normal/Large — UX-SPEC §S16).
          Layered at runtime the same way accent is (Theme.MatChat.Size.{Normal,
          Large}, themes.xml applied via theme.applyStyle after the accent
          overlay), so the app-wide "Text size" preference scales text, avatars,
          and row heights together without a per-role dimen switch anywhere
-         else. textSizeSoftkeyLabel is deliberately NOT one of these — the
-         softkey bar is a fixed-height chrome band, not a row, and growing its
-         label risks clipping a band that's already nearly full. -->
+         else — the chrome bands included (textSizeSoftkey and the bar
+         heights, at the end of this list). -->
     <attr name="textSizeBody" format="dimension" />
     <attr name="textSizeLabel" format="dimension" />
     <attr name="textSizeMeta" format="dimension" />
@@ -60,4 +68,10 @@
     <attr name="avatarSizeSeenBy" format="dimension" />
     <attr name="rowMinHeight" format="dimension" />
     <attr name="rowMinHeightCompact" format="dimension" />
+    <!-- The chrome bands scale with Text size too (per explicit user
+         direction: the softkey labels must grow at Large), with their
+         heights growing to match so the labels never clip. -->
+    <attr name="textSizeSoftkey" format="dimension" />
+    <attr name="softkeyBarHeight" format="dimension" />
+    <attr name="titleBarHeight" format="dimension" />
 </resources>

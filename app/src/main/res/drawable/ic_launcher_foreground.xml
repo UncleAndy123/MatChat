@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: the MatChat bubble + "M", drawn large, in
+     drawable/ic_launcher.xml's 48-unit space. The launcher shows the middle
+     72 of these 108 units, so the outer group maps 48 units onto those 72
+     (scale 1.5, offset 18). Unlike the other marks (ic_launcher.xml,
+     ic_stat_matchat.xml, the cover PNG), this body is taller — y 5-38
+     instead of 10-38 — so its top sits as far from the tile's centre
+     (24,24) as its sides do (x 5-43), per the user; the "M" moves up 2.5 to
+     stay centred in it. The inner group shrinks it all to 0.85 about the
+     centre, so the tail (down to y 46) stays inside the launcher's mask. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="1.5"
+        android:scaleY="1.5"
+        android:translateX="18"
+        android:translateY="18">
+        <group
+            android:pivotX="24"
+            android:pivotY="24"
+            android:scaleX="0.85"
+            android:scaleY="0.85">
+            <path
+                android:fillColor="#303E7C"
+                android:pathData="M10,5h28a5,5 0,0 1,5 5v23a5,5 0,0 1,-5 5h-18l-7,8v-8h-3a5,5 0,0 1,-5 -5v-23a5,5 0,0 1,5 -5z" />
+            <group android:translateY="-2.5">
+                <path
+                    android:fillColor="#000000"
+                    android:pathData="M14.2,31.84 L14.2,16.16 L17.96,16.16 L24,25.25 L30.04,16.16 L33.8,16.16 L33.8,31.84 L30.04,31.84 L30.04,22.56 L24,29.58 L17.96,22.56 L17.96,31.84 Z" />
+            </group>
+        </group>
+    </group>
+</vector>

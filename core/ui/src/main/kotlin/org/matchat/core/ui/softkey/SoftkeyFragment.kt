@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.annotation.AttrRes
 import androidx.annotation.LayoutRes
 import androidx.core.view.isVisible
@@ -143,6 +144,11 @@ abstract class SoftkeyFragment : Fragment(), LogicalKeyReceiver {
     protected fun setTitle(title: CharSequence) {
         chrome?.chromeTitle?.text = title
     }
+
+    /** The optional avatar just left of the title (hidden unless a screen
+     *  shows it — today only the conversation screen does, S9). Null before
+     *  the view exists / after it's destroyed. */
+    protected val titleAvatar: ImageView? get() = chrome?.chromeTitleAvatar
 
     /** Live on every screen (Online indicator round) — no per-screen call
      *  needed, unlike the old setSyncGlyph this replaces. The very first

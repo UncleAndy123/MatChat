@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The softkey bar (UX-SPEC §1): three cells on the accent surface
      (SoftkeyBarView sets the background to ?attr/colorFocusAccent —
-     Phase 4 of the UI improvement plan), 13 sp (text_softkey_label, its own
-     dedicated size — not the shared 11sp text_meta).
+     Phase 4 of the UI improvement plan), ?attr/textSizeSoftkey (13/16/20 sp
+     with Settings > Text size — its own role, not the shared text_meta).
      LEFT = Options, CENTRE = activate, RIGHT = Back — always (AGENTS.md §4).
      Not focusable: it is a label strip driven by the hardware keys, never
      D-pad-focused, only (optionally) tapped. android:focusable="false" is
@@ -28,7 +28,7 @@
         android:paddingStart="@dimen/content_pad"
         android:paddingEnd="4dp"
         android:textColor="?attr/colorTextOnInverse"
-        android:textSize="@dimen/text_softkey_label"
+        android:textSize="?attr/textSizeSoftkey"
         android:maxLines="1"
         android:ellipsize="end"
         android:focusable="false"
@@ -44,7 +44,7 @@
         android:gravity="center"
         android:textColor="?attr/colorTextOnInverse"
         android:textStyle="bold"
-        android:textSize="@dimen/text_softkey_label"
+        android:textSize="?attr/textSizeSoftkey"
         android:maxLines="1"
         android:ellipsize="end"
         android:focusable="false"
@@ -61,7 +61,7 @@
         android:paddingStart="4dp"
         android:paddingEnd="@dimen/content_pad"
         android:textColor="?attr/colorTextOnInverse"
-        android:textSize="@dimen/text_softkey_label"
+        android:textSize="?attr/textSizeSoftkey"
         android:maxLines="1"
         android:ellipsize="end"
         android:focusable="false"

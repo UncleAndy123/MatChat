@@ -42,6 +42,9 @@
         <item name="colorError">@color/error</item>
         <item name="colorScrim">@color/scrim</item>
         <item name="colorBubbleReceived">@color/palette_bubble_received_light</item>
+        <item name="colorBubbleBorder">@color/palette_line</item>
+        <item name="colorBubbleStripeVeil">@android:color/transparent</item>
+        <item name="colorBubbleOwnVeil">@color/bubble_own_veil_light</item>
 
         <item name="android:windowBackground">?attr/colorSurface</item>
         <item name="android:textColorPrimary">?attr/colorTextPrimary</item>
@@ -51,26 +54,29 @@
         <item name="android:windowIsTranslucent">false</item>
     </style>
 
-    <!-- Mirrors Base.Light role for role: a near-black surface, a lighter
-         "raised panel" tone for chrome/dialogs, and brighter green/amber so
+    <!-- Mirrors Base.Light role for role, in TurboText's Classic Dark: a
+         black surface, a #222 "raised panel" tone for dialogs, and brighter green/amber so
          the encrypted indicator and the link text keep their contrast
          against a dark surface (colors.xml). -->
     <style name="Theme.MatChat.Base.Dark" parent="Theme.AppCompat.NoActionBar">
-        <item name="colorSurface">@color/palette_night</item>
-        <item name="colorSurfaceBright">@color/palette_night_bright</item>
-        <item name="colorSurfaceInverse">@color/palette_night_bright</item>
-        <item name="colorTextPrimary">@color/palette_paper_bright</item>
-        <item name="colorTextSecondary">@color/palette_mist_dim</item>
+        <item name="colorSurface">@color/palette_black</item>
+        <item name="colorSurfaceBright">@color/palette_tt_surface</item>
+        <item name="colorSurfaceInverse">@color/palette_tt_surface</item>
+        <item name="colorTextPrimary">@color/palette_tt_white</item>
+        <item name="colorTextSecondary">@color/palette_tt_grey</item>
         <item name="colorTextOnInverse">@color/text_on_inverse</item>
         <item name="colorTextOnFocus">@color/text_on_focus</item>
         <item name="colorTextMetaOnFocus">@color/text_meta_on_focus</item>
         <item name="colorTextLink">@color/palette_amber_bright</item>
-        <item name="colorDivider">@color/palette_line_dark</item>
+        <item name="colorDivider">@color/palette_tt_raised</item>
         <item name="colorEncrypted">@color/palette_green_bright</item>
         <item name="colorWarning">@color/warning</item>
         <item name="colorError">@color/error</item>
         <item name="colorScrim">@color/scrim</item>
-        <item name="colorBubbleReceived">@color/palette_night_bright</item>
+        <item name="colorBubbleReceived">@color/palette_tt_raised</item>
+        <item name="colorBubbleBorder">@android:color/transparent</item>
+        <item name="colorBubbleStripeVeil">@color/bubble_stripe_veil_dark</item>
+        <item name="colorBubbleOwnVeil">@color/bubble_own_veil_dark</item>
 
         <item name="android:windowBackground">?attr/colorSurface</item>
         <item name="android:textColorPrimary">?attr/colorTextPrimary</item>
@@ -83,6 +89,12 @@
          layered onto whichever base is already set via applyStyle(), see
          the file header). Each carries the same 4 roles the old combined
          leaves did, driven by one accent. -->
+    <style name="Theme.MatChat.Accent.MatChat" parent="">
+        <item name="colorFocusAccent">@color/accent_matchat</item>
+        <item name="colorAccent">?attr/colorFocusAccent</item>
+        <item name="colorSurfaceFocused">@color/accent_matchat_tint</item>
+        <item name="colorBubbleOwn">@color/accent_matchat_tint</item>
+    </style>
     <style name="Theme.MatChat.Accent.Green" parent="">
         <item name="colorFocusAccent">@color/accent_green</item>
         <item name="colorAccent">?attr/colorFocusAccent</item>
@@ -204,6 +216,9 @@
         <item name="avatarSizeSeenBy">@dimen/avatar_size_seen_by_large</item>
         <item name="rowMinHeight">@dimen/row_min_height_large</item>
         <item name="rowMinHeightCompact">@dimen/row_min_height_compact_large</item>
+        <item name="textSizeSoftkey">@dimen/text_softkey_label_large</item>
+        <item name="softkeyBarHeight">@dimen/softkey_bar_height_large</item>
+        <item name="titleBarHeight">@dimen/title_bar_height_large</item>
     </style>
     <style name="Theme.MatChat.Size.Small" parent="">
         <item name="textSizeBody">@dimen/text_body</item>
@@ -219,6 +234,9 @@
         <item name="avatarSizeSeenBy">@dimen/avatar_size_seen_by</item>
         <item name="rowMinHeight">@dimen/row_min_height</item>
         <item name="rowMinHeightCompact">@dimen/row_min_height_compact</item>
+        <item name="textSizeSoftkey">@dimen/text_softkey_label</item>
+        <item name="softkeyBarHeight">@dimen/softkey_bar_height</item>
+        <item name="titleBarHeight">@dimen/title_bar_height</item>
     </style>
     <style name="Theme.MatChat.Size.Large" parent="">
         <item name="textSizeBody">@dimen/text_body_xlarge</item>
@@ -234,16 +252,19 @@
         <item name="avatarSizeSeenBy">@dimen/avatar_size_seen_by_xlarge</item>
         <item name="rowMinHeight">@dimen/row_min_height_xlarge</item>
         <item name="rowMinHeightCompact">@dimen/row_min_height_compact_xlarge</item>
+        <item name="textSizeSoftkey">@dimen/text_softkey_label_xlarge</item>
+        <item name="softkeyBarHeight">@dimen/softkey_bar_height_xlarge</item>
+        <item name="titleBarHeight">@dimen/title_bar_height_xlarge</item>
     </style>
 
     <!-- Manifest default / fallback — see the file header. Baked with the
-         Normal (large) size set and the Rust accent, matching the default
+         Normal (large) size set and the MatChat (icon indigo) accent, matching the default
          preferences (SharedPreferencesUserPreferences). -->
     <style name="Theme.MatChat" parent="Theme.MatChat.Base.Light">
-        <item name="colorFocusAccent">@color/accent_rust</item>
+        <item name="colorFocusAccent">@color/accent_matchat</item>
         <item name="colorAccent">?attr/colorFocusAccent</item>
-        <item name="colorSurfaceFocused">@color/accent_rust_tint</item>
-        <item name="colorBubbleOwn">@color/accent_rust_tint</item>
+        <item name="colorSurfaceFocused">@color/accent_matchat_tint</item>
+        <item name="colorBubbleOwn">@color/accent_matchat_tint</item>
         <item name="textSizeBody">@dimen/text_body_large</item>
         <item name="textSizeLabel">@dimen/text_label_large</item>
         <item name="textSizeMeta">@dimen/text_meta_large</item>
@@ -257,6 +278,9 @@
         <item name="avatarSizeSeenBy">@dimen/avatar_size_seen_by_large</item>
         <item name="rowMinHeight">@dimen/row_min_height_large</item>
         <item name="rowMinHeightCompact">@dimen/row_min_height_compact_large</item>
+        <item name="textSizeSoftkey">@dimen/text_softkey_label_large</item>
+        <item name="softkeyBarHeight">@dimen/softkey_bar_height_large</item>
+        <item name="titleBarHeight">@dimen/title_bar_height_large</item>
     </style>
 
     <!-- A focusable row: full-width inverse focus block, no touch feedback.

@@ -36,9 +36,6 @@ interface Navigator {
      *  reacted, by name — a follow-up to the Reactions round). */
     fun toMessageInfo(roomId: RoomId, eventId: EventId, senderId: UserId, timestampEpochMs: Long)
 
-    /** A sender's profile, reached from message info. */
-    fun toProfile(userId: UserId)
-
     /** Voice call screen (docs/VOICE.md). [incoming] true rings; false dials out. */
     fun toCall(roomId: RoomId, peerName: String?, incoming: Boolean)
     fun toInvites()
@@ -62,6 +59,9 @@ interface Navigator {
     /** S27: the one-time "hide the running notification" prompt after sign-in
      *  (docs/adr/0008). */
     fun toBackgroundHelper()
+
+    /** S30: the one-time "save contacts to this phone?" prompt after sign-in. */
+    fun toContactsPrompt()
 
     /** Settings > Notifications: on/off + sound. */
     fun toNotifications()

@@ -17,6 +17,7 @@ import org.matchat.core.model.notify.RoomSound
 import org.matchat.core.model.notify.RoomSoundChoice
 import org.matchat.core.model.notify.SILENT_SOUND
 import org.matchat.core.testing.FakeBundledSoundInstaller
+import org.matchat.core.testing.FakeContactsRepository
 import org.matchat.core.testing.FakeMatrixSession
 import org.matchat.core.testing.FakeRoomNotificationSounds
 
@@ -29,8 +30,13 @@ class RoomInfoSoundTest {
     private val sounds = FakeRoomNotificationSounds()
     private val bundled = FakeBundledSoundInstaller()
 
-    private fun subject() =
-        RoomInfoViewModel(session, sounds, bundled, SavedStateHandle(mapOf("roomId" to roomId.value)))
+    private fun subject() = RoomInfoViewModel(
+        session,
+        sounds,
+        bundled,
+        FakeContactsRepository(),
+        SavedStateHandle(mapOf("roomId" to roomId.value)),
+    )
 
     @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 

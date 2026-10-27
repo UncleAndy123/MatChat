@@ -19,19 +19,16 @@ import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SpaceSummary
 import org.matchat.core.model.SyncState
-import org.matchat.core.policy.Policy
 import org.matchat.core.testing.FakeDraftStore
 import org.matchat.core.testing.FakeMatrixSession
-import org.matchat.core.testing.FakePolicyProvider
 
 class RoomListViewModelTest {
 
     private val session = FakeMatrixSession()
-    private val policy = FakePolicyProvider()
     private val clock = MillisClock { 0L }
     private val draftStore = FakeDraftStore()
 
-    private fun subject() = RoomListViewModel(session, policy, clock, draftStore)
+    private fun subject() = RoomListViewModel(session, clock, draftStore)
 
     @BeforeEach fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
@@ -93,15 +90,6 @@ class RoomListViewModelTest {
             val state = expectMostRecentItem()
             assertTrue(state.isOffline)
             assertFalse(state.isEmpty)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `policy without direct chat disables new message`() = runTest {
-        policy.push(Policy.UNMANAGED.copy(allowDirectChat = false))
-        subject().state.test {
-            assertFalse(expectMostRecentItem().newMessageEnabled)
             cancelAndIgnoreRemainingEvents()
         }
     }

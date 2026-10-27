@@ -26,11 +26,14 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.kotlinx.coroutines.core)
+    // ContextCompat.checkSelfPermission for the optional phone-contacts copy.
+    implementation(libs.androidx.core.ktx)
 
     testImplementation(libs.junit.jupiter.api)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.json) // real org.json for the ContactsCodec unit test
 }
 
 tasks.withType<Test> { useJUnitPlatform() }

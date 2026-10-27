@@ -46,6 +46,26 @@
             android:text="@string/settings_advanced"
             android:textSize="?attr/textSizeLabel"
             android:textColor="?attr/colorTextOnFocus" />
+        <!-- "Save contacts to phone: Off/On" (UX-SPEC S13); text set in render. -->
+        <TextView
+            android:id="@+id/settings_phone_contacts"
+            style="@style/Widget.MatChat.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="?attr/textSizeLabel"
+            android:textColor="?attr/colorTextOnFocus" />
+        <!-- Shown after the contacts permission is refused, so it's never silent. -->
+        <TextView
+            android:id="@+id/settings_phone_contacts_caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:paddingStart="@dimen/content_pad"
+            android:paddingEnd="@dimen/content_pad"
+            android:text="@string/settings_phone_contacts_refused"
+            android:textSize="?attr/textSizeMeta"
+            android:textColor="?attr/colorTextSecondary"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/settings_encryption"

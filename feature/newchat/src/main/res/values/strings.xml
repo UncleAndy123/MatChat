@@ -1,11 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- S20 New message. -->
-    <string name="newchat_title">New message</string>
+    <!-- S20 Contacts (formerly "New message"): the screen's title. -->
+    <string name="newchat_title">Contacts</string>
     <string name="newchat_section_contacts">Contacts</string>
     <string name="newchat_section_recent">Recent</string>
     <string name="newchat_type_address">Type an address</string>
     <string name="newchat_empty">No saved contacts yet.</string>
+    <!-- S20 a person's menu (CENTER on a contact or recent, UX-SPEC S20).
+         "phone contact" means a contact in the phone's own Contacts app. -->
+    <string name="newchat_send_message">Send message</string>
+    <string name="newchat_save_contact">Save contact</string>
+    <string name="newchat_add_to_phone_contact">Add to a phone contact…</string>
+    <string name="newchat_remove_contact">Remove contact</string>
+    <!-- Short confirmations / failures after those items. -->
+    <string name="newchat_contact_saved">Saved to contacts</string>
+    <string name="newchat_contact_removed">Removed from contacts</string>
+    <string name="newchat_message_failed">Couldn\'t start a chat with them.</string>
+    <string name="newchat_phone_merged">Matrix address added to the phone contact</string>
+    <string name="newchat_phone_merge_failed">Couldn\'t add it to that phone contact.</string>
+    <string name="newchat_phone_contacts_unavailable">This phone\'s Contacts app can\'t do this.</string>
 
     <!-- S21 Type an address. -->
     <string name="type_address_title">Type an address</string>

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A message row (S9): a chat bubble, aligned to the sender's side (own
      messages trailing/right, others' leading/left). Alignment and the
-     bubble background (bubble_own.xml vs bubble_received.xml) are bound in
+     bubble background (BubbleDrawable, own vs received; it draws the tail) are bound in
      TimelineAdapter.MessageVH per row.isOwn — this layout only declares the
      default (received) look.
 
      Exception to the usual row treatment (AGENTS.md §4 note): the row's own
      background is left transparent here, not focus_selector — the bubble
      itself carries focus, as a border that recolors/thickens on focus
-     (bubble_received.xml/bubble_own.xml), matching the reference device's
+     (BubbleDrawable in :core:ui), matching the reference device's
      own SMS app. message_bubble picks this up via duplicateParentState,
      since it isn't itself focusable. CENTER opens the message menu (S11).
      minHeight so it grows at large-text scale.
@@ -43,11 +43,10 @@
         android:layout_gravity="start"
         android:orientation="vertical"
         android:duplicateParentState="true"
-        android:background="@drawable/bubble_received"
         android:paddingStart="@dimen/bubble_pad_h"
         android:paddingEnd="@dimen/bubble_pad_h"
         android:paddingTop="@dimen/bubble_pad_v"
-        android:paddingBottom="@dimen/bubble_pad_v">
+        android:paddingBottom="@dimen/bubble_pad_bottom">
 
         <LinearLayout
             android:id="@+id/message_sender_row"

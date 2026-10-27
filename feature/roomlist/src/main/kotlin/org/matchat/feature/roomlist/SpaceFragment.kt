@@ -1,13 +1,11 @@
 package org.matchat.feature.roomlist
 
 import android.view.View
-import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -49,13 +47,6 @@ class SpaceFragment : SoftkeyFragment() {
         binding = b
         b.spaceList.layoutManager = LinearLayoutManager(requireContext())
         b.spaceList.adapter = adapter
-        b.spaceList.addItemDecoration(
-            DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL).apply {
-                setDrawable(
-                    ContextCompat.getDrawable(requireContext(), org.matchat.core.ui.R.drawable.divider_row)!!,
-                )
-            },
-        )
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {

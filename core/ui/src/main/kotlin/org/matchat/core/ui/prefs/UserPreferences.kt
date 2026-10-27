@@ -11,8 +11,10 @@ enum class ThemeMode { LIGHT, DARK }
  * only the focus bar and the system accent tint — never the fixed
  * "encrypted" green or the link color, which stay theme-driven (light/dark),
  * not user-driven, so they keep meaning what they mean regardless of taste.
+ * MATCHAT is the launcher icon's own indigo and the default.
  */
 enum class AccentColor {
+    MATCHAT,
     GREEN,
     AMBER,
     BLUE,
