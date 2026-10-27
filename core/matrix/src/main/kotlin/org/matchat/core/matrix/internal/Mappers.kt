@@ -23,6 +23,7 @@ import org.matrix.rustcomponents.sdk.MessageType
 import org.matrix.rustcomponents.sdk.MsgLikeKind
 import org.matrix.rustcomponents.sdk.ProfileDetails
 import org.matrix.rustcomponents.sdk.Room
+import org.matrix.rustcomponents.sdk.RoomInfo
 import org.matrix.rustcomponents.sdk.RoomPreviewInfo
 import org.matrix.rustcomponents.sdk.RoomType
 import org.matrix.rustcomponents.sdk.TimelineItemContent
@@ -60,7 +61,15 @@ internal object Mappers {
             lastMessageMedia = latest?.media,
             lastMessageUndecrypted = latest?.undecrypted ?: false,
             parentSpaceIds = parentSpaceIds,
+            directUserId = info?.let(::directPartner),
         )
+    }
+
+    /** The other person in a direct chat: its single hero. Null for a group,
+     *  or a "direct" room that has grown past two people. */
+    internal fun directPartner(info: RoomInfo): UserId? {
+        if (!info.isDirect) return null
+        return info.heroes.singleOrNull()?.userId?.takeIf { it.isNotBlank() }?.let(::UserId)
     }
 
     /** A joined space as a folder (S29). */

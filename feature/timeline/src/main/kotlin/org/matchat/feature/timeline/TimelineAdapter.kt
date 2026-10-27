@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 import org.matchat.core.model.EventId
 import org.matchat.core.model.ReactionSummary
 import org.matchat.core.model.SeenBy
+import org.matchat.core.ui.theme.BubbleDrawable
 import org.matchat.core.ui.theme.themeColor
 import org.matchat.core.ui.R as UiR
 
@@ -27,7 +28,7 @@ import org.matchat.core.ui.R as UiR
  *  MessageVH and ImageVH; item_utd.xml/item_attachment.xml keep their
  *  existing plain row look (out of scope for this pass). */
 internal fun bindBubbleSide(bubble: LinearLayout, time: TextView, isOwn: Boolean) {
-    bubble.setBackgroundResource(if (isOwn) UiR.drawable.bubble_own else UiR.drawable.bubble_received)
+    bubble.background = BubbleDrawable.create(bubble.context, isOwn)
     val gravity = if (isOwn) Gravity.END else Gravity.START
     (bubble.layoutParams as LinearLayout.LayoutParams).gravity = gravity
     (time.layoutParams as LinearLayout.LayoutParams).gravity = gravity
@@ -279,9 +280,7 @@ internal class TimelineAdapter(
             // sides together (own trails, received leads) — same idea as
             // bindBubbleSide, but applied to the cluster since the bubble is
             // no longer the row's outermost element.
-            bubble.setBackgroundResource(
-                if (row.isOwn) UiR.drawable.bubble_own else UiR.drawable.bubble_received,
-            )
+            bubble.background = BubbleDrawable.create(bubble.context, row.isOwn)
             val gravity = if (row.isOwn) Gravity.END else Gravity.START
             (voiceRow.layoutParams as LinearLayout.LayoutParams).gravity = gravity
             (time.layoutParams as LinearLayout.LayoutParams).gravity = gravity

@@ -29,6 +29,11 @@
         android:label="Background helper" />
 
     <fragment
+        android:id="@+id/contactsPromptFragment"
+        android:name="org.matchat.feature.onboarding.ContactsPromptFragment"
+        android:label="Phone contacts" />
+
+    <fragment
         android:id="@+id/timelineFragment"
         android:name="org.matchat.feature.timeline.TimelineFragment"
         android:label="Timeline">
@@ -72,13 +77,6 @@
         <argument android:name="eventId" app:argType="string" />
         <argument android:name="senderId" app:argType="string" />
         <argument android:name="timestamp" app:argType="long" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/profileFragment"
-        android:name="org.matchat.feature.timeline.ProfileFragment"
-        android:label="Profile">
-        <argument android:name="userId" app:argType="string" />
     </fragment>
 
     <fragment

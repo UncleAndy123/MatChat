@@ -113,6 +113,8 @@ class TimelineViewModel @Inject constructor(
             val room = ctx.rooms.firstOrNull { it.id == roomId }
             TimelineState(
                 title = room?.name.orEmpty(),
+                titleAvatarUrl = room?.avatarUrl,
+                titleAvatarId = room?.id?.value.orEmpty(),
                 rows = ctx.items.toRows(),
                 isEncrypted = room?.isEncrypted ?: true,
                 isComposeFocused = ctx.composing,

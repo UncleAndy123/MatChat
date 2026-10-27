@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S30 "Save contacts to this phone?" (UX-SPEC §S30). Explanation, the one
+     focusable row (asks for the contacts permission), then a status line
+     shown only after a refusal. Focus order = XML order; only the row is
+     focusable. ScrollView so the text can grow at the largest font scale. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/content_pad">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:focusable="false"
+            android:text="@string/contacts_prompt_body"
+            android:textSize="?attr/textSizeBody"
+            android:textColor="?attr/colorTextPrimary" />
+
+        <TextView
+            android:id="@+id/contacts_prompt_save"
+            style="@style/Widget.MatChat.Row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/contacts_prompt_save"
+            android:textSize="?attr/textSizeLabel"
+            android:textColor="?attr/colorTextOnFocus" />
+
+        <TextView
+            android:id="@+id/contacts_prompt_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:focusable="false"
+            android:paddingTop="4dp"
+            android:text="@string/contacts_prompt_refused"
+            android:textSize="?attr/textSizeMeta"
+            android:textColor="?attr/colorTextSecondary"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

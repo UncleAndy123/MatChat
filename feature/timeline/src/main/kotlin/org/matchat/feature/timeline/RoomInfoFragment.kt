@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import org.matchat.core.ui.contacts.PhoneContactIntents
 import org.matchat.core.ui.focus.FocusEngine
 import org.matchat.core.ui.menu.MenuItem
 import org.matchat.core.ui.menu.MenuSheet
@@ -85,14 +86,31 @@ class RoomInfoFragment : org.matchat.core.ui.softkey.SoftkeyFragment() {
                     ToastKey.BAD_ADDRESS -> R.string.roominfo_bad_address
                     ToastKey.EDIT_FAILED -> R.string.roominfo_edit_failed
                     ToastKey.SOUNDS_NEED_ACCESS -> R.string.roominfo_sounds_need_access
+                    ToastKey.CONTACT_SAVED -> R.string.roominfo_contact_saved
+                    ToastKey.CONTACT_REMOVED -> R.string.roominfo_contact_removed
+                    ToastKey.PHONE_MERGED -> R.string.roominfo_phone_merged
+                    ToastKey.PHONE_MERGE_FAILED -> R.string.roominfo_phone_merge_failed
+                    ToastKey.PHONE_CONTACTS_UNAVAILABLE -> R.string.roominfo_phone_contacts_unavailable
+                    ToastKey.MESSAGE_FAILED -> R.string.msginfo_message_failed
                 }
                 Toast.makeText(requireContext(), res, Toast.LENGTH_SHORT).show()
             }
             RoomInfoNav.RequestStoragePermission ->
                 storagePermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
             is RoomInfoNav.OpenSoundPicker -> launchSoundPicker(nav.currentUri)
+            RoomInfoNav.PickPhoneContact ->
+                runCatching { pickPhoneContact.launch(null) }.onFailure { viewModel.onPhoneContactsUnavailable() }
+            is RoomInfoNav.EditPhoneContact ->
+                runCatching { startActivity(PhoneContactIntents.addToExisting(nav.address)) }
+                    .onFailure { viewModel.onPhoneContactsUnavailable() }
         }
     }
+
+    /** "Add to a phone contact…" with the contacts permission: the phone's own
+     *  contact picker; the ViewModel adds the Matrix address to the one picked. */
+    private val pickPhoneContact = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.PickContact(),
+    ) { uri -> viewModel.onPhoneContactPicked(uri?.toString()) }
 
     /** Android 7–9 only: storage access to copy MatChat's bundled sounds out
      *  (docs/SOUNDS.md) before the picker opens. */
@@ -166,12 +184,30 @@ class RoomInfoFragment : org.matchat.core.ui.softkey.SoftkeyFragment() {
         ) { viewModel.leave() }
     }
 
+    /** S12 member menu: save / remove as a contact, add to a phone contact,
+     *  remove from the room (UX-SPEC S12). */
     private fun memberMenu(member: RoomInfoRow.Member) {
         if (member.isSelf) return
+        val contactItem = if (member.isSaved) {
+            MenuItem(MEMBER_UNSAVE, getString(R.string.roominfo_remove_contact))
+        } else {
+            MenuItem(MEMBER_SAVE, getString(R.string.roominfo_save_contact))
+        }
         MenuSheet.show(
             requireContext(),
-            listOf(MenuItem(MEMBER_REMOVE, getString(R.string.roominfo_remove_member))),
-        ) { viewModel.removeMember(member.userId) }
+            listOf(
+                contactItem,
+                MenuItem(MEMBER_PHONE, getString(R.string.roominfo_add_to_phone_contact)),
+                MenuItem(MEMBER_REMOVE, getString(R.string.roominfo_remove_member)),
+            ),
+        ) { item ->
+            when (item.id) {
+                MEMBER_SAVE -> viewModel.saveContact(member)
+                MEMBER_UNSAVE -> viewModel.removeContact(member.userId)
+                MEMBER_PHONE -> viewModel.addToPhoneContact(member.userId)
+                MEMBER_REMOVE -> viewModel.removeMember(member.userId)
+            }
+        }
     }
 
     override fun onDestroyView() {
@@ -188,5 +224,8 @@ class RoomInfoFragment : org.matchat.core.ui.softkey.SoftkeyFragment() {
 
     private companion object {
         const val MEMBER_REMOVE = "remove"
+        const val MEMBER_SAVE = "save_contact"
+        const val MEMBER_UNSAVE = "remove_contact"
+        const val MEMBER_PHONE = "phone_contact"
     }
 }

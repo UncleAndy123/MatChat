@@ -12,5 +12,8 @@ internal abstract class ContactsModule {
     abstract fun bindRepository(impl: DefaultContactsRepository): ContactsRepository
 
     @Binds
-    abstract fun bindLocalStore(impl: InMemoryLocalContactsStore): LocalContactsStore
+    abstract fun bindLocalStore(impl: SharedPreferencesLocalContactsStore): LocalContactsStore
+
+    @Binds
+    abstract fun bindPhoneContacts(impl: AndroidPhoneContacts): PhoneContacts
 }

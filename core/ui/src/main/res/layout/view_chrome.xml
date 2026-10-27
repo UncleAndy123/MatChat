@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The three fixed bands every screen shares (UX-SPEC §1): title bar (18 dp),
-     content (fills), softkey bar (20 dp). Feature layouts inflate into
+<!-- The three fixed bands every screen shares (UX-SPEC §1): title bar
+     (?attr/titleBarHeight), content (fills), softkey bar
+     (?attr/softkeyBarHeight) — both bars scale with Settings > Text size. Feature layouts inflate into
      @id/chrome_content; they never redraw the chrome. The title bar (below)
      and the softkey bar (SoftkeyBarView) both use ?attr/colorFocusAccent —
      the user's chosen accent, Settings > Theme — not colorSurfaceInverse,
@@ -15,22 +16,45 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="@dimen/title_bar_height"
+        android:layout_height="?attr/titleBarHeight"
         android:orientation="horizontal"
         android:background="?attr/colorFocusAccent"
         android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/chrome_title"
+        <!-- Title, centred and bold (TurboText), with an optional avatar
+             just left of it (the conversation screen shows the room's /
+             person's avatar there — SoftkeyFragment.titleAvatar; hidden on
+             every other screen). The pair centres together; a long title
+             still ellipsizes. -->
+        <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
             android:paddingStart="@dimen/content_pad"
             android:paddingEnd="4dp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            android:textColor="?attr/colorTextOnInverse"
-            android:textSize="?attr/textSizeLabel" />
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/chrome_title_avatar"
+                android:layout_width="?attr/avatarSizeSender"
+                android:layout_height="?attr/avatarSizeSender"
+                android:layout_marginEnd="4dp"
+                android:focusable="false"
+                android:focusableInTouchMode="false"
+                android:visibility="gone"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/chrome_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="?attr/colorTextOnInverse"
+                android:textStyle="bold"
+                android:textSize="?attr/textSizeLabel" />
+        </LinearLayout>
 
         <!-- Online indicator round: a small colored dot alongside the sync/
              offline glyph — green (connected), red (offline/error), hidden
@@ -65,5 +89,5 @@
     <org.matchat.core.ui.softkey.SoftkeyBarView
         android:id="@+id/chrome_softkeys"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/softkey_bar_height" />
+        android:layout_height="?attr/softkeyBarHeight" />
 </LinearLayout>

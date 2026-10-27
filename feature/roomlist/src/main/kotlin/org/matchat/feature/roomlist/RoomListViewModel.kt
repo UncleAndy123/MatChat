@@ -20,7 +20,6 @@ import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SpaceTree
 import org.matchat.core.model.SyncState
-import org.matchat.core.policy.PolicyProvider
 import javax.inject.Inject
 
 /**
@@ -31,7 +30,6 @@ import javax.inject.Inject
 @HiltViewModel
 class RoomListViewModel @Inject constructor(
     private val session: MatrixSession,
-    policyProvider: PolicyProvider,
     private val clock: MillisClock,
     private val draftStore: DraftStore,
 ) : ViewModel() {
@@ -42,14 +40,12 @@ class RoomListViewModel @Inject constructor(
 
     /** Everything [state] needs except [DraftStore.drafts] — its own type
      *  purely so the two combine steps below stay readable (Kotlin's
-     *  fixed-arity `combine` tops out at 5 flows, and this room-related
-     *  group already uses all 5; mirrors TimelineViewModel's own
-     *  ComposeContext/pendingAttachment nesting for exactly this reason). */
+     *  fixed-arity `combine` tops out at 5 flows; mirrors TimelineViewModel's
+     *  own ComposeContext/pendingAttachment nesting). */
     private data class RoomListContext(
         val rooms: List<RoomSummary>,
         val invites: List<InviteSummary>,
         val sync: SyncState,
-        val allowDirectChat: Boolean,
         val focus: Int,
     )
 
@@ -59,10 +55,9 @@ class RoomListViewModel @Inject constructor(
                 session.rooms,
                 session.invites,
                 session.syncState,
-                policyProvider.policy,
                 focusedIndex,
-            ) { rooms, invites, sync, policy, focus ->
-                RoomListContext(rooms, invites, sync, policy.allowDirectChat, focus)
+            ) { rooms, invites, sync, focus ->
+                RoomListContext(rooms, invites, sync, focus)
             },
             draftStore.drafts,
             session.spaces,
@@ -74,7 +69,6 @@ class RoomListViewModel @Inject constructor(
                 inviteBand = ctx.invites.toBand(),
                 isOffline = ctx.sync == SyncState.OFFLINE || ctx.sync == SyncState.ERROR,
                 focusedIndex = ctx.focus,
-                newMessageEnabled = ctx.allowDirectChat,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RoomListState())
 

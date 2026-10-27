@@ -41,7 +41,6 @@ data class RoomListState(
     val isOffline: Boolean = false,
     val error: ErrorText? = null,
     val focusedIndex: Int = 0,
-    val newMessageEnabled: Boolean = true,
 ) {
     /** True only after the first sync arrives with no rooms and no invitations. */
     val isEmpty: Boolean get() = !isLoading && rooms.isEmpty() && inviteBand == null

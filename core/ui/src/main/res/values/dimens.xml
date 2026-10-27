@@ -2,8 +2,7 @@
 <!-- Type floor (PLAN.md G5, UX-SPEC §2): body 16 sp · interactive labels 14 sp ·
      secondary metadata 11 sp. Nothing a user reads goes below 11 sp. -->
 <resources>
-    <!-- Text sizes. Each role here (except text_softkey_label — see its own
-         note) has a Large counterpart below (Settings > Text size, UX-SPEC
+    <!-- Text sizes. Each role here has a Large counterpart below (Settings > Text size, UX-SPEC
          §S16), surfaced through the matching textSize<Role> attr
          (attrs.xml/themes.xml), never referenced directly by a layout. -->
     <dimen name="text_body">16sp</dimen>
@@ -22,16 +21,13 @@
     <dimen name="text_sender">12sp</dimen>
     <dimen name="text_heading">17sp</dimen>
     <!-- Softkey bar labels only (view_softkey_bar.xml) — a dedicated size,
-         bumped from the shared 11sp text_meta floor for legibility
-         (UI improvement plan, Phase 4; bumped again for the chrome-bar
-         legibility pass below). Do not reuse text_meta's dimen for this or
-         bump text_meta itself: timestamps/day-separators/sender names also
-         use it and UX-SPEC.md specifies them separately. Deliberately
-         excluded from the Text size setting (no _large counterpart, no
-         textSizeSoftkeyLabel attr) — the softkey bar is a fixed-height
-         chrome band, not a row, so it doesn't shrink in Small mode either;
-         softkey_bar_height below grows to match. -->
-    <dimen name="text_softkey_label">16sp</dimen>
+         not text_meta's: timestamps/day-separators/sender names also use
+         that and UX-SPEC.md specifies them separately. Scales with Text
+         size like everything else (?attr/textSizeSoftkey: 13/16/20 sp),
+         per explicit user direction; softkey_bar_height grows to match. -->
+    <dimen name="text_softkey_label">13sp</dimen>
+    <dimen name="text_softkey_label_large">16sp</dimen>
+    <dimen name="text_softkey_label_xlarge">20sp</dimen>
 
     <!-- Text size setting: the larger set, used by default (Theme.MatChat.
          Size.Normal — Settings > Text size, UX-SPEC §S16 — explicit values
@@ -60,12 +56,17 @@
     <dimen name="text_sender_xlarge">19sp</dimen>
     <dimen name="text_heading_xlarge">26sp</dimen>
 
-    <!-- Chrome bands (UX-SPEC §1). Grown (from 18/20dp) to fit the bigger
-         chrome text: the title bar's own text now defaults to 18sp
-         (?attr/textSizeLabel, Size.Normal) and softkey_bar_height needs
-         room for the bumped, fixed 16sp text_softkey_label above. -->
+    <!-- Chrome bands (UX-SPEC §1), one height per Text size (via
+         ?attr/titleBarHeight / ?attr/softkeyBarHeight; un-suffixed = Small,
+         _large = Normal, _xlarge = Large, like the text sizes). The title is
+         ?attr/textSizeLabel (14/18/22 sp), centred and bold; the softkey
+         labels are text_softkey_label (13/16/20 sp). -->
     <dimen name="title_bar_height">24dp</dimen>
-    <dimen name="softkey_bar_height">26dp</dimen>
+    <dimen name="title_bar_height_large">28dp</dimen>
+    <dimen name="title_bar_height_xlarge">34dp</dimen>
+    <dimen name="softkey_bar_height">24dp</dimen>
+    <dimen name="softkey_bar_height_large">26dp</dimen>
+    <dimen name="softkey_bar_height_xlarge">32dp</dimen>
 
     <!-- Rows use minHeight, never a fixed height (UX-SPEC S16), specifically
          so they're free to grow at the largest font scale (AGENTS.md). -->
@@ -88,22 +89,26 @@
          screenshot — only a hairline gap on the unoccupied side), on the
          240dp-wide reference portrait viewport (PLAN.md §8.2) — this app
          targets one fixed screen class, not a range, so a dp cap (not a
-         percentage) matches every other dimension here. Corners are
-         rounded only on the side away from the accent stripe (a "flag"
-         shape — square where the stripe sits, so it's flush, not
-         interrupted by a curve); bubble_received.xml/bubble_own.xml split
-         bubble_corner_radius per-corner rather than using it on all four. -->
-    <dimen name="bubble_corner_radius">8dp</dimen>
+         percentage) matches every other dimension here. Fully rounded, with
+         the accent stripe running inside the rounded outline on the sender's
+         side (TurboText, per the user's reference clip). -->
+    <dimen name="bubble_corner_radius">12dp</dimen>
     <!-- Accent stripe on the leading/trailing edge (own messages: trailing;
          received: leading — both get one). -->
-    <dimen name="bubble_stripe_width">3dp</dimen>
+    <dimen name="bubble_stripe_width">5dp</dimen>
     <dimen name="bubble_max_width">220dp</dimen>
-    <dimen name="bubble_pad_h">8dp</dimen>
-    <dimen name="bubble_pad_v">4dp</dimen>
+    <dimen name="bubble_pad_h">10dp</dimen>
+    <dimen name="bubble_pad_v">6dp</dimen>
+    <!-- The little tail off the bottom corner on the sender's side
+         (BubbleDrawable, TurboText), and the bottom padding that keeps
+         content clear of it: bubble_pad_v + bubble_tail_height. -->
+    <dimen name="bubble_tail_width">8dp</dimen>
+    <dimen name="bubble_tail_height">6dp</dimen>
+    <dimen name="bubble_pad_bottom">12dp</dimen>
     <!-- Border-based focus cue (replaces the row-wide flat fill for message
          bubbles specifically — AGENTS.md §4 exception, see its note). -->
     <dimen name="bubble_border_width">1dp</dimen>
-    <dimen name="bubble_border_width_focused">2dp</dimen>
+    <dimen name="bubble_border_width_focused">2.5dp</dimen>
 
     <!-- Avatars round: a placeholder/decoded circle next to a name. Three
          sizes for three contexts — a room-list row (item_room.xml,

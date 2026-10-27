@@ -8,7 +8,7 @@ import org.matchat.core.ui.prefs.ThemeMode
  *  of its list (UX-SPEC S24). */
 data class ThemeState(
     val mode: ThemeMode = ThemeMode.LIGHT,
-    val accent: AccentColor = AccentColor.GREEN,
+    val accent: AccentColor = AccentColor.MATCHAT,
 )
 
 sealed interface ThemeAction {

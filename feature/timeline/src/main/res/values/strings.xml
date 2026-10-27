@@ -74,6 +74,17 @@
     <string name="roominfo_add_member">Add member (@user:server)</string>
     <string name="roominfo_leave_confirm">Leave this room</string>
     <string name="roominfo_remove_member">Remove from room</string>
+    <!-- S12 member menu: contacts (UX-SPEC S12/S20). "Contacts" means
+         MatChat's own saved contacts; "phone contact" the phone's Contacts app. -->
+    <string name="roominfo_save_contact">Save contact</string>
+    <string name="roominfo_remove_contact">Remove from contacts</string>
+    <string name="roominfo_add_to_phone_contact">Add to a phone contact…</string>
+    <!-- Short confirmations after the member-menu contact items. -->
+    <string name="roominfo_contact_saved">Saved to contacts</string>
+    <string name="roominfo_contact_removed">Removed from contacts</string>
+    <string name="roominfo_phone_merged">Matrix address added to the phone contact</string>
+    <string name="roominfo_phone_merge_failed">Couldn\'t add it to that phone contact.</string>
+    <string name="roominfo_phone_contacts_unavailable">This phone\'s Contacts app can\'t do this.</string>
     <string name="roominfo_bad_address">Enter a full address, e.g. @sam:example.org</string>
     <string name="roominfo_edit_failed">That change didn\'t go through.</string>
     <!-- S12 Notification sound row: caption, and the sound name shown above it.
@@ -94,12 +105,14 @@
     <!-- Message info + profile (S11). -->
     <string name="msginfo_title">Message info</string>
     <string name="msginfo_sent_by">Sent by</string>
+    <!-- The sender's Matrix address, e.g. @sam:example.org. -->
+    <string name="msginfo_address">Address</string>
+    <!-- S11 actions for the sender (merged in from the old profile screen). -->
+    <string name="msginfo_send_message">Send message</string>
     <string name="msginfo_sent">Sent</string>
     <string name="msginfo_event_id">Event ID</string>
     <string name="msginfo_reactions">Reactions</string>
-    <string name="msginfo_view_profile">View profile</string>
-    <string name="profile_title">Profile</string>
-    <string name="profile_message_failed">Couldn\'t start a chat with them.</string>
+    <string name="msginfo_message_failed">Couldn\'t start a chat with them.</string>
 
     <!-- Media. -->
     <string name="timeline_image">Image</string>

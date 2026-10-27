@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.matchat.core.contacts.ContactsRepository
 import org.matchat.core.matrix.MatrixSession
 import org.matchat.core.model.Membership
 import org.matchat.core.model.RoomDetails
@@ -30,6 +31,7 @@ class RoomInfoViewModel @Inject constructor(
     private val session: MatrixSession,
     private val roomSounds: RoomNotificationSounds,
     private val bundledSounds: BundledSoundInstaller,
+    private val contacts: ContactsRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -44,11 +46,22 @@ class RoomInfoViewModel @Inject constructor(
     // Last loaded room data, so a sound change re-renders without a reload.
     private var details: RoomDetails? = null
     private var members: List<RoomMemberSummary> = emptyList()
+    private var savedContacts: Set<UserId> = emptySet()
+
+    // The member picked for "Add to a phone contact…" while the phone's
+    // contact picker is open (its answer carries only the picked contact).
+    private var pendingPhoneMerge: UserId? = null
 
     init {
         reload()
         viewModelScope.launch {
             roomSounds.overrides.collect { _state.update { it.copy(rows = rows(details, members)) } }
+        }
+        viewModelScope.launch {
+            contacts.contacts.collect { list ->
+                savedContacts = list.mapTo(HashSet()) { it.address }
+                _state.update { it.copy(rows = rows(details, members)) }
+            }
         }
     }
 
@@ -110,6 +123,49 @@ class RoomInfoViewModel @Inject constructor(
 
     fun removeMember(userId: UserId) = edit { session.removeMember(roomId, userId) }
 
+    /** S12 member menu: save [member] as a contact (works in a group too). */
+    fun saveContact(member: RoomInfoRow.Member) {
+        viewModelScope.launch {
+            contacts.save(member.userId, member.name.takeIf { it != member.userId.value })
+            navChannel.send(RoomInfoNav.Toast(ToastKey.CONTACT_SAVED))
+        }
+    }
+
+    fun removeContact(userId: UserId) {
+        viewModelScope.launch {
+            contacts.remove(userId)
+            navChannel.send(RoomInfoNav.Toast(ToastKey.CONTACT_REMOVED))
+        }
+    }
+
+    /** "Add to a phone contact…": the phone's own picker when MatChat may
+     *  write contacts, else the phone's "add to existing contact" screen. */
+    fun addToPhoneContact(userId: UserId) {
+        if (contacts.canUsePhoneContacts()) {
+            pendingPhoneMerge = userId
+            emit(RoomInfoNav.PickPhoneContact)
+        } else {
+            emit(RoomInfoNav.EditPhoneContact(userId.value))
+        }
+    }
+
+    /** The picker's answer: [contactUri] null when the user backed out. */
+    fun onPhoneContactPicked(contactUri: String?) {
+        val address = pendingPhoneMerge ?: return
+        pendingPhoneMerge = null
+        if (contactUri == null) return
+        viewModelScope.launch {
+            val merged = contacts.mergeIntoPhoneContact(contactUri, address)
+            navChannel.send(RoomInfoNav.Toast(if (merged) ToastKey.PHONE_MERGED else ToastKey.PHONE_MERGE_FAILED))
+        }
+    }
+
+    /** No Contacts app could open the picker or editor. */
+    fun onPhoneContactsUnavailable() {
+        pendingPhoneMerge = null
+        emit(RoomInfoNav.Toast(ToastKey.PHONE_CONTACTS_UNAVAILABLE))
+    }
+
     fun leave() {
         _state.update { it.copy(isBusy = true) }
         viewModelScope.launch {
@@ -152,7 +208,7 @@ class RoomInfoViewModel @Inject constructor(
                     m.membership == Membership.INVITED -> "Invited"
                     else -> m.userId.value
                 }
-                rows += RoomInfoRow.Member(m.userId, m.label, sub, m.isSelf, m.avatarUrl)
+                rows += RoomInfoRow.Member(m.userId, m.label, sub, m.isSelf, m.avatarUrl, m.userId in savedContacts)
             }
         rows += RoomInfoRow.Action(KEY_PINNED, "Pinned messages")
         rows += RoomInfoRow.Action(KEY_ADD, "Add member")
@@ -178,6 +234,24 @@ sealed interface RoomInfoNav {
 
     /** Open the system sound picker, preselecting [currentUri] (null = app sound). */
     data class OpenSoundPicker(val currentUri: String?) : RoomInfoNav
+
+    /** Open the phone's own contact picker (contacts permission granted). */
+    data object PickPhoneContact : RoomInfoNav
+
+    /** Open the phone's "add to existing contact" screen for [address]. */
+    data class EditPhoneContact(val address: String) : RoomInfoNav
 }
 
-enum class ToastKey { BAD_ADDRESS, EDIT_FAILED, SOUNDS_NEED_ACCESS }
+enum class ToastKey {
+    BAD_ADDRESS,
+    EDIT_FAILED,
+    SOUNDS_NEED_ACCESS,
+    CONTACT_SAVED,
+    CONTACT_REMOVED,
+    PHONE_MERGED,
+    PHONE_MERGE_FAILED,
+    PHONE_CONTACTS_UNAVAILABLE,
+
+    /** Message info (S11) "Send message" couldn't start the chat. */
+    MESSAGE_FAILED,
+}

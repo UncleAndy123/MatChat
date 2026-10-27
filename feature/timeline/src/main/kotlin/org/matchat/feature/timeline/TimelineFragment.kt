@@ -45,6 +45,10 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
 
     private val viewModel: TimelineViewModel by viewModels()
     private var binding: FragmentTimelineBinding? = null
+
+    /** What the title avatar last showed (renderTitleAvatar); reset with the
+     *  view so a re-created chrome binds it again. */
+    private var lastTitleAvatarKey: Triple<String?, String, String>? = null
     private var lastMarkedStableId: String? = null
 
     // New messages land flush with the bottom unless the user has scrolled up
@@ -223,6 +227,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
     private fun render(state: TimelineState) {
         val b = binding ?: return
         setTitle(state.title)
+        renderTitleAvatar(state)
         // Sync/connection indicator (Online indicator round) is now handled
         // centrally by SoftkeyFragment — no per-screen call needed.
         b.pinnedBand.isVisible = state.pinnedCount > 0
@@ -812,6 +817,18 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }
     }
 
+    /** The room's / person's avatar left of the title (UX-SPEC S9). Shown
+     *  once the room is known; rebound only when what it shows changes, so a
+     *  render (every new message) doesn't re-decode it. */
+    private fun renderTitleAvatar(state: TimelineState) {
+        val avatar = titleAvatar ?: return
+        avatar.isVisible = state.titleAvatarId.isNotEmpty()
+        val key = Triple(state.titleAvatarUrl, state.titleAvatarId, state.title)
+        if (!avatar.isVisible || key == lastTitleAvatarKey) return
+        lastTitleAvatarKey = key
+        loadAvatarInto(state.titleAvatarUrl, state.title, state.titleAvatarId, avatar)
+    }
+
     /** Avatars round: loadAvatar/AvatarCache/AvatarBinder are the same shared
      *  path room list and Room Info use (core/ui, since features can't
      *  depend on each other) — this Fragment only supplies the byte fetch.
@@ -1129,6 +1146,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         followLayoutListener = null
         binding?.timelineList?.adapter = null
         binding = null
+        lastTitleAvatarKey = null
         super.onDestroyView()
     }
 

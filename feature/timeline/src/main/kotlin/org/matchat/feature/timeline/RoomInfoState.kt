@@ -34,6 +34,9 @@ sealed interface RoomInfoRow {
         val sub: String,
         val isSelf: Boolean,
         val avatarUrl: String? = null,
+        /** Already a saved (or admin-pushed) contact: CENTER's menu offers
+         *  "Remove from contacts" instead of "Save contact". */
+        val isSaved: Boolean = false,
     ) : RoomInfoRow {
         override val stableId: String get() = "member:${userId.value}"
     }

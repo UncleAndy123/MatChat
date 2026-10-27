@@ -14,7 +14,9 @@
      to resize the mark within the frame. The cover-screen mark
      (drawable-nodpi/ic_cover_matchat.png, tools/gen_cover_icon.py) and the
      status-bar mark (ic_stat_matchat.xml) use the same bubble+M paths at full
-     size with no frame — keep the bubble+M geometry in step across the three. -->
+     size with no frame — keep the bubble+M geometry in step across the three. The
+     adaptive icon (ic_launcher_foreground.xml, API 26+; this file is the API
+     24-25 icon) deliberately uses a taller body; see its own comment. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"

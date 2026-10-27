@@ -26,8 +26,8 @@ internal class RoomInfoAdapter(
     /** Binds a member avatar (Avatars round): url, name, user id, target —
      *  the name/id are the no-avatar-fallback's color+initial source
      *  (AvatarFallback round). Never called for Field/Info rows, so screens
-     *  that reuse this adapter but never show a Member row (MessageInfoFragment,
-     *  ProfileFragment) can just take the default. */
+     *  that reuse this adapter but never show a Member row (MessageInfoFragment)
+     *  can just take the default. */
     private val onAvatarBind: (String?, String, String, ImageView) -> Unit = { _, _, _, _ -> },
 ) : ListAdapter<RoomInfoRow, RecyclerView.ViewHolder>(DIFF) {
 

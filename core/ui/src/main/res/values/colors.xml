@@ -24,15 +24,16 @@
          below); received ones stay plain regardless of theme. -->
     <color name="palette_bubble_received_light">#EDE9DE</color>
 
-    <!-- Raw palette — dark mode. Mirrors the light set above: a near-black
-         surface, a lighter-still panel tone for chrome/dialogs (raised, not
-         sunken — the usual dark-theme convention), and brighter variants of
-         the green/amber roles where the light-mode value would fail contrast
-         against a dark surface (a plain lightness flip, not a re-hue). -->
-    <color name="palette_night">#1B1A15</color>
-    <color name="palette_night_bright">#252319</color>
-    <color name="palette_mist_dim">#B7B2A5</color>
-    <color name="palette_line_dark">#38362D</color>
+    <!-- Raw palette — dark mode. Follows TurboText (Classic Dark): pure
+         black, a #222 raised surface for chrome/dialogs, #333 dividers and
+         received bubbles, #AAA secondary text (9.0:1 on black), plus
+         brighter variants of the green/amber roles where the light-mode
+         value would fail contrast against a dark surface. -->
+    <color name="palette_black">#000000</color>
+    <color name="palette_tt_surface">#222222</color>
+    <color name="palette_tt_raised">#333333</color>
+    <color name="palette_tt_white">#FFFFFF</color>
+    <color name="palette_tt_grey">#AAAAAA</color>
     <color name="palette_green_bright">#4FAE84</color>
     <color name="palette_amber_bright">#D9A24B</color>
 
@@ -44,6 +45,10 @@
          brighter green than palette_green above, so the user's accent
          choice and the fixed "encrypted" green read as two distinct
          things. -->
+    <!-- The launcher icon's own bubble indigo (app ic_launcher*.xml), the
+         default accent so the app's chrome matches its icon. #FFFDF7 on it:
+         10.4:1. -->
+    <color name="accent_matchat">#303E7C</color>
     <color name="accent_green">#2E7D5B</color>
     <color name="accent_amber">@color/palette_amber</color>
     <color name="accent_blue">#2E6DA4</color>
@@ -79,6 +84,7 @@
          it reads as a dark muted wash. themes.xml assigns these per leaf
          (Theme.MatChat.{Light,Dark}.{Green,Amber,Blue,Plum}), the same way
          it already does colorFocusAccent. -->
+    <color name="accent_matchat_tint">#33303E7C</color>
     <color name="accent_green_tint">#332E7D5B</color>
     <color name="accent_amber_tint">#33A15C00</color>
     <color name="accent_blue_tint">#332E6DA4</color>
@@ -102,6 +108,12 @@
          (title/softkey bars, now accent-colored — see themes.xml) stays
          light against all four accents. -->
     <color name="text_on_inverse">@color/palette_paper_bright</color>
+    <!-- Bubble veils (attrs.xml colorBubble*Veil). The light own-bubble veil
+         is palette_paper at 80%, i.e. the same 20% accent wash as
+         accent_<name>_tint over the paper surface. -->
+    <color name="bubble_own_veil_light">#CCF6F4EE</color>
+    <color name="bubble_own_veil_dark">#40000000</color>
+    <color name="bubble_stripe_veil_dark">#73FFFFFF</color>
     <color name="warning">@color/palette_red</color>
     <color name="error">@color/palette_red</color>
     <color name="scrim">#99000000</color>
