@@ -110,7 +110,13 @@ internal object CertificateVerifier {
             manager.checkServerTrusted(chain.toTypedArray(), authMethod, serverName)
             VerificationResult(StatusCode.Ok)
         } catch (e: CertificateException) {
-            Log.w(TAG, "certificate for $serverName not trusted: $e")
+            // Name the presented chain (public certificate identities, no user data) so a
+            // field log shows *which* chain was refused — e.g. a network filter re-signing
+            // the server, versus a public CA the device lacks.
+            val presented = chain.joinToString(" | ") {
+                "${it.subjectX500Principal.name} <- ${it.issuerX500Principal.name}"
+            }
+            Log.w(TAG, "certificate for $serverName not trusted: $e; chain: $presented")
             VerificationResult(StatusCode.UnknownCert, e.toString())
         }
     }
