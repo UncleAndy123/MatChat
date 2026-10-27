@@ -67,7 +67,7 @@ feature/onboarding/      Welcome, sign in, encryption setup
 feature/roomlist/        Room list + pending-invitation band
 feature/timeline/        Timeline + compose + message menu
 feature/invites/         Invitation list, invitation detail, accept / decline
-feature/newchat/         New message: contacts, recents, type an address, blocked address
+feature/newchat/         Contacts (send message, save, phone contact), recents, type an address, blocked address
 feature/settings/        Settings, help, sign out
 feature/verification/    Emoji SAS, recovery key
 stubs/kyocera-sublcd/    Compile-only declaration of Kyocera's cover-screen callback (docs/adr/0009).
@@ -181,8 +181,8 @@ The full key map is in `docs/UX-SPEC.md §2`. What you must obey in code:
     `item_message_image.xml`). Per explicit user direction against the
     reference device's own SMS app, a focused message bubble gets a
     recolored/thickened *border on the bubble itself*
-    (`bubble_received.xml`/`bubble_own.xml`, both `?attr/colorFocusAccent`
-    on `state_focused`) instead of the row's usual flat fill + trailing
+    (`:core:ui`'s `BubbleDrawable`, which also draws the TurboText-style
+    tail; the border switches to the accent on `state_focused`) instead of the row's usual flat fill + trailing
     bar; the row's own background is left transparent. This is the only
     screen that does this — do not extend the pattern elsewhere without
     the same kind of explicit direction, and update it here again if so.
@@ -230,9 +230,11 @@ The full key map is in `docs/UX-SPEC.md §2`. What you must obey in code:
 
 - Type floor, no exceptions: **body 16 sp · interactive labels 14 sp · secondary
   metadata (timestamps, day separators, sender names, field captions) 11 sp**.
-  Softkey labels are their own dedicated size, `text_softkey_label` (13 sp) —
-  not part of the metadata floor above, since they don't share a dimen with
-  timestamps/day-separators/sender-names (UX-SPEC.md §1). Nothing a user
+  Softkey labels are their own dedicated role, `?attr/textSizeSoftkey`
+  (13/16/20 sp, scaling with Settings > Text size like everything else, per
+  explicit user direction) — not part of the metadata floor above, since they
+  don't share a dimen with timestamps/day-separators/sender-names
+  (UX-SPEC.md §1). Nothing a user
   reads goes below 11 sp.
 - Design for 240 dp width **and** 320×240 landscape devices. Rows have a
   `minHeight`, never a fixed `height` — content must be free to grow at the
@@ -316,6 +318,13 @@ A change is done when **all** of these hold:
   diagnose with. Every failure gets a visible, plain-language message and a
   retry action.
 - **Chatty logging.** No PII, no message content, no access tokens in logs. Ever.
+  - **Named exception: the SDK's own WARN/ERROR tracing goes to logcat**
+    (`RustMatrixClientHolder.ensurePlatformInitialized`,
+    `writeToStdoutOrSystem = true`), per explicit user direction, so a field
+    report can show *why* a connection failed (TLS vs DNS vs refused). These
+    lines may name a homeserver, user id or room id; never tokens or message
+    bodies. Do not lower the level below WARN or add trace packs without the
+    same kind of explicit direction.
 
 ## 10. When you are unsure
 

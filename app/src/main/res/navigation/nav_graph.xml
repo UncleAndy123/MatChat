@@ -29,6 +29,11 @@
         android:label="Background helper" />
 
     <fragment
+        android:id="@+id/contactsPromptFragment"
+        android:name="org.matchat.feature.onboarding.ContactsPromptFragment"
+        android:label="Phone contacts" />
+
+    <fragment
         android:id="@+id/timelineFragment"
         android:name="org.matchat.feature.timeline.TimelineFragment"
         android:label="Timeline">
@@ -75,13 +80,6 @@
     </fragment>
 
     <fragment
-        android:id="@+id/profileFragment"
-        android:name="org.matchat.feature.timeline.ProfileFragment"
-        android:label="Profile">
-        <argument android:name="userId" app:argType="string" />
-    </fragment>
-
-    <fragment
         android:id="@+id/callFragment"
         android:name="org.matchat.feature.call.CallFragment"
         android:label="Call">
@@ -102,6 +100,24 @@
         android:label="Invitation">
         <argument
             android:name="roomId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/spaceFragment"
+        android:name="org.matchat.feature.roomlist.SpaceFragment"
+        android:label="Space">
+        <argument
+            android:name="spaceId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/joinRoomFragment"
+        android:name="org.matchat.feature.invites.JoinRoomFragment"
+        android:label="Join group">
+        <argument
+            android:name="link"
             app:argType="string" />
     </fragment>
 

@@ -9,10 +9,10 @@ Every screen has three fixed bands:
 
 ```
 ┌────────────────────────────┐  ← 240 wide
-│ Title bar            24 dp │  title left, sync/battery glyphs right
+│ Title bar            28 dp │  title centred (bold), sync glyphs right
 ├────────────────────────────┤
 │                            │
-│ Content            270 dp  │  scrolls by focus movement only
+│ Content            266 dp  │  scrolls by focus movement only
 │                            │
 ├────────────────────────────┤
 │ Options | Select |  Back   │  softkey bar, 26 dp
@@ -26,17 +26,17 @@ Every screen has three fixed bands:
   there, so the bar appears when focus moves into a text field and hides
   again when it leaves.
 - Title bar: scales with Settings > Text size (§S16) like everything else —
-  18 sp by default (Normal), 14 sp at Small — single line, ellipsized at the
-  end, on the accent surface (`?attr/colorFocusAccent` — the user's chosen
+  18 sp by default (Normal), 14 sp at Small — bold, centred, single line,
+  ellipsized at the end (TurboText style), on the accent surface (`?attr/colorFocusAccent` — the user's chosen
   accent, Settings > Theme, not the inverse/near-black surface used
   elsewhere). Right side shows sync state (`⟳` syncing, `!` offline) —
   nothing else.
-- Softkey bar: three cells, left-aligned / centre / right-aligned, 16 sp (its
-  own dedicated size, `text_softkey_label` — not the shared 11 sp metadata
-  floor). Fixed, unlike the title bar — it does NOT scale with Settings >
-  Text size (§S16): a chrome band, not a row, so it stays this one size
-  regardless of the Normal/Small setting, to avoid clipping a band that's
-  already nearly full. On the same accent surface as the title bar so it is
+- Softkey bar: three cells, left-aligned / centre / right-aligned, 16 sp by
+  default (its own role, `?attr/textSizeSoftkey` — not the shared 11 sp
+  metadata floor). Scales with Settings > Text size (§S16) like the title
+  bar: 13 / 16 / 20 sp at Small / Normal / Large, with both bars growing in
+  height to match (24/26/32 dp softkey bar, 24/28/34 dp title bar). On the
+  same accent surface as the title bar so it is
   never confused with content. Each non-blank cell is also a touch target:
   tapping it fires the same logical key as the matching hardware softkey
   (Options / Select / Back, mirrored with the swap preference), and a tapped
@@ -154,6 +154,8 @@ Options: Verify with another device instead · Paste from clipboard.
 Softkeys: Options | Select | Back.
 
 ### S8 — Room list *(home)*
+Title: **Chats**. Rows have no divider line between them; the focus highlight
+(§2) alone marks the current row.
 **Opening the app always lands here** — from the launcher, or after leaving
 with Home/End — whatever screen was last open. Exceptions: a notification tap
 opens its own room or call; returning from a screen MatChat opened (gallery,
@@ -166,6 +168,12 @@ start · room name 16 sp bold · last message 13 sp grey, one line
 ellipsized · relative time 11 sp top-right · unread badge (inverse pill, count)
 right of the name.
 Sorted by most recent activity. Focus = the standard focus highlight (§2).
+**Spaces** (S29) appear as folder rows above the rooms — same row shape, with
+"Space · 3 groups" as the preview line, the latest activity and the summed
+unread count of every joined group inside it (at any depth). A room that
+belongs to a joined space is shown **only inside that space**, never at top
+level; a room whose space the user is not in stays at top level. CENTER on a
+space row opens S29.
 **Pending invitations** appear as an 18 dp band directly under the title bar —
 "1 invitation" / "3 invitations", with the count in an inverse pill. It is
 the *first* focus stop and opens S18; when focused it uses the
@@ -174,7 +182,7 @@ else). No band when there are none.
 Focus order: invitation band (if any) → row 1 → row *n*. Initial focus:
 invitation band, else first unread, else row 1.
 Softkeys: Options | Open | Exit.
-Options: New message · Mark all as read · Settings · Help · Sign out.
+Options: Contacts · Mark all as read · Settings · Help · Sign out.
 Empty: "Your groups will appear here. Ask your administrator to add you, or
 start a message from Options."
 Offline: title bar `!` plus a 16 dp banner "No connection — showing saved
@@ -186,10 +194,13 @@ messages arrive that way — also when a row grows afterwards (an image loading)
 or a band under the list appears — unless the user has scrolled up in the
 thread; scrolling back down to the end follows again, and sending always
 brings your message into view (`followAfterScroll`).
+Title: the room's avatar (the person's, in a DM — same image or colored-initial
+fallback as its S8 row) just left of the room name, the pair centred.
 Content: day separator rows (centred, 11 sp, grey rule); message rows shown
 as bubbles reaching nearly the full row width (matching the reference
-device's own SMS app) — own messages trail (right, a light accent-tinted
-fill) and others lead (left, a neutral fill); a 16 dp sender avatar sits
+device's own SMS app) — own messages trail (right, an accent fill: a pale
+accent wash in Light, a solid accent bubble in Dark) and others lead (left, a
+neutral fill: warm off-white in Light, `#333` in Dark); a 16 dp sender avatar sits
 beside the sender name (Avatars round), shown/hidden together. A member
 with no avatar set shows a colored circle with their initial instead of a
 flat placeholder (AvatarFallback round) — a deterministic color per user
@@ -205,11 +216,14 @@ offer several separately focusable chips). A message another member (besides the
 read also shows a short "seen by" row of small avatars (up to 4, then
 "+N", each overlapping the previous one) under the time line — shown for
 both own and received messages. Every bubble carries a
-colored stripe (the user's chosen accent, Settings > Theme) on its leading
-edge for received messages, trailing edge for own — the bubble is rounded
-only on the side away from its stripe (square where the stripe sits, so it
-sits flush, not a full rounded rect). A focused bubble's border recolors to
-the accent and thickens, in place of the app's usual flat-fill-plus-bar
+colored stripe (the user's chosen accent, Settings > Theme; lightened in Dark
+so it reads on black) on its leading edge for received messages, trailing
+edge for own. Bubbles are fully rounded (12 dp) with a small tail off the
+bottom corner on the sender's side (bottom-left received, bottom-right own),
+and the stripe runs inside the rounded outline, matching TurboText (per the
+user's reference clip). In Light a
+thin divider outlines each bubble; in Dark there is none. A focused bubble's
+border recolors to the accent (lightened in Dark) and thickens, in place of the app's usual flat-fill-plus-bar
 focus style (AGENTS.md §4's named exception) — the row itself has no
 background.
 **Voice messages** render as a bubble too (a waveform + duration), with their
@@ -272,7 +286,9 @@ rows, each 26 dp, dismiss with RIGHT softkey.
 `Unpin message` · `Copy text` · `Save to gallery` (image messages only) ·
 `Save to files` (any image/video/file/voice attachment) · `Message info`.
 Image and other-attachment rows prepend an `Open` item (image viewer / external
-open). Voice messages do **not**: they play from their own in-bubble play/pause
+open). A text message containing a room link (`https://matrix.to/#/…`, a
+`matrix:` URI, or a web client's `…/#/room/…` link) prepends `Join group`,
+which opens S28 for the first such link in the message. Voice messages do **not**: they play from their own in-bubble play/pause
 button (S9), so CENTER on a voice bubble opens this menu with no `Open`.
 `Save to gallery` writes the image to the public Pictures folder (Pictures/
 MatChat); `Save to files` writes any attachment to Downloads (Downloads/
@@ -294,6 +310,16 @@ Focus starts on `Reply`.
 Softkeys: (blank) | Select | Back — the menu *is* the options list, so LEFT is
 blank here.
 
+**Message info** (the menu's last item) shows, read-only: `Sent by` (the
+sender's display name) · `Address` (@user:server) · `Sent` (date and time) ·
+`Event ID` · then `Reactions` (who reacted with what) when there are any. Then
+the actions for the sender — merged in from the old separate profile screen,
+which no longer exists: `Send message` (opens or starts the direct chat;
+hidden when policy turns direct chat off) · `Save contact` (or `Remove from
+contacts` when already saved) · `Add to a phone contact…` (as in S20). None of
+the actions show on your own messages.
+Softkeys: (blank) | Select | Back.
+
 ### S12 — Room info
 Content: room name, member count, encryption state line ("Encrypted — only
 members can read this"), a **Notification sound** row (primary line: the
@@ -302,6 +328,10 @@ sound's name — "Default (app sound)", "Silent", or the picked sound; caption
 placeholder-until-decoded treatment as S8/S9 — plus a power label), then two
 action rows: `Pinned messages` (Pinned messages round, below) and `Add
 member`/`Leave room`.
+CENTER on a member row (not yourself) opens a menu: `Save contact` (or
+`Remove from contacts` when already saved) · `Add to a phone contact…` (see
+Contacts below) · `Remove member`. This works the same in a group as in a direct
+chat, so anyone you share a room with can be saved.
 Focus order: name, topic, notification sound, member rows, then the action
 rows. CENTER on Notification sound opens Android's sound picker for this room
 only. Its "Default" entry means the app sound from S26 (removes the room's
@@ -321,7 +351,8 @@ message yet, so this is a deliberate scope cut, not a broken link. Empty:
 
 ### S13 — Settings
 Rows: `Notifications` (opens S26) · `Text size` · `Theme` (opens S24) ·
-`Advanced` (opens S25) · `Encryption` (verification status) ·
+`Advanced` (opens S25) · `Save contacts to phone: Off/On` · `Encryption`
+(verification status) ·
 `About this phone's session` ·
 `Policy` · `Help` · `Sign out`.
 The `Policy` row reads "Managed by your organization" or "Not managed" and opens
@@ -330,6 +361,12 @@ allowed"), and whether direct chat is on. A user who cannot message someone must
 be able to find out why without calling anyone.
 Softkeys: Options | Select | Back.
 Sign out confirms: "Sign out? Messages on this phone will be removed."
+`Save contacts to phone`: CENTER on Off asks Android for the contacts
+permission (one system dialog). Allowed → On, and every saved contact is also
+written to the phone's Contacts app. Not allowed → stays Off with the line
+"Contacts stay in MatChat only". CENTER on On turns it off; nothing already on
+the phone is deleted. If the permission is later taken away in system
+settings, the row reads Off.
 
 ### S14 — Help
 A static, scrollable-by-focus list of key hints, one per row, in the same
@@ -393,6 +430,8 @@ right and still opens — the reason belongs on S19, not in a silent omission.
 Focus order: row 1 → row *n*. Initial focus row 1.
 Softkeys: (blank) | Open | Back.
 Empty: this screen is never reachable with zero invitations; the band is absent.
+When the last invitation is accepted or declined (here or on another device),
+the screen returns to the room list on its own.
 
 ### S19 — Invitation detail
 Content, in order: room or person name (17 sp bold) · "Invited by
@@ -407,18 +446,40 @@ on `Decline`.
 Errors: accept can fail (room gone, server unreachable) → inline message plus
 Retry, and the invitation stays in the list.
 
-### S20 — New message
-Reached from room-list Options → New message.
+### S20 — Contacts
+Reached from room-list Options → Contacts (formerly "New message").
 Three sections, each a header row (11 sp, uppercase, not focusable) followed by
 rows: **Contacts** (name 16 sp, address 11 sp) · **Recent** (address 16 sp,
 "3 days ago" 11 sp) · a final row **Type an address**.
 Focus order: contacts → recents → Type an address. Initial focus: first contact,
 or `Type an address` when both lists are empty.
-Softkeys: (blank) | Select | Back.
+CENTER on a contact opens its menu: `Send message` (opens or starts the direct
+chat) · `Add to a phone contact…` · `Remove contact` (saved contacts only; an
+admin-pushed contact can't be removed). CENTER on a recent: `Send message` ·
+`Save contact`. CENTER on `Type an address` messages someone new (S21).
+Removing a contact never deletes the phone's copy.
+Softkeys: (blank) | Select | Back — the menu is on CENTER.
 **No search box** — the two lists are short by construction (see `AGENTS.md §0`).
 Empty: only `Type an address` shows, with the line "No saved contacts yet."
-Hidden entirely when `policy.allowDirectChat` is false; then room-list Options
-has no New message entry either.
+
+**Contacts** (PLAN.md §6.10) are saved on the phone, never uploaded, and kept
+across restarts. Everyone you have a direct (1-to-1) chat with is saved
+automatically, whoever started it, under the chat's name; a contact you removed
+is not added back automatically, and a name already saved is never replaced.
+Anyone else you share a room with can be saved from S12. With Settings > "Save
+contacts to phone" on, each saved contact is also written to the phone's
+Contacts app (name, the Matrix address as an IM entry labelled "Matrix", and a
+matrix.to link).
+`Add to a phone contact…` adds the Matrix address to a contact already on the
+phone: it opens the phone's own contact picker and adds only the Matrix address
+and link to the one picked — **the phone contact's name is never changed** —
+and MatChat then shows that contact's name for them. If MatChat had already
+made a separate phone contact for them, that copy is removed so they aren't
+listed twice. Without the contacts permission it opens the phone's own "add to
+existing contact" screen instead, with the Matrix address filled in. If the
+phone has no Contacts app that can do this, a short message says so.
+When `policy.allowDirectChat` is false the screen still lists contacts, but
+`Send message` and `Type an address` are hidden.
 
 ### S21 — Type an address
 Content: label "Address", a field pre-filled `@` … `:` with the cursor in the
@@ -461,8 +522,8 @@ immediately — no separate confirm — and the change takes effect right away
 (the app recreates itself once, keeping the same screen). The selected row
 carries a trailing checkmark; selection is never conveyed by color alone.
 **Accent color** is a single row below Appearance, labeled with the current
-choice ("Accent color: Green ›"). CENTER opens a scrollable picker (16
-choices: `Green` · `Amber` · `Blue` · `Plum` · `Teal` · `Cyan` · `Indigo` ·
+choice ("Accent color: MatChat blue ›"). CENTER opens a scrollable picker (17
+choices: `MatChat blue` (the app icon's indigo, the default) · `Green` · `Amber` · `Blue` · `Plum` · `Teal` · `Cyan` · `Indigo` ·
 `Violet` · `Orchid` · `Rose` · `Rust` · `Ochre` · `Olive` · `Forest` ·
 `Slate` · `Wine`) — the same shape as the reaction picker — with the
 current accent carrying the trailing checkmark; selecting one closes the
@@ -471,6 +532,9 @@ The accent color governs only the focus-highlight bar (§2) and the system
 accent tint. It never changes the "encrypted" green or the link color —
 those stay fixed so they keep meaning what they mean regardless of the
 user's taste.
+**Dark** follows TurboText's Classic Dark: a pure black background, `#222`
+dialogs and menus, `#333` dividers and received bubbles, and `#AAA` secondary
+text. **Light** is the warm paper palette. Light is the default.
 Focus order: Light → Dark → Accent color. Initial focus: Light. Softkeys:
 (blank) | Select | Back.
 
@@ -543,6 +607,61 @@ back to this later. On Android 13+ a sideloaded app may need Settings > Apps
 > MatChat > ⋮ > "Allow restricted settings" before the switch takes effect;
 the helper's own system description says so.
 
+### S28 — Join group
+Reached from a message's `Join group` item (S11). The link names one known
+room; this screen never searches for rooms (`AGENTS.md §0`).
+Content, in order: the group's name (17 sp bold; the link's address until the
+preview arrives) · the address from the link (13 sp, wraps, never truncated;
+hidden when it is the name) · "12 members" (11 sp) · the topic (13 sp, 3 lines
+max) · one plain-language line saying where the user stands · then one action
+button.
+
+| Situation | Line | Button |
+|---|---|---|
+| Anyone may join, or the rule is unknown | — | `Join` |
+| Members let people in (knock) | "A member must let you in. Ask to join and they will see your request." | `Ask to join` |
+| Join refused with 403 ("not invited") | "You need an invitation to join this group. You can ask its members to let you in." | `Ask to join` |
+| Invite-only | "Only people a member invites can join this group." | — |
+| Already invited | "You have an invitation to this group." | `Join` |
+| Request already sent | "Request sent. The group will appear in your list once a member lets you in." | — |
+| Already a member | "You are already in this group." | `Open` |
+| Banned | "You are not allowed to join this group." | — |
+| No preview available | "Could not show details for this group. You can still try to join." | `Join` |
+| Not a room link | "This link does not lead to a group." | — |
+
+`Join` (or `Open`) replaces this screen with the room (S9), or with S29 when
+the link is to a space, so Back from the
+room returns to the conversation the link was in. `Ask to join` opens a text
+prompt (TextPromptSheet) titled "Message to the group (optional)"; the members
+see the message with the request. Confirming a blank prompt sends the request
+without one; Back cancels and sends nothing. No room can require a message —
+it is optional in the protocol.
+**Blocked by policy** (the room's server — its alias or id server, else the
+first `via` server — is not in `allowedDomains`): no button; in its place
+"Your organization does not allow messages from example.org." Observed live.
+Focus: the button, when there is one; otherwise none.
+Softkeys: (blank) | Select | Back.
+Loading: "Loading…"; while joining or asking: "Please wait…".
+Errors, inline, the button stays as the retry: "Could not join. Check your
+connection and try again." / "Could not send your request. Try again, or ask a
+member to invite you."
+
+### S29 — Space
+Reached from a space row on S8, or from another space's row (nested spaces).
+Title: the space's name. Rows: its joined subspaces (folder rows, as on S8),
+then its joined groups — the same rows and order as S8, scoped to this space.
+**Only rooms and spaces the user has joined are listed.** A space's other
+rooms are never shown or browsable: a space is a folder, not a directory
+(`AGENTS.md §0`). Membership arrives, as everywhere, by invitation or a link
+(S28 — a link to a space opens it here once joined).
+Focus order: row 1 → row *n*. Initial focus row 1.
+Softkeys: Options | Open | Back. Options: Leave space → a confirmation row
+"Leave space (your groups stay)". Leaving a space keeps its groups; they move
+to the top level of S8. A failed leave shows "Could not leave the space. Try
+again." above the list.
+Empty: "You are not in any group in this space yet. A member can invite you."
+If the space is left (here or on another device) the screen returns on its own.
+
 ## 4. Content voice
 
 Short, concrete, no jargon. "Encrypted" is fine; "cross-signing", "megolm",
@@ -553,3 +672,17 @@ what to do next, in that order, in one sentence each.
 
 `loading` · `empty` · `error` · `offline` · `focused` — all five are fields of
 the screen's `State` data class, all five appear in the screenshot suite.
+
+### S30 — Save contacts to this phone?
+Shown **once per install**, after the post-sign-in setup (after S27 when S27
+shows; existing installs: once after updating), and only when the contacts
+permission isn't already granted (if it is, the setting is simply turned on).
+Content: one short paragraph ("MatChat saves the people you chat with. It can
+also save them in this phone's Contacts app, with their Matrix address. You can
+change this later in Settings."), one focusable row `Save to phone contacts`,
+and an 11 sp status line. CENTER on the row asks Android for the contacts
+permission. Allowed → the S13 setting turns on, saved contacts are copied, and
+the screen closes. Not allowed → the status line reads "Contacts stay in
+MatChat only" and the screen stays, so the user can read it and press Back.
+Initial focus: the row. Softkeys: (blank) | Select | Back. Back means "not
+now"; S13's row remains the way to turn it on later.

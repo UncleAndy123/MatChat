@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- S8 room list. -->
-    <string name="roomlist_title">MatChat</string>
+    <!-- S8 room list: the title bar text ("Chats", per the user). -->
+    <string name="roomlist_title">Chats</string>
     <!-- Empty state (UX-SPEC S8). -->
     <string name="roomlist_empty">Your groups will appear here. Ask your administrator to add you, or start a message from Options.</string>
     <!-- Offline banner. -->
@@ -19,8 +19,23 @@
     <string name="roomlist_draft_format">Draft: %1$s</string>
     <string name="roomlist_draft_attachment">Draft: Attachment</string>
 
+    <!-- Preview line of a space (folder) row, e.g. "Space · 3 groups"; %d is
+         the number of groups inside it, at any depth. -->
+    <plurals name="roomlist_space_preview">
+        <item quantity="one">Space · %d group</item>
+        <item quantity="other">Space · %d groups</item>
+    </plurals>
+
+    <!-- S29 Space. -->
+    <string name="space_empty">You are not in any group in this space yet. A member can invite you.</string>
+    <string name="space_opt_leave">Leave space</string>
+    <!-- Confirmation row; leaving a space keeps its groups. -->
+    <string name="space_leave_confirm">Leave space (your groups stay)</string>
+    <string name="space_leave_failed">Could not leave the space. Try again.</string>
+
     <!-- Options menu. -->
-    <string name="roomlist_opt_new_message">New message</string>
+    <!-- Options entry that opens the Contacts screen (S20). -->
+    <string name="roomlist_opt_contacts">Contacts</string>
     <string name="roomlist_opt_mark_read">Mark all as read</string>
     <string name="roomlist_opt_settings">Settings</string>
     <string name="roomlist_opt_help">Help</string>

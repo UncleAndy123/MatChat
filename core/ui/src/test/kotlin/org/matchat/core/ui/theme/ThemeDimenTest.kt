@@ -42,4 +42,20 @@ class ThemeDimenTest {
         val resolved = context.themeDimenPx(R.attr.rowMinHeight)
         assertEquals(context.resources.getDimension(R.dimen.row_min_height_large), resolved)
     }
+
+    @Test
+    fun `Large size grows the softkey labels and both chrome bars`() {
+        val context = themedContext(R.style.Theme_MatChat_Size_Large)
+        val res = context.resources
+        assertEquals(res.getDimension(R.dimen.text_softkey_label_xlarge), context.themeDimenPx(R.attr.textSizeSoftkey))
+        assertEquals(res.getDimension(R.dimen.softkey_bar_height_xlarge), context.themeDimenPx(R.attr.softkeyBarHeight))
+        assertEquals(res.getDimension(R.dimen.title_bar_height_xlarge), context.themeDimenPx(R.attr.titleBarHeight))
+    }
+
+    @Test
+    fun `Small size shrinks the softkey labels`() {
+        val context = themedContext(R.style.Theme_MatChat_Size_Small)
+        val resolved = context.themeDimenPx(R.attr.textSizeSoftkey)
+        assertEquals(context.resources.getDimension(R.dimen.text_softkey_label), resolved)
+    }
 }

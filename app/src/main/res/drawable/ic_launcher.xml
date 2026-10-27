@@ -1,36 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Launcher mark, drawn back-to-front:
-       1. a white rounded-square (corner radius 5, matching the bubble) filling
-          the whole 48x48 canvas — this becomes the outer ring;
-       2. a black rounded-square inset by ~2.5 (the ring width) so a thin white
-          ring shows at the edge, giving a controlled black surround;
-       3. the MatChat chat bubble in indigo (#303E7C, the user's chosen colour);
-       4. a solid BLACK "M" on the bubble.
-     Change the ring colour (path 1) or the interior colour (path 2) to restyle
-     the frame; the ring width is the gap between their insets (0 vs ~2.5). The
-     cover-screen mark (drawable-nodpi/ic_cover_matchat.png,
-     tools/gen_cover_icon.py) and the status-bar mark (ic_stat_matchat.xml) are
-     the same bubble+M geometry in monochrome with no frame — keep the bubble+M
-     in step across the three. -->
+       1. a black rounded-square (radius 5) filling the whole 48x48 canvas —
+          the outer border;
+       2. a light-grey rounded-square inset ~2.5 (the border width) so a thin
+          black border shows at the edge — the controlled light surround that
+          lets the indigo bubble read (indigo on black was dark-on-dark);
+       3+4. the MatChat bubble (indigo #303E7C) + black "M", wrapped in a
+          <group> that scales them to ~0.78 and recentres them inside the
+          interior. The bubble+M geometry was drawn to fill the whole canvas
+          (for the frameless cover/status marks), so without this group it
+          overflows the frame and the tail pokes through the bottom border.
+     Edit path 1/2 fills for the border/interior colours; edit the group's scale
+     to resize the mark within the frame. The cover-screen mark
+     (drawable-nodpi/ic_cover_matchat.png, tools/gen_cover_icon.py) and the
+     status-bar mark (ic_stat_matchat.xml) use the same bubble+M paths at full
+     size with no frame — keep the bubble+M geometry in step across the three. The
+     adaptive icon (ic_launcher_foreground.xml, API 26+; this file is the API
+     24-25 icon) deliberately uses a taller body; see its own comment. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <!-- 1. White ring base: full-canvas rounded square, radius 5 (= bubble). -->
+    <!-- 1. Black border base: full-canvas rounded square, radius 5. -->
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="#000000"
         android:pathData="M5,0 h38 a5,5 0 0 1 5,5 v38 a5,5 0 0 1 -5,5 h-38 a5,5 0 0 1 -5,-5 v-38 a5,5 0 0 1 5,-5 z" />
-    <!-- 2. Black interior: inset ~2.5 so a white ring shows at the edge. -->
+    <!-- 2. Light-grey interior: inset ~2.5 so a thin black border shows at the edge. -->
     <path
-        android:fillColor="#000000"
+        android:fillColor="#929292"
         android:pathData="M5,2.5 h38 a2.5,2.5 0 0 1 2.5,2.5 v38 a2.5,2.5 0 0 1 -2.5,2.5 h-38 a2.5,2.5 0 0 1 -2.5,-2.5 v-38 a2.5,2.5 0 0 1 2.5,-2.5 z" />
-    <!-- 3. Bubble. -->
-    <path
-        android:fillColor="#303E7C"
-        android:pathData="M10,10h28a5,5 0,0 1,5 5v18a5,5 0,0 1,-5 5h-18l-7,8v-8h-3a5,5 0,0 1,-5 -5v-18a5,5 0,0 1,5 -5z" />
-    <!-- 4. "M". -->
-    <path
-        android:fillColor="#000000"
-        android:pathData="M14.2,31.84 L14.2,16.16 L17.96,16.16 L24,25.25 L30.04,16.16 L33.8,16.16 L33.8,31.84 L30.04,31.84 L30.04,22.56 L24,29.58 L17.96,22.56 L17.96,31.84 Z" />
+    <!-- 3+4. Bubble + "M", scaled down and recentred inside the interior.
+         Pivot is the mark's own bbox centre (24,28); translateY -4 lifts that
+         centre to the interior centre (24,24) so margins are even all round. -->
+    <group
+        android:pivotX="24"
+        android:pivotY="28"
+        android:scaleX="0.78"
+        android:scaleY="0.78"
+        android:translateY="-4">
+        <path
+            android:fillColor="#303E7C"
+            android:pathData="M10,10h28a5,5 0,0 1,5 5v18a5,5 0,0 1,-5 5h-18l-7,8v-8h-3a5,5 0,0 1,-5 -5v-18a5,5 0,0 1,5 -5z" />
+        <path
+            android:fillColor="#000000"
+            android:pathData="M14.2,31.84 L14.2,16.16 L17.96,16.16 L24,25.25 L30.04,16.16 L33.8,16.16 L33.8,31.84 L30.04,31.84 L30.04,22.56 L24,29.58 L17.96,22.56 L17.96,31.84 Z" />
+    </group>
 </vector>

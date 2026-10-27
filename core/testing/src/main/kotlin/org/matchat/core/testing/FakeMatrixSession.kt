@@ -8,12 +8,16 @@ import org.matchat.core.model.CallState
 import org.matchat.core.model.DeviceTrust
 import org.matchat.core.model.EventId
 import org.matchat.core.model.InviteSummary
+import org.matchat.core.model.JoinOutcome
 import org.matchat.core.model.MediaKind
 import org.matchat.core.model.Profile
 import org.matchat.core.model.RoomDetails
 import org.matchat.core.model.RoomId
+import org.matchat.core.model.RoomLink
 import org.matchat.core.model.RoomMemberSummary
+import org.matchat.core.model.RoomPreview
 import org.matchat.core.model.RoomSummary
+import org.matchat.core.model.SpaceSummary
 import org.matchat.core.model.SyncState
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
@@ -27,10 +31,12 @@ class FakeMatrixSession(
     val invitesFlow: MutableStateFlow<List<InviteSummary>> = MutableStateFlow(emptyList()),
     val syncFlow: MutableStateFlow<SyncState> = MutableStateFlow(SyncState.IDLE),
     val deviceFlow: MutableStateFlow<DeviceTrust> = MutableStateFlow(DeviceTrust.VERIFIED),
+    val spacesFlow: MutableStateFlow<List<SpaceSummary>> = MutableStateFlow(emptyList()),
 ) : MatrixSession {
 
     override val rooms: Flow<List<RoomSummary>> = roomsFlow
     override val invites: Flow<List<InviteSummary>> = invitesFlow
+    override val spaces: Flow<List<SpaceSummary>> = spacesFlow
     override val syncState: Flow<SyncState> = syncFlow
     override val ownDevice: Flow<DeviceTrust> = deviceFlow
 
@@ -59,6 +65,20 @@ class FakeMatrixSession(
     override suspend fun declineInvite(roomId: RoomId, ignoreSender: Boolean): Result<Unit> {
         invitesFlow.value = invitesFlow.value.filterNot { it.roomId == roomId }
         return Result.success(Unit)
+    }
+
+    var previewResult: (RoomLink) -> Result<RoomPreview> = { Result.failure(IllegalStateException("no preview")) }
+    var joinResult: (RoomLink) -> JoinOutcome = { JoinOutcome.Joined(RoomId(it.idOrAlias)) }
+    var knockResult: (RoomLink) -> Result<Unit> = { Result.success(Unit) }
+    var lastKnockMessage: String? = null
+
+    override suspend fun previewRoom(link: RoomLink): Result<RoomPreview> = previewResult(link)
+
+    override suspend fun joinRoom(link: RoomLink): JoinOutcome = joinResult(link)
+
+    override suspend fun knockRoom(link: RoomLink, message: String?): Result<Unit> {
+        lastKnockMessage = message
+        return knockResult(link)
     }
 
     var ownUser: UserId? = UserId("@me:local")

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A voice/audio message (Voice bubble round + Voice playback round): a chat
-     bubble like item_message.xml (same bubble_own/bubble_received backgrounds,
+     bubble like item_message.xml (same BubbleDrawable background,
      same accent-stripe/focus-border behavior, bound via bindBubbleSide), with
      a waveform-that-doubles-as-a-progress-bar + duration instead of body text,
      PLUS its own separately focusable play/pause button to its leading side.
@@ -58,11 +58,10 @@
             android:focusable="true"
             android:focusableInTouchMode="false"
             android:descendantFocusability="blocksDescendants"
-            android:background="@drawable/bubble_received"
             android:paddingStart="@dimen/bubble_pad_h"
             android:paddingEnd="@dimen/bubble_pad_h"
             android:paddingTop="@dimen/bubble_pad_v"
-            android:paddingBottom="@dimen/bubble_pad_v">
+            android:paddingBottom="@dimen/bubble_pad_bottom">
 
             <LinearLayout
                 android:id="@+id/voice_sender_row"

@@ -22,6 +22,7 @@ import org.matchat.core.model.EventId
 import org.matchat.core.model.MediaKind
 import org.matchat.core.model.MillisClock
 import org.matchat.core.model.RoomId
+import org.matchat.core.model.RoomLink
 import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
@@ -112,6 +113,8 @@ class TimelineViewModel @Inject constructor(
             val room = ctx.rooms.firstOrNull { it.id == roomId }
             TimelineState(
                 title = room?.name.orEmpty(),
+                titleAvatarUrl = room?.avatarUrl,
+                titleAvatarId = room?.id?.value.orEmpty(),
                 rows = ctx.items.toRows(),
                 isEncrypted = room?.isEncrypted ?: true,
                 isComposeFocused = ctx.composing,
@@ -308,6 +311,7 @@ class TimelineViewModel @Inject constructor(
                         seenBy = item.seenBy,
                         reactions = item.reactions,
                         isPinned = item.isPinned,
+                        roomLink = RoomLink.findIn(item.body)?.toMatrixTo(),
                     )
                 }
                 is TimelineItem.Media -> {

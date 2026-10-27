@@ -12,6 +12,11 @@
     <string name="settings_update_available">Software update — Available ›</string>
     <string name="settings_help">Help</string>
     <string name="settings_sign_out">Sign out</string>
+    <!-- S13 row: also save MatChat's contacts in the phone's own Contacts app. -->
+    <string name="settings_phone_contacts_off">Save contacts to phone: Off</string>
+    <string name="settings_phone_contacts_on">Save contacts to phone: On</string>
+    <!-- Under that row after the user refuses the contacts permission. -->
+    <string name="settings_phone_contacts_refused">Contacts stay in MatChat only</string>
     <string name="settings_sign_out_confirm">Sign out? Messages on this phone will be removed.</string>
     <string name="settings_policy_managed">Policy — Managed by your organization</string>
     <string name="settings_policy_unmanaged">Policy — Not managed</string>
@@ -28,9 +33,11 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <!-- The Accent color row's own label doubles as its section header
-         ("Accent color: Green ›") — CENTER opens a picker of all 16
+         ("Accent color: Green ›") — CENTER opens a picker of all 17
          (MenuSheet, the same shape as the reaction picker). -->
     <string name="theme_accent_row_format">Accent color: %1$s ›</string>
+    <!-- The default accent: the indigo of the MatChat app icon. -->
+    <string name="theme_accent_matchat">MatChat blue</string>
     <string name="theme_accent_green">Green</string>
     <string name="theme_accent_amber">Amber</string>
     <string name="theme_accent_blue">Blue</string>

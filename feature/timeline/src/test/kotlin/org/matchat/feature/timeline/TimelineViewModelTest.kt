@@ -22,6 +22,7 @@ import org.matchat.core.model.MillisClock
 import org.matchat.core.model.ReactionSummary
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomMemberSummary
+import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SeenBy
 import org.matchat.core.model.SendState
 import org.matchat.core.model.TimelineItem
@@ -60,6 +61,55 @@ class TimelineViewModelTest {
             assertEquals("Wayne", rows[0].senderName)
             assertNull(rows[1].senderName) // same sender: name suppressed
             assertEquals("Merv", rows[2].senderName)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a message linking a room carries the link for Join group`() = runTest {
+        val fake = session.timeline(roomId) as org.matchat.core.testing.FakeTimeline
+        fake.emit(
+            listOf(
+                message("a", "@wayne:s", "Wayne", "join us https://matrix.to/#/!abc?via=unredacted.org"),
+                message("b", "@wayne:s", "Wayne", "no link here"),
+            ),
+        )
+        subject().state.test {
+            val rows = expectMostRecentItem().rows.filterIsInstance<TimelineRow.Message>()
+            assertEquals("https://matrix.to/#/!abc?via=unredacted.org", rows[0].roomLink)
+            assertNull(rows[1].roomLink)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the title carries the room's avatar and id`() = runTest {
+        session.roomsFlow.value = listOf(
+            RoomSummary(
+                id = roomId,
+                name = "Alice",
+                lastMessage = null,
+                lastActivityEpochMs = null,
+                unreadCount = 0,
+                isEncrypted = true,
+                avatarUrl = "mxc://server/alice",
+            ),
+        )
+        subject().state.test {
+            val state = expectMostRecentItem()
+            assertEquals("Alice", state.title)
+            assertEquals("mxc://server/alice", state.titleAvatarUrl)
+            assertEquals(roomId.value, state.titleAvatarId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `before the room is known there is no title avatar`() = runTest {
+        subject().state.test {
+            val state = expectMostRecentItem()
+            assertNull(state.titleAvatarUrl)
+            assertEquals("", state.titleAvatarId)
             cancelAndIgnoreRemainingEvents()
         }
     }

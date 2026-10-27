@@ -1,6 +1,9 @@
 package org.matchat.feature.settings
 
+import android.Manifest
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -40,9 +43,11 @@ class SettingsFragment : SoftkeyFragment() {
         b.settingsUpdate.setOnClickListener { viewModel.onAction(SettingsAction.OpenUpdate) }
         b.settingsHelp.setOnClickListener { viewModel.onAction(SettingsAction.OpenHelp) }
         b.settingsSignOut.setOnClickListener { confirmSignOut() }
+        b.settingsPhoneContacts.setOnClickListener { viewModel.onAction(SettingsAction.TogglePhoneContacts) }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.onAction(SettingsAction.Refresh)
                 launch { viewModel.state.collect(::render) }
                 launch { viewModel.navEvents.collect(::navigate) }
             }
@@ -58,6 +63,10 @@ class SettingsFragment : SoftkeyFragment() {
         b.settingsUpdate.text = getString(
             if (state.updateAvailable) R.string.settings_update_available else R.string.settings_update,
         )
+        b.settingsPhoneContacts.text = getString(
+            if (state.phoneContactsOn) R.string.settings_phone_contacts_on else R.string.settings_phone_contacts_off,
+        )
+        b.settingsPhoneContactsCaption.isVisible = state.phoneContactsRefused
     }
 
     private fun navigate(nav: SettingsNav) {
@@ -71,7 +80,17 @@ class SettingsFragment : SoftkeyFragment() {
             SettingsNav.Update -> navigator.toUpdate()
             SettingsNav.Help -> navigator.toHelp()
             SettingsNav.SignedOut -> navigator.toWelcomeRoot()
+            SettingsNav.RequestContactsPermission ->
+                contactsPermission.launch(CONTACTS_PERMISSIONS)
         }
+    }
+
+    /** "Save contacts to phone": one system dialog for the contacts group. */
+    private val contactsPermission = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { result ->
+        val granted = result.isNotEmpty() && result.values.all { it }
+        viewModel.onAction(SettingsAction.PhoneContactsPermissionResult(granted))
     }
 
     private fun confirmSignOut() {
@@ -88,5 +107,6 @@ class SettingsFragment : SoftkeyFragment() {
 
     private companion object {
         const val CONFIRM = "confirm"
+        val CONTACTS_PERMISSIONS = arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS)
     }
 }

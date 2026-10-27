@@ -55,9 +55,9 @@ manifest:
 |---|---|---|---|
 | `pinnedHomeserver` | string | none (user may type one) | Homeserver URL; when set, the sign-in screen shows it read-only |
 | `allowedDomains` | string | **absent ⇒ all domains allowed** | Comma-separated homeserver domains the user may message or accept invites from. Exact match, no wildcards in v1 |
-| `allowDirectChat` | bool | `true` | When false, "New message" disappears entirely — invitations still work |
+| `allowDirectChat` | bool | `true` | When false, "Send message" and "Type an address" disappear from Contacts and Message info — contacts and invitations still work |
 | `invitePolicy` | choice: `ask` \| `autoAllowed` | `ask` | `ask` = every invitation waits on S18/S19. `autoAllowed` = invitations from `allowedDomains` join silently; everything else still asks |
-| `contacts` | string (JSON) | empty | `[{"name":"Wayne Zimmerman","address":"@wayne:example.org"}]` — pushed contacts, shown first in New message |
+| `contacts` | string (JSON) | empty | `[{"name":"Wayne Zimmerman","address":"@wayne:example.org"}]` — pushed contacts, shown first in Contacts |
 | `mediaSend` | bool | `true` | Allow sending images |
 
 `contacts` is a JSON string rather than a `bundle_array` on purpose:

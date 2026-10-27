@@ -25,11 +25,10 @@
         android:layout_gravity="start"
         android:orientation="vertical"
         android:duplicateParentState="true"
-        android:background="@drawable/bubble_received"
         android:paddingStart="@dimen/bubble_pad_h"
         android:paddingEnd="@dimen/bubble_pad_h"
         android:paddingTop="@dimen/bubble_pad_v"
-        android:paddingBottom="@dimen/bubble_pad_v">
+        android:paddingBottom="@dimen/bubble_pad_bottom">
 
         <LinearLayout
             android:id="@+id/image_sender_row"

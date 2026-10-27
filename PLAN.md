@@ -33,7 +33,7 @@ we write **UI only**.
 
 ### Explicit non-goals (v1)
 
-Voice/video calls · spaces · threads · widgets · stickers · location sharing ·
+Voice/video calls · browsing a space's rooms (joined spaces are folders, UX-SPEC S29) · threads · widgets · stickers · location sharing ·
 public room directory · user directory search · browsing or searching for people
 or rooms in any form · in-app browser or link previews · custom keyboard/T9 (the
 system IME already does this) · tablet or smartphone layouts.
@@ -238,7 +238,7 @@ Rows: room name, last message preview (1 line, ellipsized), relative time, unrea
 count badge. Sorted by activity. Focus = full-row inverse.
 Pending invitations sit in a bordered band directly under the title bar —
 "1 invitation" — which is the first focus stop and opens S18.
-Options menu: New message · Mark all read · Settings · Sign out. **No "join
+Options menu: Contacts · Mark all read · Settings · Sign out. **No "join
 room", no search, no directory.** If the user is in zero rooms the empty state
 says *"Your groups will appear here. Ask your administrator to add you, or start
 a message from Options."*
@@ -358,7 +358,7 @@ list by membership state and render the two groups differently.
 
 ### 6.9 Direct chat by address
 
-Options → **New message** (S20) offers, in order: **Contacts** (admin-pushed +
+Options → **Contacts** (S20, formerly "New message") offers, in order: **Contacts** (admin-pushed +
 people already chatted with), **Recent** (last 8 addresses used), **Type an
 address** (S21).
 
@@ -389,13 +389,23 @@ Two sources, one list:
 - **Admin-pushed** — the `contacts` restriction key, a JSON array of
   `{name, address}`. A *string* key rather than `bundle_array`, because
   `bundle_array` needs API 26 and we support 24.
-- **Local** — everyone the user has exchanged a DM with, plus the last 8 typed
-  addresses. Stored on the phone, never uploaded.
+- **Local** — everyone the user has a DM with (saved automatically), anyone
+  they saved by hand from a room they share with them (S12), plus the last 8
+  typed addresses. Stored on the phone (SharedPreferences, kept across
+  restarts), never uploaded.
 
 Merged, de-duplicated by address, admin entries first. This list is **not a
-directory**: it contains only people the user already knows or the admin has
-explicitly provided, it has no search box, and nothing but the managed
-configuration can extend it.
+directory**: it contains only people the user already knows — people they
+share a room with — or the admin has explicitly provided, it has no search
+box, and nothing but the user's own rooms and the managed configuration can
+extend it.
+
+Optionally (Settings > "Save contacts to phone", asked once by S30), saved
+contacts are also written to the phone's own Contacts app, and a Matrix
+address can be added to a contact already there — without ever renaming it.
+This needs the contacts permission and is never required: without it, every
+contact still lives in MatChat. MatChat only writes there (plus one lookup to
+avoid duplicates); it never reads the phone's contacts as a source of people.
 
 ## 7. Milestones
 

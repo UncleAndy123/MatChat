@@ -11,7 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /** Plain [SharedPreferences]-backed [UserPreferences]. Falls back to LIGHT /
- *  GREEN for a value that's missing, or that no longer names an enum
+ *  MATCHAT for a value that's missing, or that no longer names an enum
  *  constant (an old build's preference on a downgrade). */
 @Singleton
 internal class SharedPreferencesUserPreferences @Inject constructor(
@@ -24,7 +24,7 @@ internal class SharedPreferencesUserPreferences @Inject constructor(
     private val themeModeState = MutableStateFlow(readEnum(KEY_THEME_MODE, ThemeMode.LIGHT))
     override val themeMode: StateFlow<ThemeMode> = themeModeState
 
-    private val accentColorState = MutableStateFlow(readEnum(KEY_ACCENT_COLOR, AccentColor.RUST))
+    private val accentColorState = MutableStateFlow(readEnum(KEY_ACCENT_COLOR, AccentColor.MATCHAT))
     override val accentColor: StateFlow<AccentColor> = accentColorState
 
     private val textSizeState = MutableStateFlow(readEnum(KEY_TEXT_SIZE, TextSizePreference.NORMAL))

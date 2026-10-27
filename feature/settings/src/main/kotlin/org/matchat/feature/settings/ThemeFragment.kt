@@ -17,7 +17,7 @@ import org.matchat.feature.settings.databinding.FragmentThemeBinding
 
 /** S24 Theme: light/dark stays two inline focusable rows; Accent color (4 ->
  *  16, Part 3 of the "12 more accent colors" round) is now a single row
- *  ("Accent color: <current> ›") that opens a [MenuSheet] listing all 16 on
+ *  ("Accent color: <current> ›") that opens a [MenuSheet] listing all 17 on
  *  CENTER — the same scrollable-N-item-list-with-a-checkmark shape the
  *  reaction picker already uses, since 16 hand-built fixed-id rows would be
  *  unmanageable. render() is the only place that decides which Appearance
@@ -79,6 +79,7 @@ class ThemeFragment : SoftkeyFragment() {
     // count, not real complexity.
     @Suppress("CyclomaticComplexMethod")
     private fun labelResFor(color: AccentColor): Int = when (color) {
+        AccentColor.MATCHAT -> R.string.theme_accent_matchat
         AccentColor.GREEN -> R.string.theme_accent_green
         AccentColor.AMBER -> R.string.theme_accent_amber
         AccentColor.BLUE -> R.string.theme_accent_blue

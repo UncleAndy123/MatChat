@@ -14,4 +14,35 @@
     <!-- %1$s is the blocked domain, e.g. example.org. -->
     <string name="invite_blocked">Your organization does not allow messages from %1$s.</string>
     <string name="invite_error_gone">Could not accept — the invitation may be gone. Try again.</string>
+
+    <!-- S28 Join group: a room someone linked in a message. "Group" is the
+         app's word for a room (UX-SPEC §4). -->
+    <string name="join_title">Join group</string>
+    <plurals name="join_members">
+        <!-- %d is the number of people in the group. -->
+        <item quantity="one">%d member</item>
+        <item quantity="other">%d members</item>
+    </plurals>
+    <string name="join_loading">Loading…</string>
+    <!-- Shown while a join or a request to join is being sent. -->
+    <string name="join_working">Please wait…</string>
+    <!-- Action button labels. -->
+    <string name="join_button_join">Join</string>
+    <string name="join_button_ask">Ask to join</string>
+    <string name="join_button_open">Open</string>
+    <!-- One-line explanations of where the user stands with this group. -->
+    <!-- Title of the prompt shown on "Ask to join"; the message is optional and
+         is shown to the group's members with the request. -->
+    <string name="join_message_prompt">Message to the group (optional)</string>
+    <string name="join_note_knock">A member must let you in. Ask to join and they will see your request.</string>
+    <string name="join_note_invite_only">Only people a member invites can join this group.</string>
+    <string name="join_note_needs_invite">You need an invitation to join this group. You can ask its members to let you in.</string>
+    <string name="join_note_invited">You have an invitation to this group.</string>
+    <string name="join_note_request_sent">Request sent. The group will appear in your list once a member lets you in.</string>
+    <string name="join_note_joined">You are already in this group.</string>
+    <string name="join_note_banned">You are not allowed to join this group.</string>
+    <string name="join_note_bad_link">This link does not lead to a group.</string>
+    <string name="join_note_no_preview">Could not show details for this group. You can still try to join.</string>
+    <string name="join_error_join">Could not join. Check your connection and try again.</string>
+    <string name="join_error_knock">Could not send your request. Try again, or ask a member to invite you.</string>
 </resources>

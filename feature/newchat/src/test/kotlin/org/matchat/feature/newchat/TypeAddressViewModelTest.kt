@@ -1,8 +1,6 @@
 package org.matchat.feature.newchat
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -13,12 +11,10 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.matchat.core.contacts.ContactsRepository
-import org.matchat.core.model.Contact
 import org.matchat.core.model.ErrorText
 import org.matchat.core.model.Profile
-import org.matchat.core.model.UserId
 import org.matchat.core.policy.Policy
+import org.matchat.core.testing.FakeContactsRepository
 import org.matchat.core.testing.FakeMatrixSession
 import org.matchat.core.testing.FakePolicyProvider
 
@@ -26,11 +22,7 @@ class TypeAddressViewModelTest {
 
     private val session = FakeMatrixSession()
 
-    private val noContacts = object : ContactsRepository {
-        override val contacts: Flow<List<Contact>> = flowOf(emptyList())
-        override val recents: Flow<List<Contact>> = flowOf(emptyList())
-        override suspend fun recordRecent(address: UserId) = Unit
-    }
+    private val noContacts = FakeContactsRepository()
 
     @BeforeEach fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
 

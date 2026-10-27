@@ -30,6 +30,7 @@ class InvitesFragment : SoftkeyFragment() {
 
     private val viewModel: InvitesViewModel by viewModels()
     private var binding: FragmentInvitesBinding? = null
+    private var leftEmpty = false
     private val navigator: Navigator get() = requireActivity() as Navigator
     private val adapter = InviteAdapter { navigator.toInvite(it.roomId) }
 
@@ -49,6 +50,13 @@ class InvitesFragment : SoftkeyFragment() {
 
     private fun render(state: InvitesState) {
         val b = binding ?: return
+        // S18 is never shown empty: once the last invitation is accepted or
+        // declined (on S19, or from another device), return to the room list.
+        if (state.isEmpty && !leftEmpty) {
+            leftEmpty = true
+            navigator.back()
+            return
+        }
         adapter.submitList(state.invites)
         if (b.root.findFocus() == null && state.invites.isNotEmpty()) {
             FocusEngine.requestInitialFocus(b.invitesList)

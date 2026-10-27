@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- S29 Space content band: the same rows as S8, scoped to one joined space. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/space_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="@dimen/content_pad"
+        android:paddingEnd="@dimen/content_pad"
+        android:textSize="?attr/textSizeMeta"
+        android:textColor="?attr/colorError"
+        android:text="@string/space_leave_failed"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/space_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:descendantFocusability="afterDescendants"
+        android:focusable="false" />
+
+    <TextView
+        android:id="@+id/space_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:padding="@dimen/content_pad"
+        android:textSize="?attr/textSizeBody"
+        android:textColor="?attr/colorTextSecondary"
+        android:text="@string/space_empty"
+        android:visibility="gone" />
+</LinearLayout>

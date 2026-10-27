@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:ui"))
     implementation(project(":core:matrix"))
+    implementation(project(":core:policy")) // allowedDomains check on a linked room (S28)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

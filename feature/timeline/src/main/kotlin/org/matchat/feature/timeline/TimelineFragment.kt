@@ -45,6 +45,10 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
 
     private val viewModel: TimelineViewModel by viewModels()
     private var binding: FragmentTimelineBinding? = null
+
+    /** What the title avatar last showed (renderTitleAvatar); reset with the
+     *  view so a re-created chrome binds it again. */
+    private var lastTitleAvatarKey: Triple<String?, String, String>? = null
     private var lastMarkedStableId: String? = null
 
     // New messages land flush with the bottom unless the user has scrolled up
@@ -223,6 +227,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
     private fun render(state: TimelineState) {
         val b = binding ?: return
         setTitle(state.title)
+        renderTitleAvatar(state)
         // Sync/connection indicator (Online indicator round) is now handled
         // centrally by SoftkeyFragment — no per-screen call needed.
         b.pinnedBand.isVisible = state.pinnedCount > 0
@@ -666,6 +671,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
      *  already restore focus correctly via Fragment view recreation. */
     private fun openMessageMenu(ctx: MessageMenuContext) {
         val items = buildList {
+            if (ctx.roomLink != null) add(MenuItem(MSG_JOIN, getString(R.string.timeline_msg_join)))
             if (ctx.openAction != null) add(MenuItem(MSG_OPEN, getString(R.string.timeline_msg_open)))
             add(MenuItem(MSG_REACT, getString(R.string.timeline_msg_react)))
             add(MenuItem(MSG_REPLY, getString(R.string.timeline_msg_reply)))
@@ -685,6 +691,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }
         val menu = MenuSheet.show(requireContext(), items) { selected ->
             when (selected.id) {
+                MSG_JOIN -> ctx.roomLink?.let { navigator.toJoinRoom(it) }
                 MSG_OPEN -> ctx.openAction?.invoke()
                 MSG_REACT -> openReactionPicker(ctx.eventId, ctx.reactions)
                 MSG_EDIT -> ctx.editAction?.invoke()
@@ -722,6 +729,8 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         val saveToGallery: (() -> Unit)? = null,
         /** Any media: write to Downloads. Null hides the item (text messages). */
         val saveToFiles: (() -> Unit)? = null,
+        /** A room linked in the message (S28). Null hides "Join group". */
+        val roomLink: String? = null,
     )
 
     private fun menuContextFor(row: TimelineRow.Message) = MessageMenuContext(
@@ -733,6 +742,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         reactions = row.reactions,
         copyText = row.body,
         openAction = null,
+        roomLink = row.roomLink,
         editAction = {
             org.matchat.core.ui.menu.TextPromptSheet.show(
                 requireContext(),
@@ -805,6 +815,18 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
             }
             if (bitmap != null && image.tag == eventId) image.setImageBitmap(bitmap)
         }
+    }
+
+    /** The room's / person's avatar left of the title (UX-SPEC S9). Shown
+     *  once the room is known; rebound only when what it shows changes, so a
+     *  render (every new message) doesn't re-decode it. */
+    private fun renderTitleAvatar(state: TimelineState) {
+        val avatar = titleAvatar ?: return
+        avatar.isVisible = state.titleAvatarId.isNotEmpty()
+        val key = Triple(state.titleAvatarUrl, state.titleAvatarId, state.title)
+        if (!avatar.isVisible || key == lastTitleAvatarKey) return
+        lastTitleAvatarKey = key
+        loadAvatarInto(state.titleAvatarUrl, state.title, state.titleAvatarId, avatar)
     }
 
     /** Avatars round: loadAvatar/AvatarCache/AvatarBinder are the same shared
@@ -1124,6 +1146,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         followLayoutListener = null
         binding?.timelineList?.adapter = null
         binding = null
+        lastTitleAvatarKey = null
         super.onDestroyView()
     }
 
@@ -1145,6 +1168,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         const val PLAYBACK_TICK_MS = 200L // ~5 Hz progress updates while playing
         const val MIN_VOICE_MS = 1_000L // ignore accidental sub-second taps
         const val ARG_ROOM_ID = "roomId"
+        const val MSG_JOIN = "join"
         const val MSG_OPEN = "open"
         const val MSG_REPLY = "reply"
         const val MSG_EDIT = "edit"

@@ -36,6 +36,9 @@ sealed interface TimelineRow {
          *  📌, the same compact idiom sendGlyph already uses (Pinned
          *  messages round). */
         val isPinned: Boolean = false,
+        /** The first room link in [body] (matrix.to form), or null — adds
+         *  "Join group" to the message menu (S11 → S28). */
+        val roomLink: String? = null,
     ) : TimelineRow {
         override val stableId: String get() = eventId.value
     }
@@ -160,6 +163,11 @@ data class PendingAttachment(
  */
 data class TimelineState(
     val title: String = "",
+    /** The room's avatar (`mxc://`, null when none is set), shown left of the
+     *  title; [titleAvatarId] is the room id, the no-avatar fallback's color
+     *  source — the same pair the room list binds, so both match. */
+    val titleAvatarUrl: String? = null,
+    val titleAvatarId: String = "",
     val rows: List<TimelineRow> = emptyList(),
     val isEncrypted: Boolean = true,
     val isLoadingEarlier: Boolean = false,

@@ -42,4 +42,11 @@
     <string name="background_helper_status_on">On. No notification needed.</string>
     <string name="background_helper_status_needs_battery">On, but Run in background is not allowed. The notification stays.</string>
     <string name="background_helper_status_off">Off. MatChat shows a notification.</string>
+    <!-- S30 "Save contacts to this phone?" (UX-SPEC §S30), shown once after
+         sign-in. "Contacts app" is the phone's own address book. -->
+    <string name="contacts_prompt_title">Phone contacts</string>
+    <string name="contacts_prompt_body">MatChat saves the people you chat with. It can also save them in this phone\'s Contacts app, with their Matrix address. You can change this later in Settings.</string>
+    <string name="contacts_prompt_save">Save to phone contacts</string>
+    <!-- Shown after the user refuses the contacts permission. -->
+    <string name="contacts_prompt_refused">Contacts stay in MatChat only</string>
 </resources>

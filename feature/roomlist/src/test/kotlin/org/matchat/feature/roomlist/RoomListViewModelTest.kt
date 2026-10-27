@@ -17,20 +17,18 @@ import org.matchat.core.model.InviteSummary
 import org.matchat.core.model.MillisClock
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
+import org.matchat.core.model.SpaceSummary
 import org.matchat.core.model.SyncState
-import org.matchat.core.policy.Policy
 import org.matchat.core.testing.FakeDraftStore
 import org.matchat.core.testing.FakeMatrixSession
-import org.matchat.core.testing.FakePolicyProvider
 
 class RoomListViewModelTest {
 
     private val session = FakeMatrixSession()
-    private val policy = FakePolicyProvider()
     private val clock = MillisClock { 0L }
     private val draftStore = FakeDraftStore()
 
-    private fun subject() = RoomListViewModel(session, policy, clock, draftStore)
+    private fun subject() = RoomListViewModel(session, clock, draftStore)
 
     @BeforeEach fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
 
@@ -61,6 +59,30 @@ class RoomListViewModelTest {
     }
 
     @Test
+    fun `rooms in a space show only inside its folder row, with unread rolled up`() = runTest {
+        session.roomsFlow.value = listOf(
+            room("!lobby:s"),
+            room("!barn:s").copy(unreadCount = 2, parentSpaceIds = listOf(RoomId("!farm:s"))),
+        )
+        session.spacesFlow.value = listOf(SpaceSummary(RoomId("!farm:s"), "Farm"))
+        val vm = subject()
+        vm.state.test {
+            val rows = expectMostRecentItem().rooms
+            assertEquals(listOf("!farm:s", "!lobby:s"), rows.map { it.id.value })
+            assertTrue(rows[0].isSpace)
+            assertEquals(2, rows[0].unreadCount)
+            assertEquals(1, rows[0].groupCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+        vm.navEvents.test {
+            vm.onAction(RoomListAction.OpenRoom(RoomId("!farm:s")))
+            assertEquals(RoomListNav.Space(RoomId("!farm:s")), awaitItem())
+            vm.onAction(RoomListAction.OpenRoom(RoomId("!lobby:s")))
+            assertEquals(RoomListNav.Room(RoomId("!lobby:s")), awaitItem())
+        }
+    }
+
+    @Test
     fun `offline sync sets offline, not empty`() = runTest {
         session.roomsFlow.value = listOf(room("!a:server"))
         session.syncFlow.value = SyncState.OFFLINE
@@ -68,15 +90,6 @@ class RoomListViewModelTest {
             val state = expectMostRecentItem()
             assertTrue(state.isOffline)
             assertFalse(state.isEmpty)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `policy without direct chat disables new message`() = runTest {
-        policy.push(Policy.UNMANAGED.copy(allowDirectChat = false))
-        subject().state.test {
-            assertFalse(expectMostRecentItem().newMessageEnabled)
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.matchat.client.contacts.DirectChatContactSaver
 import org.matchat.client.notify.CallNotifier
 import org.matchat.core.matrix.MatrixAuth
 import org.matchat.core.matrix.MatrixSession
@@ -39,6 +40,7 @@ class SyncOwner @Inject constructor(
     private val sessionStore: MatrixSessionStore,
     private val callController: CallController,
     private val messageNotifications: MessageNotifications,
+    private val contactSaver: DirectChatContactSaver,
 ) {
     private val _activeHost = MutableStateFlow<SyncHost?>(null)
 
@@ -118,6 +120,8 @@ class SyncOwner @Inject constructor(
         // (host to host, or to the SyncWorker fallback). Call ringing stays here
         // — a delayed background job can't usefully ring a live call.
         messageNotifications.onRooms(rooms)
+        // Direct-chat partners become saved contacts (PLAN.md §6.10).
+        contactSaver.onRooms(rooms)
 
         if (!seeded) {
             // Seed the call baseline so an already-ongoing call (app just launched

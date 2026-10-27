@@ -5,12 +5,16 @@ import org.matchat.core.model.CallState
 import org.matchat.core.model.DeviceTrust
 import org.matchat.core.model.EventId
 import org.matchat.core.model.InviteSummary
+import org.matchat.core.model.JoinOutcome
 import org.matchat.core.model.MediaKind
 import org.matchat.core.model.Profile
 import org.matchat.core.model.RoomDetails
 import org.matchat.core.model.RoomId
+import org.matchat.core.model.RoomLink
 import org.matchat.core.model.RoomMemberSummary
+import org.matchat.core.model.RoomPreview
 import org.matchat.core.model.RoomSummary
+import org.matchat.core.model.SpaceSummary
 import org.matchat.core.model.SyncStateSource
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
@@ -26,8 +30,12 @@ import org.matchat.core.model.UserId
  * module directly — MatrixModule binds the same implementation both ways.
  */
 interface MatrixSession : SyncStateSource {
-    val rooms: Flow<List<RoomSummary>> // joined rooms only
+    val rooms: Flow<List<RoomSummary>> // joined rooms only, never spaces
     val invites: Flow<List<InviteSummary>> // membership == Invited
+
+    /** Joined spaces, nested or not (S29). Their rooms carry
+     *  [RoomSummary.parentSpaceIds]; unjoined children are never listed. */
+    val spaces: Flow<List<SpaceSummary>>
     val ownDevice: Flow<DeviceTrust>
 
     /** Whether a live SDK client (and its sync loop) exists right now. False
@@ -58,6 +66,20 @@ interface MatrixSession : SyncStateSource {
 
     suspend fun acceptInvite(roomId: RoomId): Result<Unit>
     suspend fun declineInvite(roomId: RoomId, ignoreSender: Boolean): Result<Unit>
+
+    // --- Joining a linked room (S28) ---------------------------------------
+    // A link the user was sent names one known room; these look at, join, or
+    // ask to join that room. None of them takes a query (AGENTS.md §0).
+
+    /** Name, topic, size and join rule of the linked room, before joining. */
+    suspend fun previewRoom(link: RoomLink): Result<RoomPreview>
+
+    /** Join the linked room (or accept a pending invitation to it). */
+    suspend fun joinRoom(link: RoomLink): JoinOutcome
+
+    /** Ask to join (knock): the room's members decide whether to let us in.
+     *  [message] is the optional note they see with the request. */
+    suspend fun knockRoom(link: RoomLink, message: String?): Result<Unit>
 
     /** Our own Matrix user id, or null before login (used for call membership). */
     suspend fun ownUserId(): UserId?

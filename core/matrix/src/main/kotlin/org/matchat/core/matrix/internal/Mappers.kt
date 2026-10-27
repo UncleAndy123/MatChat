@@ -2,22 +2,32 @@ package org.matchat.core.matrix.internal
 
 import android.util.Log
 import org.matchat.core.model.EventId
+import org.matchat.core.model.InviteSummary
+import org.matchat.core.model.JoinRule
 import org.matchat.core.model.MediaKind
+import org.matchat.core.model.PreviewMembership
 import org.matchat.core.model.ReactionSummary
 import org.matchat.core.model.RoomId
+import org.matchat.core.model.RoomPreview
 import org.matchat.core.model.RoomSummary
 import org.matchat.core.model.SeenBy
 import org.matchat.core.model.SendState
+import org.matchat.core.model.SpaceSummary
 import org.matchat.core.model.TimelineItem
 import org.matchat.core.model.UserId
 import org.matrix.rustcomponents.sdk.EventOrTransactionId
 import org.matrix.rustcomponents.sdk.LatestEventValue
 import org.matrix.rustcomponents.sdk.MediaSource
+import org.matrix.rustcomponents.sdk.Membership
 import org.matrix.rustcomponents.sdk.MessageType
 import org.matrix.rustcomponents.sdk.MsgLikeKind
 import org.matrix.rustcomponents.sdk.ProfileDetails
 import org.matrix.rustcomponents.sdk.Room
+import org.matrix.rustcomponents.sdk.RoomInfo
+import org.matrix.rustcomponents.sdk.RoomPreviewInfo
+import org.matrix.rustcomponents.sdk.RoomType
 import org.matrix.rustcomponents.sdk.TimelineItemContent
+import org.matrix.rustcomponents.sdk.JoinRule as RustJoinRule
 import org.matrix.rustcomponents.sdk.TimelineItem as RustTimelineItem
 
 /** A room member's already-synced name/avatar (RustRoomTimeline.fetchMembers,
@@ -33,7 +43,7 @@ internal object Mappers {
 
     private const val TAG = "Mappers"
 
-    suspend fun toRoomSummary(room: Room): RoomSummary {
+    suspend fun toRoomSummary(room: Room, parentSpaceIds: List<RoomId> = emptyList()): RoomSummary {
         val info = runCatching { room.roomInfo() }.getOrNull()
         val encrypted = runCatching { room.isEncrypted() }.getOrDefault(true)
         val latest = latestPreview(room)
@@ -50,7 +60,74 @@ internal object Mappers {
             lastMessageIsOwn = latest?.isOwn ?: false,
             lastMessageMedia = latest?.media,
             lastMessageUndecrypted = latest?.undecrypted ?: false,
+            parentSpaceIds = parentSpaceIds,
+            directUserId = info?.let(::directPartner),
         )
+    }
+
+    /** The other person in a direct chat: its single hero. Null for a group,
+     *  or a "direct" room that has grown past two people. */
+    internal fun directPartner(info: RoomInfo): UserId? {
+        if (!info.isDirect) return null
+        return info.heroes.singleOrNull()?.userId?.takeIf { it.isNotBlank() }?.let(::UserId)
+    }
+
+    /** A joined space as a folder (S29). */
+    suspend fun toSpaceSummary(room: Room, parentSpaceIds: List<RoomId>): SpaceSummary {
+        val info = runCatching { room.roomInfo() }.getOrNull()
+        return SpaceSummary(
+            id = RoomId(room.id()),
+            name = info?.displayName ?: room.displayName() ?: room.id(),
+            avatarUrl = info?.avatarUrl ?: runCatching { room.avatarUrl() }.getOrNull(),
+            parentSpaceIds = parentSpaceIds,
+        )
+    }
+
+    /**
+     * An invited room (S18/S19). [InviteSummary.allowedByPolicy] is left true
+     * here: RustMatrixSession tags it against the *live* policy, so a policy
+     * push re-evaluates every invitation (AGENTS.md "Policy rules").
+     */
+    suspend fun toInviteSummary(room: Room): InviteSummary {
+        val info = runCatching { room.roomInfo() }.getOrNull()
+        val inviter = runCatching { room.inviter() }.getOrNull()
+        val inviterId = UserId(inviter?.userId.orEmpty())
+        return InviteSummary(
+            roomId = RoomId(room.id()),
+            roomName = info?.displayName ?: room.displayName() ?: room.id(),
+            inviter = inviterId,
+            inviterName = inviter?.displayName,
+            isDirect = info?.isDirect ?: false,
+            isEncrypted = runCatching { room.isEncrypted() }.getOrDefault(true),
+            senderDomain = inviterId.domain,
+            allowedByPolicy = true,
+        )
+    }
+
+    fun toRoomPreview(info: RoomPreviewInfo): RoomPreview = RoomPreview(
+        roomId = RoomId(info.roomId),
+        name = info.name ?: info.canonicalAlias,
+        topic = info.topic,
+        memberCount = info.numJoinedMembers.toInt(),
+        joinRule = joinRuleOf(info.joinRule),
+        membership = when (info.membership) {
+            Membership.JOINED -> PreviewMembership.JOINED
+            Membership.INVITED -> PreviewMembership.INVITED
+            Membership.KNOCKED -> PreviewMembership.KNOCKED
+            Membership.BANNED -> PreviewMembership.BANNED
+            Membership.LEFT -> PreviewMembership.LEFT
+            null -> PreviewMembership.NONE
+        },
+        isSpace = info.roomType is RoomType.Space,
+    )
+
+    private fun joinRuleOf(rule: RustJoinRule?): JoinRule = when (rule) {
+        is RustJoinRule.Public -> JoinRule.PUBLIC
+        is RustJoinRule.Knock, is RustJoinRule.KnockRestricted -> JoinRule.KNOCK
+        is RustJoinRule.Invite, is RustJoinRule.Private -> JoinRule.INVITE_ONLY
+        // Restricted: joinable by members of another room/space — only the
+        // server can tell, so it is attempted like an unknown rule.
+        else -> JoinRule.UNKNOWN
     }
 
     /**

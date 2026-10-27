@@ -38,7 +38,9 @@ internal class RoomListAdapter(
         fun bind(row: RoomRow) {
             binding.roomName.text = row.name
             val draft = row.draft
+            val res = binding.root.context.resources
             binding.roomPreview.text = when {
+                row.isSpace -> res.getQuantityString(R.plurals.roomlist_space_preview, row.groupCount, row.groupCount)
                 draft == null || draft.isEmpty -> row.preview
                 draft.text.isNotBlank() -> binding.root.context.getString(R.string.roomlist_draft_format, draft.text)
                 else -> binding.root.context.getString(R.string.roomlist_draft_attachment)

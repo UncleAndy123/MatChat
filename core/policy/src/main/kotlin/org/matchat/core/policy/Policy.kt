@@ -22,7 +22,10 @@ data class Policy(
     val mediaSend: Boolean = true,
 ) {
     /** True when the address's domain may be messaged. Fail-open by design. */
-    fun allows(address: UserId): Boolean = allowedDomains?.contains(address.domain) ?: true
+    fun allows(address: UserId): Boolean = allowsDomain(address.domain)
+
+    /** The same check for a bare server name — a linked room's server (S28). */
+    fun allowsDomain(domain: String): Boolean = allowedDomains?.contains(domain) ?: true
 
     companion object {
         /** The policy of an unmanaged phone: open, with no discovery. */

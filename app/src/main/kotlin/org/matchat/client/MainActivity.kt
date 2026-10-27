@@ -60,6 +60,8 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     @Inject lateinit var backgroundStatus: BackgroundSyncStatusProvider
 
+    @Inject lateinit var contacts: org.matchat.core.contacts.ContactsRepository
+
     // Read via an EntryPoint, not @Inject: Hilt's own field injection runs
     // inside super.onCreate(), too late to setTheme() before it.
     private lateinit var userPreferences: UserPreferences
@@ -149,6 +151,7 @@ class MainActivity : AppCompatActivity(), Navigator {
     private fun accentStyleFor(accent: AccentColor): Int = accentStyles.getValue(accent)
 
     private val accentStyles: Map<AccentColor, Int> = mapOf(
+        AccentColor.MATCHAT to org.matchat.core.ui.R.style.Theme_MatChat_Accent_MatChat,
         AccentColor.GREEN to org.matchat.core.ui.R.style.Theme_MatChat_Accent_Green,
         AccentColor.AMBER to org.matchat.core.ui.R.style.Theme_MatChat_Accent_Amber,
         AccentColor.BLUE to org.matchat.core.ui.R.style.Theme_MatChat_Accent_Blue,
@@ -216,7 +219,11 @@ class MainActivity : AppCompatActivity(), Navigator {
 
     /** Offered once per install (existing installs see it once after updating). */
     private fun offerBackgroundSetupIfNeeded() {
-        if (backgroundStatus.setupOffered) return
+        if (backgroundStatus.setupOffered) {
+            // Existing installs: S30 once after updating (UX-SPEC §S30).
+            offerContactsPromptIfNeeded()
+            return
+        }
         backgroundStatus.markSetupOffered()
         backgroundStatus.refresh()
         if (backgroundStatus.status.value.batteryExempt || !requestBatteryExemption()) {
@@ -243,7 +250,22 @@ class MainActivity : AppCompatActivity(), Navigator {
     private fun continueBackgroundSetup() {
         backgroundStatus.refresh()
         syncHosts.ensureRunning()
+        // S30 goes on the back stack first, under S27, so leaving S27 (Back)
+        // lands on it — after S27 when S27 shows, otherwise on its own.
+        offerContactsPromptIfNeeded()
         if (!backgroundStatus.status.value.helperConnected) toBackgroundHelper()
+    }
+
+    /** S30, once per install (UX-SPEC §S30). Already allowed (e.g. granted
+     *  earlier in system settings): just turn the phone copy on, no prompt. */
+    private fun offerContactsPromptIfNeeded() {
+        if (contacts.isPhonePromptOffered()) return
+        contacts.markPhonePromptOffered()
+        if (contacts.canUsePhoneContacts()) {
+            lifecycleScope.launch { contacts.turnOnPhoneSync() }
+        } else {
+            toContactsPrompt()
+        }
     }
 
     // Own presence: online while the app is foregrounded, unavailable when it
@@ -556,9 +578,6 @@ class MainActivity : AppCompatActivity(), Navigator {
             ),
         )
 
-    override fun toProfile(userId: UserId) =
-        navController.navigate(R.id.profileFragment, bundleOf(ARG_USER_ID to userId.value))
-
     override fun toCall(roomId: RoomId, peerName: String?, incoming: Boolean) = navController.navigate(
         R.id.callFragment,
         bundleOf(
@@ -572,6 +591,11 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun toInvite(roomId: RoomId) =
         navController.navigate(R.id.inviteDetailFragment, bundleOf(ARG_ROOM_ID to roomId.value))
 
+    override fun toSpace(spaceId: RoomId) =
+        navController.navigate(R.id.spaceFragment, bundleOf(ARG_SPACE_ID to spaceId.value))
+
+    override fun toJoinRoom(link: String) = navController.navigate(R.id.joinRoomFragment, bundleOf(ARG_LINK to link))
+
     override fun toNewChat() = navController.navigate(R.id.newChatFragment)
     override fun toTypeAddress() = navController.navigate(R.id.typeAddressFragment)
     override fun toVerification() = navController.navigate(R.id.verificationFragment)
@@ -580,6 +604,8 @@ class MainActivity : AppCompatActivity(), Navigator {
     override fun toTextSize() = navController.navigate(R.id.textSizeFragment)
     override fun toAdvanced() = navController.navigate(R.id.advancedFragment)
     override fun toBackgroundHelper() = navController.navigate(R.id.backgroundHelperFragment)
+
+    override fun toContactsPrompt() = navController.navigate(R.id.contactsPromptFragment)
     override fun toNotifications() = navController.navigate(R.id.notificationsFragment)
     override fun toPolicy() = navController.navigate(R.id.policyFragment)
     override fun toUpdate() = navController.navigate(R.id.updateFragment)
@@ -593,7 +619,8 @@ class MainActivity : AppCompatActivity(), Navigator {
         const val ARG_EVENT_ID = "eventId"
         const val ARG_SENDER_ID = "senderId"
         const val ARG_TIMESTAMP = "timestamp"
-        const val ARG_USER_ID = "userId"
+        const val ARG_LINK = "link"
+        const val ARG_SPACE_ID = "spaceId"
 
         // Diagnostic logging for the right-softkey/Options on-device report —
         // see the log call sites (dispatchKeyEvent, handleAccessibilityKeyEvent)

@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import org.matchat.core.matrix.MatrixSession
 import org.matchat.core.matrix.RoomTimeline
@@ -13,34 +13,42 @@ import org.matchat.core.model.CallState
 import org.matchat.core.model.DeviceTrust
 import org.matchat.core.model.EventId
 import org.matchat.core.model.InviteSummary
+import org.matchat.core.model.JoinOutcome
 import org.matchat.core.model.Membership
 import org.matchat.core.model.Profile
 import org.matchat.core.model.RoomDetails
 import org.matchat.core.model.RoomId
+import org.matchat.core.model.RoomLink
 import org.matchat.core.model.RoomMemberSummary
+import org.matchat.core.model.RoomPreview
 import org.matchat.core.model.RoomSummary
+import org.matchat.core.model.SpaceSummary
 import org.matchat.core.model.SyncState
 import org.matchat.core.model.UserId
+import org.matchat.core.policy.PolicyProvider
+import org.matrix.rustcomponents.sdk.ClientException
 import org.matrix.rustcomponents.sdk.CreateRoomParameters
+import org.matrix.rustcomponents.sdk.ErrorKind
 import org.matrix.rustcomponents.sdk.RoomPreset
 import org.matrix.rustcomponents.sdk.RoomVisibility
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * The app-facing session, backed by [RustMatrixClientHolder]. Joined rooms and
- * sync state come straight from the holder's flows. Invitations, DM creation and
- * device trust are staged follow-ups within M1 (marked below); the joined room
- * list and timelines are wired first.
+ * The app-facing session, backed by [RustMatrixClientHolder]. Joined rooms,
+ * invitations and sync state come straight from the holder's flows; device
+ * trust is a staged follow-up (marked below).
  */
 @Singleton
 internal class RustMatrixSession @Inject constructor(
     private val holder: RustMatrixClientHolder,
+    private val policyProvider: PolicyProvider,
 ) : MatrixSession {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override val rooms: Flow<List<RoomSummary>> = holder.rooms
+    override val spaces: Flow<List<SpaceSummary>> = holder.spaces
     override val syncState: Flow<SyncState> = holder.syncState
 
     override fun isActive(): Boolean = holder.isActive()
@@ -51,20 +59,64 @@ internal class RustMatrixSession @Inject constructor(
 
     override suspend fun catchUpSync(windowMillis: Long) = holder.catchUpSync(windowMillis)
 
-    // FFI follow-up: invites = rooms filtered by Invited membership; device trust
-    // arrives with the M4 verification wiring.
-    override val invites: Flow<List<InviteSummary>> = flowOf(emptyList())
+    // Tagged against the live policy, so an EMM push re-evaluates every
+    // invitation; a blocked one is shown and explained, never dropped.
+    override val invites: Flow<List<InviteSummary>> =
+        combine(holder.invites, policyProvider.policy) { invites, policy ->
+            invites.map { it.copy(allowedByPolicy = policy.allowsDomain(it.senderDomain)) }
+        }
+
+    // FFI follow-up: device trust arrives with the M4 verification wiring.
     override val ownDevice: Flow<DeviceTrust> = MutableStateFlow(DeviceTrust.VERIFIED)
 
     override fun timeline(roomId: RoomId): RoomTimeline =
         RustRoomTimeline(holder.roomFor(roomId), scope, holder.ownUserId())
 
-    // FFI follow-up: wire to the invited-room join()/leave() once the invites
-    // flow above is populated. Invites are empty in this M1 step, so these are
-    // not yet reachable from the UI.
-    override suspend fun acceptInvite(roomId: RoomId): Result<Unit> = Result.success(Unit)
+    override suspend fun acceptInvite(roomId: RoomId): Result<Unit> = roomOp(roomId) { it.join() }
 
-    override suspend fun declineInvite(roomId: RoomId, ignoreSender: Boolean): Result<Unit> = Result.success(Unit)
+    override suspend fun declineInvite(roomId: RoomId, ignoreSender: Boolean): Result<Unit> {
+        val inviter = holder.invites.value.firstOrNull { it.roomId == roomId }?.inviter
+        val result = roomOp(roomId) { it.leave() }
+        if (result.isSuccess && ignoreSender && inviter != null && inviter.value.isNotEmpty()) {
+            withContext(Dispatchers.IO) { runCatching { holder.requireClient().ignoreUser(inviter.value) } }
+        }
+        return result
+    }
+
+    override suspend fun previewRoom(link: RoomLink): Result<RoomPreview> = withContext(Dispatchers.IO) {
+        runCatching {
+            val client = holder.requireClient()
+            val preview = if (link.isAlias) {
+                client.getRoomPreviewFromRoomAlias(link.idOrAlias)
+            } else {
+                client.getRoomPreviewFromRoomId(link.idOrAlias, link.via)
+            }
+            try {
+                Mappers.toRoomPreview(preview.info())
+            } finally {
+                preview.destroy()
+            }
+        }
+    }
+
+    override suspend fun joinRoom(link: RoomLink): JoinOutcome = withContext(Dispatchers.IO) {
+        runCatching { holder.requireClient().joinRoomByIdOrAlias(link.idOrAlias, link.via).id() }.fold(
+            onSuccess = { JoinOutcome.Joined(RoomId(it)) },
+            onFailure = { if (isForbidden(it)) JoinOutcome.NeedsInvite else JoinOutcome.Failed },
+        )
+    }
+
+    override suspend fun knockRoom(link: RoomLink, message: String?): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            holder.requireClient().knock(link.idOrAlias, message, link.via)
+            Unit
+        }
+    }
+
+    /** A 403 from the join endpoint ("You are not invited to this room"). */
+    private fun isForbidden(error: Throwable): Boolean =
+        (error as? ClientException.MatrixApi)?.kind is ErrorKind.Forbidden ||
+            error.message.orEmpty().let { "M_FORBIDDEN" in it || "[403]" in it }
 
     override suspend fun ownUserId(): UserId? = withContext(Dispatchers.IO) { holder.ownUserId()?.let { UserId(it) } }
 

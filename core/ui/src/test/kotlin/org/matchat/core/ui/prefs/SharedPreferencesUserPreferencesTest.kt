@@ -18,10 +18,10 @@ class SharedPreferencesUserPreferencesTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `defaults are light, rust, Normal, and Options on the right`() {
+    fun `defaults are light, matchat, Normal, and Options on the right`() {
         val prefs = SharedPreferencesUserPreferences(context)
         assertEquals(ThemeMode.LIGHT, prefs.themeMode.value)
-        assertEquals(AccentColor.RUST, prefs.accentColor.value)
+        assertEquals(AccentColor.MATCHAT, prefs.accentColor.value)
         assertEquals(TextSizePreference.NORMAL, prefs.textSize.value)
         assertEquals(true, prefs.softkeysSwapped.value)
         assertEquals(SoftkeyKind.NONE, prefs.softkeyKindSeen.value)

@@ -19,6 +19,9 @@ interface Navigator {
     fun toWelcomeRoot()
     fun toRoom(roomId: RoomId)
 
+    /** S29: a joined space as a folder of its joined rooms and subspaces. */
+    fun toSpace(spaceId: RoomId)
+
     /** Full-screen image viewer for a timeline image (D-pad pan, * / # zoom). */
     fun toImageViewer(eventId: EventId)
 
@@ -33,13 +36,14 @@ interface Navigator {
      *  reacted, by name — a follow-up to the Reactions round). */
     fun toMessageInfo(roomId: RoomId, eventId: EventId, senderId: UserId, timestampEpochMs: Long)
 
-    /** A sender's profile, reached from message info. */
-    fun toProfile(userId: UserId)
-
     /** Voice call screen (docs/VOICE.md). [incoming] true rings; false dials out. */
     fun toCall(roomId: RoomId, peerName: String?, incoming: Boolean)
     fun toInvites()
     fun toInvite(roomId: RoomId)
+
+    /** S28: preview a room linked in a message, then join or ask to join.
+     *  [link] is the link's matrix.to form (RoomLink.toMatrixTo). */
+    fun toJoinRoom(link: String)
     fun toNewChat()
     fun toTypeAddress()
     fun toVerification()
@@ -55,6 +59,9 @@ interface Navigator {
     /** S27: the one-time "hide the running notification" prompt after sign-in
      *  (docs/adr/0008). */
     fun toBackgroundHelper()
+
+    /** S30: the one-time "save contacts to this phone?" prompt after sign-in. */
+    fun toContactsPrompt()
 
     /** Settings > Notifications: on/off + sound. */
     fun toNotifications()

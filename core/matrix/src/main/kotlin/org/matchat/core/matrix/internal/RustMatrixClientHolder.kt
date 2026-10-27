@@ -16,8 +16,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.matchat.core.matrix.DraftStore
 import org.matchat.core.matrix.MatrixDevConfig
+import org.matchat.core.model.InviteSummary
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
+import org.matchat.core.model.SpaceSummary
 import org.matchat.core.model.SyncState
 import org.matrix.rustcomponents.sdk.Client
 import org.matrix.rustcomponents.sdk.ClientBuilder
@@ -29,6 +31,9 @@ import org.matrix.rustcomponents.sdk.RoomListEntriesListener
 import org.matrix.rustcomponents.sdk.RoomListEntriesUpdate
 import org.matrix.rustcomponents.sdk.RoomListEntriesWithDynamicAdaptersResult
 import org.matrix.rustcomponents.sdk.SlidingSyncVersionBuilder
+import org.matrix.rustcomponents.sdk.SpaceListUpdate
+import org.matrix.rustcomponents.sdk.SpaceService
+import org.matrix.rustcomponents.sdk.SpaceServiceJoinedSpacesListener
 import org.matrix.rustcomponents.sdk.SyncService
 import org.matrix.rustcomponents.sdk.SyncServiceState
 import org.matrix.rustcomponents.sdk.SyncServiceStateObserver
@@ -61,11 +66,27 @@ internal class RustMatrixClientHolder @Inject constructor(
     private var syncService: SyncService? = null
     private var roomList: RoomList? = null
     private var entriesResult: RoomListEntriesWithDynamicAdaptersResult? = null
+    private var invitesResult: RoomListEntriesWithDynamicAdaptersResult? = null
+    private var spacesResult: RoomListEntriesWithDynamicAdaptersResult? = null
+    private var spaceService: SpaceService? = null
+    private var spacesHandle: TaskHandle? = null // keeps the space graph current
 
     /** Ordered room entries maintained from the sliding-sync diff stream. */
     private val entries = mutableListOf<Room>()
 
+    /** Invited rooms, from a second stream over the same list (Invite filter). */
+    private val inviteEntries = mutableListOf<Room>()
+
+    /** Joined spaces, from a third stream over the same list (Joined + Space). */
+    private val spaceEntries = mutableListOf<Room>()
+
     val rooms = MutableStateFlow<List<RoomSummary>>(emptyList())
+
+    /** Pending invitations (S18), untagged by policy — RustMatrixSession tags them. */
+    val invites = MutableStateFlow<List<InviteSummary>>(emptyList())
+
+    /** Joined spaces (S29), each with its joined parent spaces. */
+    val spaces = MutableStateFlow<List<SpaceSummary>>(emptyList())
 
     /** SYNCING means "session active, sync loop running" in this codebase (set
      *  once in [startSync], never cleared except by [logout]) — there's no
@@ -157,7 +178,13 @@ internal class RustMatrixClientHolder @Inject constructor(
                     logLevel = LogLevel.WARN,
                     traceLogPacks = emptyList(),
                     extraTargets = emptyList(),
-                    writeToStdoutOrSystem = false,
+                    // SDK warnings and errors go to logcat, so
+                    // a field report can name the real cause of a failure — e.g.
+                    // "invalid peer certificate: UnknownIssuer" vs a DNS error —
+                    // which the error shown in the UI does not carry. WARN and up
+                    // only: the SDK never logs tokens or message content at these
+                    // levels (AGENTS.md §9 records this exception).
+                    writeToStdoutOrSystem = true,
                     writeToFiles = null,
                     sentryConfig = null,
                 ),
@@ -243,15 +270,67 @@ internal class RustMatrixClientHolder @Inject constructor(
 
         val listener = object : RoomListEntriesListener {
             override fun onUpdate(roomEntriesUpdate: List<RoomListEntriesUpdate>) {
-                applyUpdates(roomEntriesUpdate)
+                applyUpdates(entries, roomEntriesUpdate)
                 recompute()
             }
         }
         val result = list.entriesWithDynamicAdapters(pageSize = PAGE_SIZE, listener = listener)
-        // Joined = the user's joined rooms (no args); All takes a filter list.
-        result.controller().setFilter(RoomListEntriesDynamicFilterKind.Joined)
+        // Joined rooms that are not spaces — spaces get their own stream below
+        // and show as folders (S29), never as chat rows.
+        result.controller().setFilter(
+            RoomListEntriesDynamicFilterKind.All(
+                listOf(RoomListEntriesDynamicFilterKind.Joined, RoomListEntriesDynamicFilterKind.NonSpace),
+            ),
+        )
         entriesResult = result // keep alive so the stream is not dropped
+
+        // Invitations: a second stream over the same room list, filtered to
+        // Invited membership. Accepting one moves the room to the Joined stream.
+        val inviteListener = object : RoomListEntriesListener {
+            override fun onUpdate(roomEntriesUpdate: List<RoomListEntriesUpdate>) {
+                applyUpdates(inviteEntries, roomEntriesUpdate)
+                inviteMapper.request()
+            }
+        }
+        val invitesStream = list.entriesWithDynamicAdapters(pageSize = PAGE_SIZE, listener = inviteListener)
+        invitesStream.controller().setFilter(RoomListEntriesDynamicFilterKind.Invite)
+        invitesResult = invitesStream
+
+        // Spaces: the SpaceService answers "which joined spaces contain this
+        // room" from local state. Its joined-spaces subscription keeps that
+        // graph current; any change re-maps rooms and spaces so folders follow.
+        val spaceSvc = runCatching { requireClient().spaceService() }.getOrNull()
+        spaceService = spaceSvc
+        spacesHandle = runCatching {
+            spaceSvc?.subscribeToTopLevelJoinedSpaces(
+                object : SpaceServiceJoinedSpacesListener {
+                    override fun onUpdate(roomUpdates: List<SpaceListUpdate>) {
+                        recompute()
+                        spaceMapper.request()
+                    }
+                },
+            )
+        }.getOrNull()
+        val spaceListener = object : RoomListEntriesListener {
+            override fun onUpdate(roomEntriesUpdate: List<RoomListEntriesUpdate>) {
+                applyUpdates(spaceEntries, roomEntriesUpdate)
+                spaceMapper.request()
+                recompute() // a newly joined space can re-home rooms
+            }
+        }
+        val spacesStream = list.entriesWithDynamicAdapters(pageSize = PAGE_SIZE, listener = spaceListener)
+        spacesStream.controller().setFilter(
+            RoomListEntriesDynamicFilterKind.All(
+                listOf(RoomListEntriesDynamicFilterKind.Joined, RoomListEntriesDynamicFilterKind.Space),
+            ),
+        )
+        spacesResult = spacesStream
     }
+
+    /** Joined spaces that list [roomId] as a child. Local lookup; empty on error. */
+    private suspend fun parentSpacesOf(roomId: String): List<RoomId> =
+        runCatching { spaceService?.joinedParentsOfChild(roomId).orEmpty().map { RoomId(it.roomId) } }
+            .getOrDefault(emptyList())
 
     /**
      * Pause the sync loop, keeping the [SyncService], room-list stream, and
@@ -326,7 +405,11 @@ internal class RustMatrixClientHolder @Inject constructor(
         networkCallback = null
         teardownClient()
         synchronized(entries) { entries.clear() }
+        synchronized(inviteEntries) { inviteEntries.clear() }
+        synchronized(spaceEntries) { spaceEntries.clear() }
         rooms.value = emptyList()
+        invites.value = emptyList()
+        spaces.value = emptyList()
         syncState.value = SyncState.IDLE
         draftStore.clearAll()
         store.clear()
@@ -345,10 +428,19 @@ internal class RustMatrixClientHolder @Inject constructor(
         runCatching { syncStateHandle?.destroy() }
         syncStateHandle = null
         runCatching { entriesResult?.destroy() }
+        runCatching { invitesResult?.destroy() }
+        runCatching { spacesResult?.destroy() }
+        runCatching { spacesHandle?.cancel() }
+        runCatching { spacesHandle?.destroy() }
+        runCatching { spaceService?.destroy() }
         runCatching { roomList?.destroy() }
         runCatching { syncService?.destroy() }
         runCatching { client?.destroy() }
         entriesResult = null
+        invitesResult = null
+        spacesResult = null
+        spacesHandle = null
+        spaceService = null
         roomList = null
         syncService = null
         client = null
@@ -386,23 +478,23 @@ internal class RustMatrixClientHolder @Inject constructor(
         }
     }
 
-    private fun applyUpdates(updates: List<RoomListEntriesUpdate>) = synchronized(entries) {
+    private fun applyUpdates(target: MutableList<Room>, updates: List<RoomListEntriesUpdate>) = synchronized(target) {
         updates.forEach { update ->
             when (update) {
-                is RoomListEntriesUpdate.Append -> entries.addAll(update.values)
-                is RoomListEntriesUpdate.PushBack -> entries.add(update.value)
-                is RoomListEntriesUpdate.PushFront -> entries.add(0, update.value)
-                is RoomListEntriesUpdate.Insert -> entries.add(update.index.toInt(), update.value)
-                is RoomListEntriesUpdate.Set -> entries[update.index.toInt()] = update.value
-                is RoomListEntriesUpdate.Remove -> entries.removeAt(update.index.toInt())
-                is RoomListEntriesUpdate.PopBack -> entries.removeAt(entries.lastIndex)
-                is RoomListEntriesUpdate.PopFront -> entries.removeAt(0)
-                is RoomListEntriesUpdate.Truncate -> entries.subList(update.length.toInt(), entries.size).clear()
+                is RoomListEntriesUpdate.Append -> target.addAll(update.values)
+                is RoomListEntriesUpdate.PushBack -> target.add(update.value)
+                is RoomListEntriesUpdate.PushFront -> target.add(0, update.value)
+                is RoomListEntriesUpdate.Insert -> target.add(update.index.toInt(), update.value)
+                is RoomListEntriesUpdate.Set -> target[update.index.toInt()] = update.value
+                is RoomListEntriesUpdate.Remove -> target.removeAt(update.index.toInt())
+                is RoomListEntriesUpdate.PopBack -> target.removeAt(target.lastIndex)
+                is RoomListEntriesUpdate.PopFront -> target.removeAt(0)
+                is RoomListEntriesUpdate.Truncate -> target.subList(update.length.toInt(), target.size).clear()
                 is RoomListEntriesUpdate.Reset -> {
-                    entries.clear()
-                    entries.addAll(update.values)
+                    target.clear()
+                    target.addAll(update.values)
                 }
-                is RoomListEntriesUpdate.Clear -> entries.clear()
+                is RoomListEntriesUpdate.Clear -> target.clear()
             }
         }
     }
@@ -411,10 +503,20 @@ internal class RustMatrixClientHolder @Inject constructor(
      *  (see [LatestOnlyRunner] for the out-of-order bug this replaced). */
     private val roomMapper = LatestOnlyRunner(scope) {
         val snapshot = synchronized(entries) { entries.toList() }
-        rooms.value = snapshot.map { Mappers.toRoomSummary(it) }
+        rooms.value = snapshot.map { Mappers.toRoomSummary(it, parentSpacesOf(it.id())) }
     }
 
     private fun recompute() = roomMapper.request()
+
+    private val spaceMapper = LatestOnlyRunner(scope) {
+        val snapshot = synchronized(spaceEntries) { spaceEntries.toList() }
+        spaces.value = snapshot.map { Mappers.toSpaceSummary(it, parentSpacesOf(it.id())) }
+    }
+
+    private val inviteMapper = LatestOnlyRunner(scope) {
+        val snapshot = synchronized(inviteEntries) { inviteEntries.toList() }
+        invites.value = snapshot.map { Mappers.toInviteSummary(it) }
+    }
 
     private companion object {
         const val PAGE_SIZE: UInt = 100u
