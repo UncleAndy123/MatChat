@@ -246,6 +246,16 @@ internal object Mappers {
     ): TimelineItem? {
         val event = item.asEvent() ?: return null
         val msgLike = event.content as? TimelineItemContent.MsgLike ?: return null
+        // A message this phone can't decrypt (no keys yet — typically an
+        // unverified device) is shown as its own row with a "Fix encryption"
+        // action (UX-SPEC S9), never dropped: dropping it made encrypted rooms
+        // look empty with no explanation.
+        if (msgLike.content.kind is MsgLikeKind.UnableToDecrypt) {
+            return TimelineItem.UnableToDecrypt(
+                eventId = EventId(eventIdOf(event.eventOrTransactionId)),
+                sender = UserId(event.sender),
+            )
+        }
         val messageKind = msgLike.content.kind as? MsgLikeKind.Message ?: return null
         val eventId = eventIdOf(event.eventOrTransactionId)
         val isPinned = eventId in pinnedIds
