@@ -160,7 +160,9 @@ The full key map is in `docs/UX-SPEC.md §2`. What you must obey in code:
   - **Which physical side is Options is global and automatic** (per explicit
     user direction, docs/adr/0007 "Auto-detection", like FlipWeather):
     **Options on the physical RIGHT by default**; a MENU key moves it to the
-    LEFT; a right softkey keeps it RIGHT (`KeyMap.detectSoftkeys`, stored in
+    LEFT; a Back key pressed before any softkey moves it LEFT too (phones whose
+    right softkey sends Back, e.g. ZTE Cymbal 2, issue #44) until a right
+    softkey is seen; a right softkey keeps it RIGHT (`KeyMap.detectSoftkeys`, stored in
     `UserPreferences.softkeyKindSeen`/`softkeysSwapped`). `KEYCODE_MENU` always
     means Options and `KEYCODE_BACK` always Back — neither is ever swapped.
     Settings > Advanced > "Swap Left/Right keys" is the manual override. All

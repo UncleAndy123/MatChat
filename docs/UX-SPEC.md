@@ -70,8 +70,12 @@ softkey each. Which physical side is Options is set **globally and
 automatically**, like FlipWeather (docs/adr/0007, "Auto-detection"):
 **Options on the right, Back on the left by default**; the first MENU key
 press moves Options to the left (and opens it); a right-softkey press keeps
-it on the right. It stays set until the phone shows a different kind of key
-(once a MENU key is seen, it stays on the left). Settings > Advanced >
+it on the right. A Back key pressed before any softkey also moves Options to
+the left (it still acts as Back): some phones' right softkey sends Back (ZTE
+Cymbal 2, issue #44), so Options on the right would be unreachable; a later
+right-softkey press moves it back to the right (that press still acts as the
+Back its label showed). It stays set until the phone shows a different kind
+of key (once a MENU key is seen, it stays on the left). Settings > Advanced >
 "Swap Left/Right keys" (S25) overrides it by hand. The softkey bar's labels
 always match.
 

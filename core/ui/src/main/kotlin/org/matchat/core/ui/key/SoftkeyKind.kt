@@ -16,6 +16,12 @@ enum class SoftkeyKind {
     /** A MENU key (`KEYCODE_MENU`, a dedicated Options key) was seen: Options
      *  on the left. Final — see [KeyMap.detectSoftkeys]. */
     MENU,
+
+    /** A Back key (`KEYCODE_BACK`) was pressed before any softkey: Options on
+     *  the left, because a phone whose right softkey sends Back (the ZTE
+     *  Cymbal 2, issue #44) can never reach Options on the right. Provisional —
+     *  a right softkey or a MENU key overrides it. */
+    BACK,
 }
 
 /** What [KeyMap.detectSoftkeys] learned from one key: the kind to store, and

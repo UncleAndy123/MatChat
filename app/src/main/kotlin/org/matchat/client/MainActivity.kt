@@ -493,19 +493,21 @@ class MainActivity : AppCompatActivity(), Navigator {
      *  CENTER/holds/the left softkey never do, so T9 text entry — and every
      *  other key — is unaffected whether or not the service is enabled). */
     /** The softkey layout to map [event] with, after letting it set the layout
-     *  automatically (KeyMap.detectSoftkeys: a MENU key puts Options on the
-     *  left, a right softkey on the right). A change is saved and the bar
-     *  re-renders through the softkeysSwapped flow; this key already uses the
-     *  new layout, so the very first press does what its new label says. */
+     *  automatically (KeyMap.detectSoftkeys: a MENU or Back key puts Options on
+     *  the left, a right softkey on the right). A change is saved and the bar
+     *  re-renders through the softkeysSwapped flow; this key still uses the
+     *  layout it was pressed under, so it does what its label said. (MENU and
+     *  BACK are never swapped, so for them the two layouts agree.) */
     private fun softkeysSwappedAfter(event: KeyEvent): Boolean {
+        val current = userPreferences.softkeysSwapped.value
         val detected = KeyMap.detectSoftkeys(event.keyCode, userPreferences.softkeyKindSeen.value)
-            ?: return userPreferences.softkeysSwapped.value
+            ?: return current
         Log.d(SOFTKEY_LOG_TAG, "softkey layout detected: ${detected.kind} swapped=${detected.swapped}")
         lifecycleScope.launch {
             userPreferences.setSoftkeyKindSeen(detected.kind)
             userPreferences.setSoftkeysSwapped(detected.swapped)
         }
-        return detected.swapped
+        return current
     }
 
     private fun handleAccessibilityKeyEvent(event: KeyEvent): Boolean {

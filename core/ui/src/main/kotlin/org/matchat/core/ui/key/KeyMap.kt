@@ -91,9 +91,13 @@ object KeyMap {
     /**
      * Automatic softkey layout, like FlipWeather (docs/adr/0007, "Auto-detection"):
      * a phone with a MENU key gets Options on the LEFT; one with a right softkey
-     * (`KEYCODE_SOFT_RIGHT`) gets Options on the RIGHT, the default. Given a
-     * key-DOWN's [keyCode] and the [seen] kind stored so far, returns the new
-     * kind and layout to apply, or null when nothing changes.
+     * (`KEYCODE_SOFT_RIGHT`) gets Options on the RIGHT, the default. A Back key
+     * pressed before any softkey also moves Options LEFT: on a phone whose right
+     * softkey sends `KEYCODE_BACK` (the ZTE Cymbal 2, issue #44) Options on the
+     * right is unreachable. On a phone that has a right softkey as well, the
+     * first right-softkey press moves it back. Given a key-DOWN's [keyCode] and
+     * the [seen] kind stored so far, returns the new kind and layout to apply,
+     * or null when nothing changes.
      *
      * It only acts when the phone shows something different, so a manual choice
      * in Settings > Advanced stands until then. MENU is final: once seen, a
@@ -103,8 +107,10 @@ object KeyMap {
     fun detectSoftkeys(keyCode: Int, seen: SoftkeyKind): SoftkeyDetection? = when {
         keyCode == KeyEvent.KEYCODE_MENU && seen != SoftkeyKind.MENU ->
             SoftkeyDetection(SoftkeyKind.MENU, swapped = false)
-        keyCode == KeyEvent.KEYCODE_SOFT_RIGHT && seen == SoftkeyKind.NONE ->
+        keyCode == KeyEvent.KEYCODE_SOFT_RIGHT && (seen == SoftkeyKind.NONE || seen == SoftkeyKind.BACK) ->
             SoftkeyDetection(SoftkeyKind.SOFT_RIGHT, swapped = true)
+        keyCode == KeyEvent.KEYCODE_BACK && seen == SoftkeyKind.NONE ->
+            SoftkeyDetection(SoftkeyKind.BACK, swapped = false)
         else -> null
     }
 

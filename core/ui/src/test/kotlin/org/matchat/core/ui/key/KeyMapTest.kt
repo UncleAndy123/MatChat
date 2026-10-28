@@ -104,10 +104,36 @@ class KeyMapTest {
     }
 
     @Test
+    fun `a Back key before any softkey puts Options on the left`() {
+        // ZTE Cymbal 2 (issue #44): the right softkey sends KEYCODE_BACK, so
+        // Options on the right could never be reached.
+        val d = KeyMap.detectSoftkeys(KeyEvent.KEYCODE_BACK, SoftkeyKind.NONE)
+        assertEquals(SoftkeyDetection(SoftkeyKind.BACK, swapped = false), d)
+    }
+
+    @Test
+    fun `a right softkey after a Back key moves Options back to the right`() {
+        val d = KeyMap.detectSoftkeys(KeyEvent.KEYCODE_SOFT_RIGHT, SoftkeyKind.BACK)
+        assertEquals(SoftkeyDetection(SoftkeyKind.SOFT_RIGHT, swapped = true), d)
+    }
+
+    @Test
+    fun `a MENU key after a Back key moves Options left for good`() {
+        val d = KeyMap.detectSoftkeys(KeyEvent.KEYCODE_MENU, SoftkeyKind.BACK)
+        assertEquals(SoftkeyDetection(SoftkeyKind.MENU, swapped = false), d)
+    }
+
+    @Test
+    fun `a Back key once any softkey is known changes nothing`() {
+        assertNull(KeyMap.detectSoftkeys(KeyEvent.KEYCODE_BACK, SoftkeyKind.SOFT_RIGHT))
+        assertNull(KeyMap.detectSoftkeys(KeyEvent.KEYCODE_BACK, SoftkeyKind.MENU))
+        assertNull(KeyMap.detectSoftkeys(KeyEvent.KEYCODE_BACK, SoftkeyKind.BACK))
+    }
+
+    @Test
     fun `other keys never change the layout`() {
         listOf(
             KeyEvent.KEYCODE_SOFT_LEFT,
-            KeyEvent.KEYCODE_BACK,
             KeyEvent.KEYCODE_DPAD_CENTER,
             KeyEvent.KEYCODE_5,
         ).forEach { code ->

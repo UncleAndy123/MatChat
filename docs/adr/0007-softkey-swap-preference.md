@@ -215,8 +215,19 @@ in FlipWeather and the Flip-DumbPhoneGuide's house rule):
   swapped, like `KEYCODE_BACK` is always Back: it's a dedicated Options key
   wherever it appears (Sonim's Options key; the left softkey on AOSP flips
   that send it).
-- The key that triggers a change is mapped with the new layout, so the first
-  MENU press both moves the label and opens Options.
+- The key that triggers a change is mapped with the layout it was pressed
+  under, so it does what its label said. MENU and BACK are never swapped, so
+  the first MENU press still both moves the label and opens Options.
+- **Back key before any softkey (issue #44).** On the ZTE Cymbal 2 the right
+  softkey reaches the app as `KEYCODE_BACK`, so with Options on the right the
+  "Options" key exited the app and Options was unreachable. A `KEYCODE_BACK`
+  press while nothing has been seen yet (`SoftkeyKind.NONE`) now moves
+  Options to the **left** (`SoftkeyKind.BACK`); the press itself is still
+  Back. This is provisional: a later `KEYCODE_SOFT_RIGHT` (a phone with a
+  real right softkey *and* a dedicated Back key, e.g. Kyocera) moves Options
+  back to the right, and that press acts as the Back its label showed; a MENU
+  key moves it left for good. The cost on such a phone is one label move;
+  every press still does what its label said when it was pressed.
 
 The known risk recorded above still applies to phones that land on Options
 right: the T9 keyboard can swallow `KEYCODE_SOFT_RIGHT` while composing.
