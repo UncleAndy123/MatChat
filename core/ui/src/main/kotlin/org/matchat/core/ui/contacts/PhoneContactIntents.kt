@@ -17,10 +17,9 @@ object PhoneContactIntents {
     /** How the address is labelled in the phone's Contacts app. */
     private const val PROTOCOL_LABEL = "Matrix"
 
-    fun addToExisting(address: String): Intent =
-        Intent(Intent.ACTION_INSERT_OR_EDIT).apply {
-            type = ContactsContract.Contacts.CONTENT_ITEM_TYPE
-            putExtra(ContactsContract.Intents.Insert.IM_PROTOCOL, PROTOCOL_LABEL)
-            putExtra(ContactsContract.Intents.Insert.IM_HANDLE, address)
-        }
+    fun addToExisting(address: String): Intent = Intent(Intent.ACTION_INSERT_OR_EDIT).apply {
+        type = ContactsContract.Contacts.CONTENT_ITEM_TYPE
+        putExtra(ContactsContract.Intents.Insert.IM_PROTOCOL, PROTOCOL_LABEL)
+        putExtra(ContactsContract.Intents.Insert.IM_HANDLE, address)
+    }
 }

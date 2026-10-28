@@ -44,6 +44,5 @@ internal object ContactsCodec {
         }
     }
 
-    private fun parse(json: String?): JSONArray? =
-        json?.let { runCatching { JSONArray(it) }.getOrNull() }
+    private fun parse(json: String?): JSONArray? = json?.let { runCatching { JSONArray(it) }.getOrNull() }
 }
