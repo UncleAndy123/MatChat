@@ -18,6 +18,7 @@ import org.matchat.core.matrix.Draft
 import org.matchat.core.matrix.DraftAttachment
 import org.matchat.core.matrix.DraftStore
 import org.matchat.core.matrix.MatrixSession
+import org.matchat.core.model.DeviceTrust
 import org.matchat.core.model.EventId
 import org.matchat.core.model.MediaKind
 import org.matchat.core.model.MillisClock
@@ -109,7 +110,8 @@ class TimelineViewModel @Inject constructor(
                 ::ComposeContext,
             ),
             pendingAttachment,
-        ) { ctx, pending ->
+            session.ownDevice,
+        ) { ctx, pending, deviceTrust ->
             val room = ctx.rooms.firstOrNull { it.id == roomId }
             TimelineState(
                 title = room?.name.orEmpty(),
@@ -124,6 +126,7 @@ class TimelineViewModel @Inject constructor(
                     (it is TimelineItem.Message && it.isPinned) || (it is TimelineItem.Media && it.isPinned)
                 },
                 pendingAttachment = pending,
+                isDeviceUnverified = deviceTrust == DeviceTrust.UNVERIFIED,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), TimelineState())
 
@@ -146,6 +149,7 @@ class TimelineViewModel @Inject constructor(
             TimelineAction.ReachedTop -> paginateBack()
             is TimelineAction.ComposeFocusChanged -> composeFocused.value = action.focused
             is TimelineAction.FixEncryption -> emit(TimelineNav.Verification)
+            TimelineAction.VerifyDevice -> emit(TimelineNav.Verification)
             is TimelineAction.MessageFocused -> Unit // focus tracking only
             TimelineAction.MarkRead -> markRead()
             is TimelineAction.StageAttachment -> {

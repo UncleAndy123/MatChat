@@ -183,9 +183,15 @@ data class TimelineState(
      *  nothing is staged (Attachment staging round). Drives the attachment
      *  preview row's visibility above `compose_input`. */
     val pendingAttachment: PendingAttachment? = null,
+    /** This phone is not verified, so it has no keys for most encrypted
+     *  messages; drives the "not verified" band (UX-SPEC S9). */
+    val isDeviceUnverified: Boolean = false,
 ) {
     val isEmpty: Boolean get() = rows.isEmpty() && !isLoadingEarlier
     val showUnencryptedBand: Boolean get() = !isEncrypted
+
+    /** Only encrypted rooms are affected by an unverified device. */
+    val showUnverifiedBand: Boolean get() = isEncrypted && isDeviceUnverified
 
     companion object {
         fun glyph(state: SendState): String = when (state) {

@@ -4,7 +4,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import org.matchat.core.matrix.MatrixSession
@@ -66,8 +65,7 @@ internal class RustMatrixSession @Inject constructor(
             invites.map { it.copy(allowedByPolicy = policy.allowsDomain(it.senderDomain)) }
         }
 
-    // FFI follow-up: device trust arrives with the M4 verification wiring.
-    override val ownDevice: Flow<DeviceTrust> = MutableStateFlow(DeviceTrust.VERIFIED)
+    override val ownDevice: Flow<DeviceTrust> = holder.deviceTrust
 
     override fun timeline(roomId: RoomId): RoomTimeline =
         RustRoomTimeline(holder.roomFor(roomId), scope, holder.ownUserId())
@@ -76,8 +74,9 @@ internal class RustMatrixSession @Inject constructor(
 
     override suspend fun declineInvite(roomId: RoomId, ignoreSender: Boolean): Result<Unit> {
         val inviter = holder.invites.value.firstOrNull { it.roomId == roomId }?.inviter
+            ?.takeIf { ignoreSender && it.value.isNotEmpty() }
         val result = roomOp(roomId) { it.leave() }
-        if (result.isSuccess && ignoreSender && inviter != null && inviter.value.isNotEmpty()) {
+        if (result.isSuccess && inviter != null) {
             withContext(Dispatchers.IO) { runCatching { holder.requireClient().ignoreUser(inviter.value) } }
         }
         return result

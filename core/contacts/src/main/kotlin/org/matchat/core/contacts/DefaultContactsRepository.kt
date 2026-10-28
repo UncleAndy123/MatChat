@@ -69,8 +69,7 @@ internal class DefaultContactsRepository @Inject constructor(
         return true
     }
 
-    override suspend fun onPhonePermissionResult(granted: Boolean): Boolean =
-        if (granted) turnOnPhoneSync() else false
+    override suspend fun onPhonePermissionResult(granted: Boolean): Boolean = if (granted) turnOnPhoneSync() else false
 
     override fun isPhonePromptOffered(): Boolean = localStore.isPhonePromptOffered()
 

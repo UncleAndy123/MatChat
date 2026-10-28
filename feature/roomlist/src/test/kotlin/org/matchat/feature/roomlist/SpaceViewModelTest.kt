@@ -32,8 +32,8 @@ class SpaceViewModelTest {
     private fun subject() =
         SpaceViewModel(session, MillisClock { 0L }, FakeDraftStore(), SavedStateHandle(mapOf("spaceId" to farm.value)))
 
-    private fun room(id: String, vararg parents: RoomId) =
-        RoomSummary(RoomId(id), id, null, null, 0, true, parentSpaceIds = parents.toList())
+    private fun room(id: String, parent: RoomId? = null) =
+        RoomSummary(RoomId(id), id, null, null, 0, true, parentSpaceIds = listOfNotNull(parent))
 
     @Test
     fun `lists subspaces then joined rooms, and opens each kind`() = runTest {

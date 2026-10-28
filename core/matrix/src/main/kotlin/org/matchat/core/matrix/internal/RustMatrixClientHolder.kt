@@ -16,6 +16,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.matchat.core.matrix.DraftStore
 import org.matchat.core.matrix.MatrixDevConfig
+import org.matchat.core.model.DeviceTrust
 import org.matchat.core.model.InviteSummary
 import org.matchat.core.model.RoomId
 import org.matchat.core.model.RoomSummary
@@ -39,6 +40,8 @@ import org.matrix.rustcomponents.sdk.SyncServiceState
 import org.matrix.rustcomponents.sdk.SyncServiceStateObserver
 import org.matrix.rustcomponents.sdk.TaskHandle
 import org.matrix.rustcomponents.sdk.TracingConfiguration
+import org.matrix.rustcomponents.sdk.VerificationState
+import org.matrix.rustcomponents.sdk.VerificationStateListener
 import org.matrix.rustcomponents.sdk.initPlatform
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -70,6 +73,7 @@ internal class RustMatrixClientHolder @Inject constructor(
     private var spacesResult: RoomListEntriesWithDynamicAdaptersResult? = null
     private var spaceService: SpaceService? = null
     private var spacesHandle: TaskHandle? = null // keeps the space graph current
+    private var verificationHandle: TaskHandle? = null // keeps [deviceTrust] current
 
     /** Ordered room entries maintained from the sliding-sync diff stream. */
     private val entries = mutableListOf<Room>()
@@ -87,6 +91,11 @@ internal class RustMatrixClientHolder @Inject constructor(
 
     /** Joined spaces (S29), each with its joined parent spaces. */
     val spaces = MutableStateFlow<List<SpaceSummary>>(emptyList())
+
+    /** Whether THIS device is verified, from the SDK's own verification state.
+     *  Starts (and stays, until the SDK knows) at VERIFIED so no warning flashes
+     *  while the state is still UNKNOWN — only a definite UNVERIFIED warns. */
+    val deviceTrust = MutableStateFlow(DeviceTrust.VERIFIED)
 
     /** SYNCING means "session active, sync loop running" in this codebase (set
      *  once in [startSync], never cleared except by [logout]) — there's no
@@ -149,6 +158,11 @@ internal class RustMatrixClientHolder @Inject constructor(
                 // UPPER_SNAKE_CASE Kotlin entries, hence DISCOVER_NATIVE. Without a
                 // version builder the room list fails with VersionIsMissing.
                 .slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DISCOVER_NATIVE)
+            // TLS is verified by the platform verifier, which calls back into
+            // :app's org.rustls.platformverifier.CertificateVerifier (docs/adr/0010).
+            // Never addRootCertificates() here: on Android reqwest rejects merging
+            // roots into the platform verifier ("builder error"), and the FFI's
+            // DER-first parse stores PEM bytes as DER, failing tls_certs_only too.
             if (devConfig.allowInsecureTls) {
                 // Debug builds only (see MatrixDevConfig): lets on-device testing
                 // work behind an SSL-inspecting proxy and sidesteps the rustls-
@@ -163,8 +177,8 @@ internal class RustMatrixClientHolder @Inject constructor(
     /**
      * Initializes the SDK platform (its Tokio runtime, tracing, and the
      * rustls-platform-verifier TLS verifier) exactly once per process, before the
-     * first client is built. The verifier resolves the vendored
-     * org.rustls.platformverifier classes (:app, `libs/`) by name over JNI; without
+     * first client is built. The verifier resolves :app's own
+     * org.rustls.platformverifier.CertificateVerifier (docs/adr/0010) by name over JNI; without
      * this call a real TLS path fails with "Expect rustls-platform-verifier to be
      * initialized". Debug builds also disableSslVerification() (MatrixDevConfig), so
      * the verifier is unused there, but initializing unconditionally matches how the
@@ -191,10 +205,19 @@ internal class RustMatrixClientHolder @Inject constructor(
                 // useLightweightTokioRuntime: full runtime for the app process
                 false,
             )
+        }.onSuccess {
+            // Confirms the rustls-platform-verifier was set up: without this the
+            // SDK's TLS path rejects every chain (even one the device trusts).
+            android.util.Log.w("MatrixClientHolder", "initPlatform OK")
         }.onFailure {
-            // Don't hard-fail client build: log and let the (real) TLS error, if
-            // any, surface at sign-in with its own message.
-            android.util.Log.w("MatrixClientHolder", "initPlatform failed: ${it.message}")
+            // Don't hard-fail client build: log the full cause (type + stack) and
+            // let the TLS error surface at sign-in. A failure here means the
+            // verifier never initialized, so every TLS verification then fails.
+            android.util.Log.w(
+                "MatrixClientHolder",
+                "initPlatform FAILED: ${it.javaClass.name}: ${it.message}",
+                it,
+            )
         }
     }
 
@@ -325,7 +348,29 @@ internal class RustMatrixClientHolder @Inject constructor(
             ),
         )
         spacesResult = spacesStream
+
+        observeVerificationState()
     }
+
+    /** Follows this device's verification state (S9's "not verified" band). An
+     *  unverified device has no keys for most encrypted history, so messages show
+     *  as "can't be read" until it is verified (S6). */
+    private fun observeVerificationState() {
+        val encryption = runCatching { requireClient().encryption() }.getOrNull() ?: return
+        deviceTrust.value = trustOf(runCatching { encryption.verificationState() }.getOrNull())
+        verificationHandle = runCatching {
+            encryption.verificationStateListener(
+                object : VerificationStateListener {
+                    override fun onUpdate(status: VerificationState) {
+                        deviceTrust.value = trustOf(status)
+                    }
+                },
+            )
+        }.getOrNull()
+    }
+
+    private fun trustOf(state: VerificationState?): DeviceTrust =
+        if (state == VerificationState.UNVERIFIED) DeviceTrust.UNVERIFIED else DeviceTrust.VERIFIED
 
     /** Joined spaces that list [roomId] as a child. Local lookup; empty on error. */
     private suspend fun parentSpacesOf(roomId: String): List<RoomId> =
@@ -410,6 +455,7 @@ internal class RustMatrixClientHolder @Inject constructor(
         rooms.value = emptyList()
         invites.value = emptyList()
         spaces.value = emptyList()
+        deviceTrust.value = DeviceTrust.VERIFIED
         syncState.value = SyncState.IDLE
         draftStore.clearAll()
         store.clear()
@@ -430,6 +476,8 @@ internal class RustMatrixClientHolder @Inject constructor(
         runCatching { entriesResult?.destroy() }
         runCatching { invitesResult?.destroy() }
         runCatching { spacesResult?.destroy() }
+        runCatching { verificationHandle?.cancel() }
+        runCatching { verificationHandle?.destroy() }
         runCatching { spacesHandle?.cancel() }
         runCatching { spacesHandle?.destroy() }
         runCatching { spaceService?.destroy() }
@@ -440,6 +488,7 @@ internal class RustMatrixClientHolder @Inject constructor(
         invitesResult = null
         spacesResult = null
         spacesHandle = null
+        verificationHandle = null
         spaceService = null
         roomList = null
         syncService = null

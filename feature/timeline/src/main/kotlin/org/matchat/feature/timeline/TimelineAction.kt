@@ -12,6 +12,9 @@ sealed interface TimelineAction {
     data class ComposeFocusChanged(val focused: Boolean) : TimelineAction
     data class FixEncryption(val eventId: EventId) : TimelineAction
 
+    /** CENTER on the "not verified" band: go verify this phone (S6). */
+    data object VerifyDevice : TimelineAction
+
     /** Sent a read receipt for the latest message (clears the room's unread count). */
     data object MarkRead : TimelineAction
 

@@ -26,6 +26,21 @@
         tools:text="📌 3 pinned messages ›"
         tools:visibility="visible" />
 
+    <!-- "This phone isn't verified" (UX-SPEC S9): an unverified device has no keys
+         for most encrypted messages, so they show as "can't be read". A focus stop;
+         CENTER opens verification (S6). Shown only in encrypted rooms. -->
+    <TextView
+        android:id="@+id/unverified_band"
+        style="@style/Widget.MatChat.Row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="?attr/rowMinHeightCompact"
+        android:textSize="?attr/textSizeLabel"
+        android:textColor="?attr/colorTextOnFocus"
+        android:text="@string/timeline_unverified_band"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <TextView
         android:id="@+id/unencrypted_band"
         android:layout_width="match_parent"

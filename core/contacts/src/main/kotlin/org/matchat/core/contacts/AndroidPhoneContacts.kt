@@ -113,32 +113,29 @@ internal class AndroidPhoneContacts @Inject constructor(
     }
 
     /** The picked contact's id and display name. */
-    private fun contactOf(uri: Uri): Pair<Long, String?>? =
-        context.contentResolver.query(
-            uri,
-            arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.DISPLAY_NAME),
-            null,
-            null,
-            null,
-        )?.use { c -> if (c.moveToFirst()) c.getLong(0) to c.getString(1) else null }
+    private fun contactOf(uri: Uri): Pair<Long, String?>? = context.contentResolver.query(
+        uri,
+        arrayOf(ContactsContract.Contacts._ID, ContactsContract.Contacts.DISPLAY_NAME),
+        null,
+        null,
+        null,
+    )?.use { c -> if (c.moveToFirst()) c.getLong(0) to c.getString(1) else null }
 
-    private fun firstRawContactOf(contactId: Long): Long? =
-        context.contentResolver.query(
-            ContactsContract.RawContacts.CONTENT_URI,
-            arrayOf(ContactsContract.RawContacts._ID),
-            "${ContactsContract.RawContacts.CONTACT_ID}=?",
-            arrayOf(contactId.toString()),
-            "${ContactsContract.RawContacts._ID} ASC",
-        )?.use { c -> if (c.moveToFirst()) c.getLong(0) else null }
+    private fun firstRawContactOf(contactId: Long): Long? = context.contentResolver.query(
+        ContactsContract.RawContacts.CONTENT_URI,
+        arrayOf(ContactsContract.RawContacts._ID),
+        "${ContactsContract.RawContacts.CONTACT_ID}=?",
+        arrayOf(contactId.toString()),
+        "${ContactsContract.RawContacts._ID} ASC",
+    )?.use { c -> if (c.moveToFirst()) c.getLong(0) else null }
 
-    private fun contactIdOfRaw(rawId: Long): Long? =
-        context.contentResolver.query(
-            ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawId),
-            arrayOf(ContactsContract.RawContacts.CONTACT_ID),
-            null,
-            null,
-            null,
-        )?.use { c -> if (c.moveToFirst()) c.getLong(0) else null }
+    private fun contactIdOfRaw(rawId: Long): Long? = context.contentResolver.query(
+        ContentUris.withAppendedId(ContactsContract.RawContacts.CONTENT_URI, rawId),
+        arrayOf(ContactsContract.RawContacts.CONTACT_ID),
+        null,
+        null,
+        null,
+    )?.use { c -> if (c.moveToFirst()) c.getLong(0) else null }
 
     private fun granted(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED

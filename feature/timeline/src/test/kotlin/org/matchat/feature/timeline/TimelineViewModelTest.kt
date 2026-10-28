@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.matchat.core.matrix.Draft
 import org.matchat.core.matrix.DraftAttachment
+import org.matchat.core.model.DeviceTrust
 import org.matchat.core.model.EventId
 import org.matchat.core.model.MediaKind
 import org.matchat.core.model.Membership
@@ -61,6 +62,53 @@ class TimelineViewModelTest {
             assertEquals("Wayne", rows[0].senderName)
             assertNull(rows[1].senderName) // same sender: name suppressed
             assertEquals("Merv", rows[2].senderName)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `an unverified phone shows the not-verified band in an encrypted room`() = runTest {
+        session.deviceFlow.value = DeviceTrust.UNVERIFIED
+        session.roomsFlow.value = listOf(RoomSummary(roomId, "Barn", null, null, 0, isEncrypted = true))
+        subject().state.test {
+            assertTrue(expectMostRecentItem().showUnverifiedBand)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the not-verified band hides once verified, and never shows in an unencrypted room`() = runTest {
+        session.roomsFlow.value = listOf(RoomSummary(roomId, "Barn", null, null, 0, isEncrypted = true))
+        val vm = subject()
+        vm.state.test {
+            assertEquals(false, expectMostRecentItem().showUnverifiedBand) // verified by default
+            session.deviceFlow.value = DeviceTrust.UNVERIFIED
+            assertTrue(expectMostRecentItem().showUnverifiedBand)
+            session.roomsFlow.value = listOf(RoomSummary(roomId, "Barn", null, null, 0, isEncrypted = false))
+            assertEquals(false, expectMostRecentItem().showUnverifiedBand)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `selecting the not-verified band opens verification`() = runTest {
+        val vm = subject()
+        vm.navEvents.test {
+            vm.onAction(TimelineAction.VerifyDevice)
+            assertEquals(TimelineNav.Verification, awaitItem())
+        }
+    }
+
+    @Test
+    fun `an undecryptable message is shown as a can't-be-read row, not dropped`() = runTest {
+        val fake = session.timeline(roomId) as org.matchat.core.testing.FakeTimeline
+        fake.emit(listOf(TimelineItem.UnableToDecrypt(EventId("\$utd"), UserId("@wayne:s"))))
+        subject().state.test {
+            val rows = expectMostRecentItem().rows
+            assertEquals(
+                listOf(TimelineRow.UnableToDecrypt(EventId("\$utd"))),
+                rows.filterIsInstance<TimelineRow.UnableToDecrypt>(),
+            )
             cancelAndIgnoreRemainingEvents()
         }
     }

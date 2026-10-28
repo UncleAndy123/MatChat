@@ -250,11 +250,21 @@ focused, where RIGHT stays with the text cursor as normal (a narrow,
 documented exception to "directional keys are never reassigned per
 screen," scoped to this one shortcut — see `DirectionalKeyReceiver`).
 Hidden entirely when nothing is pinned.
+**Not-verified band**: in an **encrypted** room, when the SDK reports this phone
+as unverified, a focusable band (same row shape as the pinned band) sits below
+the pinned band: "⚠ This phone isn't verified, so messages can't be read.
+Select to verify ›". An unverified device has no keys for most encrypted
+messages, so they appear as "can't be read" rows — this band says why, in one
+place, instead of leaving the room looking broken. CENTER opens verification
+(S6). It disappears as soon as the phone is verified; never shown in an
+unencrypted room, and not shown while the state is still unknown (no flash on
+startup).
 If the room is **not encrypted**, a persistent 14 dp band sits directly under the
 title bar (below the pinned band, if both show): "This group is not encrypted."
 (G4). Encrypted rooms show nothing — encryption is the norm, not a decoration.
 Bottom: a one-line message input strip (18 dp) that is the **last** focus stop.
-Focus order: pinned band (if any) → oldest-loaded message → … → newest →
+Focus order: pinned band (if any) → not-verified band (if shown) →
+oldest-loaded message → … → newest →
 input strip. Initial focus: input strip (people come here to reply), ↑ walks
 back through history.
 Reaching the top item triggers `paginateBack(20)`; a 16 dp "Loading earlier
@@ -263,7 +273,8 @@ Softkeys: Options | Select | Back.
 Options: Room info · Mark as read · Mute this group · Help.
 Special rows:
 - **Unable to decrypt** — italic "This message can't be read on this phone yet."
-  + inline action `Fix encryption` (focusable) → S6.
+  + inline action `Fix encryption` (focusable) → S6. Every undecryptable message
+  gets this row in its place — it is never dropped from the list.
 - **Unsent** — red `!`, Options on that row offers Retry / Delete.
 Empty: "No messages yet. Say hello."
 

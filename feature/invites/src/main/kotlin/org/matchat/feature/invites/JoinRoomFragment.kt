@@ -77,22 +77,22 @@ class JoinRoomFragment : SoftkeyFragment() {
         b.joinBlocked.isVisible = state.blockedDomain != null
         state.blockedDomain?.let { b.joinBlocked.text = getString(R.string.invite_blocked, it) }
         b.joinError.isVisible = state.error != null
-        state.error?.let {
-            b.joinError.setText(
-                when (it) {
-                    JoinError.JOIN_FAILED -> R.string.join_error_join
-                    JoinError.KNOCK_FAILED -> R.string.join_error_knock
-                },
-            )
-        }
+        state.error?.let { b.joinError.setText(errorText(it)) }
         b.joinAction.isVisible = state.button != JoinButton.NONE
-        when (state.button) {
-            JoinButton.JOIN -> b.joinAction.setText(R.string.join_button_join)
-            JoinButton.ASK -> b.joinAction.setText(R.string.join_button_ask)
-            JoinButton.OPEN -> b.joinAction.setText(R.string.join_button_open)
-            JoinButton.NONE -> Unit
-        }
+        buttonText(state.button)?.let { b.joinAction.setText(it) }
         if (b.joinAction.isVisible && b.root.findFocus() == null) FocusEngine.requestInitialFocus(b.joinAction)
+    }
+
+    private fun errorText(error: JoinError): Int = when (error) {
+        JoinError.JOIN_FAILED -> R.string.join_error_join
+        JoinError.KNOCK_FAILED -> R.string.join_error_knock
+    }
+
+    private fun buttonText(button: JoinButton): Int? = when (button) {
+        JoinButton.JOIN -> R.string.join_button_join
+        JoinButton.ASK -> R.string.join_button_ask
+        JoinButton.OPEN -> R.string.join_button_open
+        JoinButton.NONE -> null
     }
 
     private fun noteText(note: JoinNote): Int = when (note) {

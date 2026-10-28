@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TLS trust for every HTTPS client in the app, including the Matrix SDK (which
+     verifies through org.rustls.platformverifier.CertificateVerifier, docs/adr/0010):
+     the device's system CAs plus any CA the user installs on the device (a
+     self-hosted homeserver's private CA, a managed network's CA). Same trust
+     anchors as Element X. Cleartext stays at the platform default (off). -->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates
+                src="user"
+                tools:ignore="AcceptsUserCertificates" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

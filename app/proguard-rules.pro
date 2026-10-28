@@ -19,11 +19,11 @@
 -dontwarn java.awt.**
 
 # The SDK validates TLS with rustls-platform-verifier. Its native layer calls
-# these Java classes by name over JNI (verifyCertificateChain) — invisible to R8,
-# so without a keep rule they are stripped/renamed and sign-in fails with "Expect
-# rustls-platform-verifier to be initialized". The classes are vendored in
-# app/libs (see :app build.gradle.kts) and the runtime is started by initPlatform()
-# in :core:matrix. Keep rule per the crate's docs.
+# org.rustls.platformverifier.CertificateVerifier.verifyCertificateChain by name
+# over JNI and reads VerificationResult's fields — invisible to R8, so without
+# this rule they are stripped/renamed and every TLS connection fails. The class
+# is our own source in :app (docs/adr/0010); the runtime is started by
+# initPlatform() in :core:matrix.
 -keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
 
 # Hilt/Dagger generate their own keep rules. Navigation needs Fragment names,

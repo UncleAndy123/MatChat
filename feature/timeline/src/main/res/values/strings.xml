@@ -5,6 +5,10 @@
     <string name="timeline_compose_hint">Message</string>
     <string name="timeline_utd">This message can\'t be read on this phone yet.</string>
     <string name="timeline_fix_encryption">Fix encryption</string>
+    <!-- Band at the top of an encrypted room when this phone is not verified:
+         its messages can't be decrypted here until it is. Selecting it opens
+         verification. -->
+    <string name="timeline_unverified_band">⚠ This phone isn\'t verified, so messages can\'t be read. Select to verify ›</string>
 
     <!-- Pinned-messages band (Pinned messages quick-access round), e.g.
          "📌 1 pinned message ›" / "📌 3 pinned messages ›". -->

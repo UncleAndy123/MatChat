@@ -198,6 +198,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
         }
 
         b.pinnedBand.setOnClickListener { navigator.toPinnedMessages(roomId()) }
+        b.unverifiedBand.setOnClickListener { viewModel.onAction(TimelineAction.VerifyDevice) }
 
         // Restore a saved draft (on-device report: don't lose a partially
         // typed message on leaving the room) before attaching the watcher
@@ -238,6 +239,7 @@ class TimelineFragment : SoftkeyFragment(), DirectionalKeyReceiver {
                 state.pinnedCount,
             )
         }
+        b.unverifiedBand.isVisible = state.showUnverifiedBand
         b.unencryptedBand.isVisible = state.showUnencryptedBand
         b.emptyView.isVisible = state.isEmpty
         b.timelineList.isVisible = !state.isEmpty
